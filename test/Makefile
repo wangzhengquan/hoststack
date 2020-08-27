@@ -11,7 +11,7 @@ LDLIBS += -lusgcommon
 
 INCLUDE += -I${ROOT}/include/usgcommon
 
-PROGS =	${DEST}/clone1
+PROGS =	${DEST}/clone1 ${DEST}/clone_user
 
 default: build
 

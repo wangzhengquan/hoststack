@@ -3,7 +3,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
-#include <sys/capability.h>
 #include <stdio.h>
 #include <sched.h>
 #include <signal.h>

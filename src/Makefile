@@ -1,60 +1,32 @@
-#
-# Makefile for common library.
-#
 ROOT=..
-
 PLATFORM=$(shell $(ROOT)/systype.sh)
 include $(ROOT)/Make.defines.$(PLATFORM)
 
-PREFIX = ${DEST}
-LIBKUCKER = $(DEST)/libkucker.a
-DLIBKUCKER = $(DEST)/libkucker.so
+LDLIBS+=-Wl,-rpath=${ROOT}/lib
+# 开源工具包路径
+LDDIR += -L${ROOT}/lib
 
-SOURCES := $(wildcard *.c)
-OBJS   = $(patsubst %.c, $(DEST)/%.o, $(SOURCES)) 
+# 开源工具包
+LDLIBS += -lusgcommon
 
-MYLIBS = $(LIBKUCKER) $(DLIBKUCKER)
+INCLUDE += -I${ROOT}/include/usgcommon
 
-ifeq ($(DEBUG),y)
-  MYLIBS = $(LIBKUCKER)
-else
-  MYLIBS = $(LIBKUCKER) $(DLIBKUCKER)
-endif
+PROGS =	${DEST}/kucker
 
-all: build
- 
+default: build
+	test -d ${DEST} || mkdir ${DEST}
 
-build: $(MYLIBS)
-
-#static lib
-$(LIBKUCKER): $(OBJS)
-	$(AR) rv $@ $?
-	$(RANLIB) $@
-
-#dynamic lib
-$(DLIBKUCKER): $(SOURCES)
-	rm -f *.o
-	$(CC) -fPIC -shared $(CFLAGS) $^ -o $@ $(LDFLAGS)
+build: ${PROGS}
 
 
-#PREFIX is environment variable, but if it is not set, then set default value
-ifeq ($(PREFIX),)
-    PREFIX := /usr/local
-endif
+# class
+${DEST}/kucker: kucker.c
 
-# 使用方式： g++ test1.c  -lcommon
-install: $(MYLIBS)
-	install -d $(PREFIX)/lib/
-	install -m 644 $^ $(PREFIX)/lib/
-	install -d $(PREFIX)/include/kucker
-	install -m 644 include/* $(PREFIX)/include/kucker
 
 clean:
-	rm -f $(TEMPFILES)
+	rm -f $(PROGS) $(TEMPFILES)
 
-.PHONY: build clean install
-# include $(ROOT)/Make.libapue.inc
+${DEST}/%:	%.c
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
-
-$(DEST)/%.o:	%.c
-	$(CC) $(CFLAGS) -c $^ -o $@ $(LDFLAGS) $(LDLIBS)
+# include $(ROOT)/Make.common.inc

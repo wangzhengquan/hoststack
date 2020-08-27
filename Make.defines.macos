@@ -1,0 +1,21 @@
+# Common make definitions, customized for each platform
+
+# Definitions required in all program directories to compile and link
+# C programs using gcc.
+
+CC=g++
+COMPILE.c=$(CC) $(CFLAGS) $(CPPFLAGS) -c
+LINK.c=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+LDFLAGS=
+LDDIR=-L$(ROOT)/common
+LDLIBS=$(LDDIR) -lusgcommon $(EXTRALIBS)
+CFLAGS=-ansi $(INCLUDE) -I. -I./include  -I$(ROOT)/common/include -std=c++11 -Wall -DMACOS -D_DARWIN_C_SOURCE $(EXTRA)
+RANLIB=ranlib
+AR=ar
+AWK=awk
+LIBCOMMON=$(ROOT)/common/libusgcommon.a
+
+# Common temp files to delete from each directory.
+TEMPFILES=core core.* *.o temp.* *.out
+
+

@@ -14,7 +14,7 @@ INCLUDE += -I${ROOT}/include/usgcommon
 PROGS =	${DEST}/kucker
 
 default: build
-	test -d ${DEST} || mkdir ${DEST}
+	
 
 build: ${PROGS}
 
@@ -24,6 +24,7 @@ ${DEST}/kucker: kucker.c
 
 
 clean:
+	rm -rf ${DEST}
 	rm -f $(PROGS) $(TEMPFILES)
 
 ${DEST}/%:	%.c

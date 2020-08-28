@@ -1,4 +1,4 @@
-image_base_dir="/var/lib/kucker"
+image_base_dir="/data/kucker"
 test -d ${image_base_dir} || mkdir ${image_base_dir}
 test -d ${image_base_dir}/aufs || mkdir  ${image_base_dir}/aufs
 test -d ${image_base_dir}/containers || mkdir ${image_base_dir}/containers

@@ -72,11 +72,10 @@ extern "C" {
 #include <set>
 
 #include <functional>
-
 #include <thread>
- 
 #endif
 
+#include "usg_typedef.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,6 +89,9 @@ void err_msg(int error, const char *fmt, ...);
 char *ltrim(char *str, const char *seps);
 char *rtrim(char *str, const char *seps);
 char *trim(char *str, const char *seps);
+
+char * str_join( const char *seperator, const size_t n, char *first...);
+char * path_join(const size_t n, char *path, ...);
 
 static inline int 
 itoa(int num, char *str) 

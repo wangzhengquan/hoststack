@@ -1,4 +1,4 @@
-DIRS = test
+DIRS = src test
 
 all:
 	for i in $(DIRS); do \

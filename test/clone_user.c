@@ -58,7 +58,7 @@ int container_main(void* arg)
     sethostname("container",10);
 
     //remount "/proc" to make sure the "top" and "ps" show container's information
-    mount("proc", "/proc", "proc", 0, NULL);
+    // mount("proc", "/proc", "proc", 0, NULL);
 
     execv(container_args[0], container_args);
     printf("Something's wrong!\n");
@@ -78,7 +78,6 @@ int main()
 
     int container_pid = clone(container_main, container_stack+STACK_SIZE, 
             CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWUSER | SIGCHLD, NULL);
-
     
     printf("Parent [%5d] - Container [%5d]!\n", getpid(), container_pid);
 

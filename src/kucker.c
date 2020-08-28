@@ -12,7 +12,7 @@
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 static char container_stack[STACK_SIZE];
-static  char *kucker_repo = "/data/kucker";
+static const char *kucker_repo = "/data/kucker";
 typedef struct arg_t
 {
   int argc;
@@ -37,7 +37,7 @@ int container_main(void* arg_)
    
     arg_t* arg = (arg_t *)arg_;
     //set hostname
-    int rv;
+    // int rv;
     char rootfs[1024];
     char line[8192];
     char *action;
@@ -49,7 +49,7 @@ int container_main(void* arg_)
     }
 
 printf("action===%s\n", action);
-    char *container_id="2";
+    const char *container_id="2";
     
 
     sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
@@ -138,58 +138,61 @@ printf("action===%s\n", action);
     }
     
    
-   
-    //remount "/proc" to make sure the "top" and "ps" show container's information
-    sprintf(line, "%s/proc", rootfs);
-    if (mount("proc", line, "proc", 0, NULL) !=0 ) {
-        perror("proc");
+   if(strcmp(action, "run") == 0 || strcmp(action, "start") == 0) {
+        //remount "/proc" to make sure the "top" and "ps" show container's information
+        sprintf(line, "%s/proc", rootfs);
+        if (mount("proc", line, "proc", 0, NULL) !=0 ) {
+            perror("proc");
+        }
+        sprintf(line, "%s/sys", rootfs);
+        if (mount("sysfs", line, "sysfs", 0, NULL)!=0) {
+            perror("sys");
+        }
+        sprintf(line, "%s/tmp", rootfs);
+        if (mount("none", line, "tmpfs", 0, NULL)!=0) {
+            perror("tmp");
+        }
+        sprintf(line, "%s/dev", rootfs);
+        if (mount("udev", line, "devtmpfs", 0, NULL)!=0) {
+            perror("dev");
+        }
+        sprintf(line, "%s/dev/pts", rootfs);
+        if (mount("devpts", line, "devpts", 0, NULL)!=0) {
+            perror("dev/pts");
+        }
+        // sprintf(line, "%s/dev/shm", rootfs);
+        // if (mount("shm", line, "tmpfs", 0, NULL)!=0) {
+        //     perror("dev/shm");
+        // }
+        sprintf(line, "%s/run", rootfs);
+        if (mount("tmpfs", line, "tmpfs", 0, NULL)!=0) {
+            perror("run");
+        }
+        /* 
+         * 模仿Docker的从外向容器里mount相关的配置文件 
+         * 你可以查看：/var/lib/docker/containers/<container_id>/目录，
+         * 你会看到docker的这些文件的。
+         */
+        // if (mount("conf/hosts", "rootfs/etc/hosts", "none", MS_BIND, NULL)!=0 ||
+        //       mount("conf/hostname", "rootfs/etc/hostname", "none", MS_BIND, NULL)!=0 ||
+        //       mount("conf/resolv.conf", "rootfs/etc/resolv.conf", "none", MS_BIND, NULL)!=0 ) {
+        //     perror("conf");
+        // }
+        /* 模仿docker run命令中的 -v, --volume=[] 参数干的事 */
+        // sprintf(mnt, "%s/mnt", rootfs);
+        // if (mount("/tmp/t1", mnt, "none", MS_BIND, NULL)!=0) {
+        //     perror("mnt");
+        // }
+        /* chroot 隔离目录 */
+        if ( chdir(rootfs) != 0 || chroot("./") != 0 ){
+            perror("chdir/chroot");
+        }
+        execv(container_args[0], container_args);
+        perror("exec");
     }
-    sprintf(line, "%s/sys", rootfs);
-    if (mount("sysfs", line, "sysfs", 0, NULL)!=0) {
-        perror("sys");
-    }
-    sprintf(line, "%s/tmp", rootfs);
-    if (mount("none", line, "tmpfs", 0, NULL)!=0) {
-        perror("tmp");
-    }
-    sprintf(line, "%s/dev", rootfs);
-    if (mount("udev", line, "devtmpfs", 0, NULL)!=0) {
-        perror("dev");
-    }
-    sprintf(line, "%s/dev/pts", rootfs);
-    if (mount("devpts", line, "devpts", 0, NULL)!=0) {
-        perror("dev/pts");
-    }
-    sprintf(line, "%s/dev/shm", rootfs);
-    if (mount("shm", line, "tmpfs", 0, NULL)!=0) {
-        perror("dev/shm");
-    }
-    sprintf(line, "%s/run", rootfs);
-    if (mount("tmpfs", line, "tmpfs", 0, NULL)!=0) {
-        perror("run");
-    }
-    /* 
-     * 模仿Docker的从外向容器里mount相关的配置文件 
-     * 你可以查看：/var/lib/docker/containers/<container_id>/目录，
-     * 你会看到docker的这些文件的。
-     */
-    // if (mount("conf/hosts", "rootfs/etc/hosts", "none", MS_BIND, NULL)!=0 ||
-    //       mount("conf/hostname", "rootfs/etc/hostname", "none", MS_BIND, NULL)!=0 ||
-    //       mount("conf/resolv.conf", "rootfs/etc/resolv.conf", "none", MS_BIND, NULL)!=0 ) {
-    //     perror("conf");
-    // }
-    /* 模仿docker run命令中的 -v, --volume=[] 参数干的事 */
-    // sprintf(mnt, "%s/mnt", rootfs);
-    // if (mount("/tmp/t1", mnt, "none", MS_BIND, NULL)!=0) {
-    //     perror("mnt");
-    // }
-    /* chroot 隔离目录 */
-    if ( chdir(rootfs) != 0 || chroot("./") != 0 ){
-        perror("chdir/chroot");
-    }
-    execv(container_args[0], container_args);
-    perror("exec");
+  
     printf("Something's wrong!\n");
+
     return 1;
 }
 
@@ -197,9 +200,9 @@ int main(int argc, char *argv[])
 {
     printf("Parent [%5d] - start a container!\n", getpid());
     
-    arg_t arg ;
-    arg.argc = argc;
-    arg.argv = argv;
+    arg_t arg = {argc, argv};
+    // arg.argc = ;
+    // arg.argv = argv;
     // int rv;
     // char mnt[1024];
     // char rootfs[1024];
@@ -207,7 +210,8 @@ int main(int argc, char *argv[])
     // char *action = argv[1];
     // char *container_id="2";
    
-    int container_pid = clone(container_main, container_stack+STACK_SIZE, CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &arg);
+    int container_pid = clone(container_main, container_stack+STACK_SIZE, 
+        CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &arg);
     // sleep(5);
     waitpid(container_pid, NULL, 0);
     printf("Parent - container stopped!\n");

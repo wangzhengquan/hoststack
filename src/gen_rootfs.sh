@@ -6,7 +6,9 @@ test -d ${kucker_repo}/aufs/diff || mkdir  ${kucker_repo}/aufs/diff
 test -d ${kucker_repo}/aufs/layers || mkdir  ${kucker_repo}/aufs/layers
 test -d ${kucker_repo}/containers || mkdir ${kucker_repo}/containers
 
-container_id="1"
+container_id="2"
+
+exit 0
 
 test -d ${kucker_repo}/containers/${container_id} || mkdir ${kucker_repo}/containers/${container_id}
 test -d ${kucker_repo}/aufs/diff/${container_id} || mkdir  ${kucker_repo}/aufs/diff/${container_id}
@@ -21,8 +23,15 @@ sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/lib64=ro
 sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/sbin=ro none ${kucker_repo}/aufs/mnt/${container_id}/sbin
 sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/usr=ro none ${kucker_repo}/aufs/mnt/${container_id}/usr
 sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/var=ro none ${kucker_repo}/aufs/mnt/${container_id}/var
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${kucker_repo}/aufs/mnt/${container_id}/etc
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/run=ro none ${kucker_repo}/aufs/mnt/${container_id}/run
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/opt=ro none ${kucker_repo}/aufs/mnt/${container_id}/opt
+
 
 exit 0
+
+
+
 
 # sudo mount -t aufs -o dirs=./diff2=rw none ./rootfs2
 sudo mount -t aufs -o dirs=/bin=ro none ./rootfs2/bin

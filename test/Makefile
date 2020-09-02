@@ -7,12 +7,12 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 #LDDIR += -L${ROOT}/lib
 
 # 开源工具包
-LDLIBS += -lusgcommon
+LDLIBS += -lusgcommon -luuid
 
-INCLUDES += -I$(ROOT)/include/usgcommon
+INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
 
 
-PROGS =	${DEST}/clone1 ${DEST}/clone_user ${DEST}/getopt_long
+PROGS =	${DEST}/clone1 ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test
 
 DEPENDENCES = $(patsubst %, %.d, $(PROGS)) 
 

@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "usg_common.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
@@ -9,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <uuid.h>
 
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
@@ -52,6 +52,42 @@ void usage() {
 }
 
 
+char* gen_container_id(char *uuid1_str) {
+    uuid_t uuid1;
+    uuid_generate(uuid1);
+    uuid_unparse(uuid1, uuid1_str);
+    fprintf(stdout, "uuid1 result: %s\n", uuid1_str);
+    return uuid1_str;
+}
+
+void mount_volume(const char *container_id, const char *src, const char *dest) {
+    char rootfs[1024];
+    char line[8192];
+    sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+
+
+    
+
+    sprintf(line, "test -d %s || sudo mkdir -p %s", src, src);
+    if(system(line) != 0) {
+        perror(line);
+    }
+
+    char *dest_tmp = path_join(2, rootfs, dest);
+    sprintf(line, "test -d %s || sudo mkdir -p %s", dest_tmp, dest_tmp);
+    if(system(line) != 0) {
+        perror(line);
+    }
+printf("src=%s\n dest=%s\n", src, dest_tmp);
+    sprintf(line, "sudo mount -t aufs -o dirs=%s=rw none %s", src, dest_tmp);
+    if(system(line) != 0) {
+        perror(line);
+    }
+
+    free(dest_tmp);
+
+}
+
 void create_container(char *container_id) {
     char rootfs[1024];
     char line[8192];
@@ -62,12 +98,9 @@ void create_container(char *container_id) {
      
     // sethostname("container",10);
     // bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
-    sprintf(line, "test -d %s/aufs || sudo mkdir -p %s/aufs", kucker_repo, kucker_repo);
-    if(system(line) != 0) {
-        perror(line);
-    }
     
-    sprintf(line, "test -d %s/aufs/mnt || sudo mkdir -p %s/aufs/mnt", kucker_repo, kucker_repo);
+    
+    sprintf(line, "test -d %s || sudo mkdir -p %s", rootfs, rootfs);
     if(system(line) != 0) {
         perror(line);
     }
@@ -92,12 +125,9 @@ void create_container(char *container_id) {
     if(system(line) != 0) {
         perror(line);
     }
-    sprintf(line, "test -d %s/aufs/mnt/%s || mkdir %s/aufs/mnt/%s", kucker_repo, container_id, kucker_repo, container_id);
-    if(system(line) != 0) {
-        perror(line);
-    }
+   
 
-    sprintf(line, "cd %s/aufs/mnt/%s && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", kucker_repo, container_id);
+    sprintf(line, "cd %s && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", rootfs);
     if(system(line) != 0) {
         perror(line);
     }
@@ -156,8 +186,7 @@ void create_container(char *container_id) {
         perror(line);
     }
 
-
-
+    // ===================
 
     sprintf(line, "%s/sys", rootfs);
     if (mount("sysfs", line, "sysfs", 0, NULL)!=0) {
@@ -167,6 +196,10 @@ void create_container(char *container_id) {
     if (mount("udev", line, "devtmpfs", 0, NULL)!=0) {
         perror("dev");
     }
+
+    // ====================
+
+
 }
 
 
@@ -232,7 +265,7 @@ void start_container(const char *container_id, int argc, char *argv[]) {
     if ( chdir(rootfs) != 0 || chroot("./") != 0 ){
         perror("chdir/chroot");
     }
-    execv(argv[0], argv);
+    execvp(argv[0], argv);
     perror("exec");
 }
 
@@ -323,9 +356,36 @@ void exe_run_commond (int argc, char *argv[]) {
         printf ("%d, %d, %s \n", optind, argc, argv[optind++]);
       putchar ('\n');
   }
-  char * container_id = "4";
+  char container_id[37];
+  gen_container_id(container_id);
   create_container(container_id);
+
+  if(volume != NULL) {
+    char *src=NULL, *dest=NULL;
+    src = strtok(volume, ":");
+    if(src != NULL && strlen(src) > 0) {
+        printf("%d, %d, %d\n", *src, '/', *src == '/');
+        if(*src != '/') {
+            err_exit(0, "invalid mount path: '%s' mount path must be absolute.", src);
+        }
+        dest = strtok(NULL, ":");
+        if(dest != NULL && strlen(dest) > 0) {
+            if(*dest != '/') {
+                err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
+            }
+            mount_volume(container_id, src, dest);
+        } else {
+            err_exit(0, "param volume format err.");
+        }
+    } else {
+        err_exit(0, "param volume format err.");
+    }
+     
+  }
+
   start_container(container_id, cmd_arr_len, cmd_arr);
+
+  printf("%s", container_id);
 }
 
 

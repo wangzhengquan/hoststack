@@ -2,6 +2,7 @@
 
 # Definitions required in all program directories to compile and link
 # C programs using gcc.
+DEBUG=y
 
 CC = g++
 # COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c

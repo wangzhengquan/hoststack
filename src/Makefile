@@ -7,9 +7,9 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 #LDDIR += -L${ROOT}/lib
 
 # 开源工具包
-LDLIBS += -lusgcommon
+LDLIBS += -lusgcommon -luuid
 
-INCLUDES += -I$(ROOT)/include/usgcommon
+INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
 
 
 PROGS =	$(DEST)/kucker
@@ -20,7 +20,7 @@ DEPENDENCES = $(patsubst %, %.d, $(PROGS))
 
 build:	 $(PROGS)
 	cp -a $(ROOT)/etc $(DEST) 
-	sudo chmod 700 $(DEST)/kucker
+	sudo chmod 544 $(DEST)/kucker
 	sudo chown root:root $(DEST)/kucker
 # class
 $(DEST)/kucker : kucker.c

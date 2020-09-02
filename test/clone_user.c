@@ -11,7 +11,7 @@
 #define STACK_SIZE (1024 * 1024)
 
 static char container_stack[STACK_SIZE];
-char* const container_args[] = {
+char * const container_args[] = {
     "/bin/bash",
     NULL
 };

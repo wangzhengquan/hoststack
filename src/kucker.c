@@ -1,15 +1,17 @@
 #include "usg_common.h"
 #include "kucker_config.h"
+#include "container_manager.h"
+
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/syscall.h>
 #include <sys/mount.h>
-#include <stdio.h>
 #include <sched.h>
 #include <signal.h>
-#include <unistd.h>
-#include <string.h>
 #include <getopt.h>
 #include <uuid.h>
+
+
 
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
@@ -332,6 +334,79 @@ typedef struct run_option_t {
   char *container_id;
 } run_option_t;
 
+
+void mpivot_root(const char *rootfs) {
+  if (mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL)!=0) {
+    err_exit(errno, "mpivot_toot mount: %s.", rootfs);
+  }
+  const char *pivot_dir = path_join(2, rootfs, ".pivot_root");
+  if (mkdir(pivot_dir, DIR_MODE) == -1) {
+    err_exit(errno, "mpivot_toot mkdir: %s", pivot_dir);
+  }
+
+  // if(unshare(CLONE_NEWNS) == -1) {
+  //    err_exit(errno, "mpivot_toot unshare");
+  // }
+  system("unshare -m");
+
+  if(syscall(SYS_pivot_root, rootfs, pivot_dir) == -1) {
+     err_exit(errno, "mpivot_toot pivot_root: %s, %s", rootfs, pivot_dir);
+  }
+
+  if ( chroot(rootfs) != 0)
+  {
+    err_exit(errno, "mpivot_toot  chroot: %s", rootfs);
+  }
+
+  if ( chdir("/") != 0  )
+  {
+    err_exit(errno, "mpivot_toot  chdir: %s", rootfs);
+  }
+
+  if(umount2("/.pivot_root", MNT_DETACH) == -1) {
+     err_exit(errno, "mpivot_toot  umount2");
+  }
+
+  if(remove("/.pivot_root") == -1) {
+    err_msg(errno, "mpivot_toot  remove");
+  }
+
+}
+
+
+// func pivotRoot(root string) error {
+//   /**
+//     为了使当前root的老 root 和新 root 不在同一个文件系统下，我们把root重新mount了一次
+//     bind mount是把相同的内容换了一个挂载点的挂载方法
+//   */
+//   if err := syscall.Mount(root, root, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
+//     return fmt.Errorf("Mount rootfs to itself error: %v", err)
+//   }
+//   // 创建 rootfs/.pivot_root 存储 old_root
+//   pivotDir := filepath.Join(root, ".pivot_root")
+//   if err := os.Mkdir(pivotDir, 0777); err != nil {
+//     return err
+//   }
+//   // pivot_root 到新的rootfs, 现在老的 old_root 是挂载在rootfs/.pivot_root
+//   // 挂载点现在依然可以在mount命令中看到
+//   if err := syscall.PivotRoot(root, pivotDir); err != nil {
+//     return fmt.Errorf("pivot_root %v", err)
+//   }
+//   // 修改当前的工作目录到根目录
+//   if err := syscall.Chdir("/"); err != nil {
+//     return fmt.Errorf("chdir / %v", err)
+//   }
+
+//   pivotDir = filepath.Join("/", ".pivot_root")
+//   // umount rootfs/.pivot_root
+//   if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
+//     return fmt.Errorf("unmount pivot_root dir %v", err)
+//   }
+//   // 删除临时文件夹
+//   return os.Remove(pivotDir)
+// }
+
+
 int container_main(void* arg)
 {
   // char *rootfs;
@@ -391,28 +466,34 @@ int container_main(void* arg)
   {
     err_exit(errno,"chdir/chroot:%s", rootfs);
   }
+  // mpivot_root(rootfs);
 
    //sprintf(line, "%s/containers/%s/out.log", kucker_repo, mopt->container_id);
   //printf("log:%s\n", line);
-  if(mopt->detach) {
-    // int outfd = open("out.log", O_RDWR | O_CREAT,
-    //             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
-    //             S_IROTH | S_IWOTH);
-    int outfd = open("/dev/tty", O_RDWR, 0);
-    if(outfd == -1) {
-      err_exit(errno, "container_main open:%s", line);
-    }
-    dup2(outfd, 1);
-    //dup2(outfd, 2);
-    int infd = open("/dev/tty", O_RDONLY, 0);
-    dup2(infd, 0);
-  }
+  // if(mopt->detach) {
+  //   // int outfd = open("out.log", O_RDWR | O_CREAT,
+  //   //             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
+  //   //             S_IROTH | S_IWOTH);
+  //   int outfd = open("/dev/tty", O_RDWR, 0);
+  //   if(outfd == -1) {
+  //     err_exit(errno, "container_main open:%s", line);
+  //   }
+  //   dup2(outfd, 1);
+  //   //dup2(outfd, 2);
+  //   int infd = open("/dev/tty", O_RDONLY, 0);
+  //   dup2(infd, 0);
+  // }
+
+
+  system("touch /usr/lib/tmp");
+
   printf("==============2 %s\n",  mopt->cmd_arr[0]);
   execvp(mopt->cmd_arr[0], mopt->cmd_arr);
   perror("exec");
 
   return 1;
 }
+
 
 
 
@@ -545,6 +626,19 @@ void exe_run_commond (int argc, char *argv[])
   // close(pipefd[1]);
 
   
+  container_info_t container_info;
+  container_info.id = mopt.container_id;
+  if(mopt.name != NULL) {
+    container_info.name = mopt.name;
+  }
+  
+  char *cmd_str = str_join2(mopt.cmd_arr,  mopt.cmd_arr_len, " ");
+  container_info.command = cmd_str;
+  // std::cout << "container_info.command ===" << container_info.command << std::endl;
+  free(cmd_str);
+  container_info.create_time = time(0);
+  container_info.status = CONTAINER_RUNNING;
+  ContainerManager::saveContainerInfo(container_info);
 
   printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
 

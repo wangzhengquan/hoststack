@@ -1,5 +1,5 @@
 # debug "make --just-print"
-DIRS = src 
+DIRS = src  test
 
 all:
 	@for i in $(DIRS); do \

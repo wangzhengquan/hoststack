@@ -1,4 +1,5 @@
 #include "usg_common.h"
+#include "kucker_config.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
@@ -13,15 +14,7 @@
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 static char container_stack[STACK_SIZE];
-static const char *kucker_repo = "/data/kucker";
-typedef struct arg_t
-{
-  int argc;
-  char **argv;
-
-} arg_t;
-
-
+ 
 
 int pipefd[2];
 
@@ -62,7 +55,6 @@ char* gen_container_id(char *uuid1_str)
   uuid_t uuid1;
   uuid_generate(uuid1);
   uuid_unparse(uuid1, uuid1_str);
-  fprintf(stdout, "uuid1 result: %s\n", uuid1_str);
   return uuid1_str;
 }
 
@@ -267,28 +259,29 @@ void create_container(char *container_id)
 }
 
 
-void mount_container(const char *container_id)
+void mount_container(const char *rootfs)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
-  char rootfs[1024];
+  // char rootfs[1024];
+  
+  // sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
   char line[8192];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
   sprintf(line, "%s/proc", rootfs);
   if (mount("proc", line, "proc", 0, NULL) != 0 )
   {
-    perror("proc");
+    err_exit(errno, "mount_container proc: %s", line);
   }
 
   sprintf(line, "%s/tmp", rootfs);
   if (mount("none", line, "tmpfs", 0, NULL) != 0)
   {
-    perror("tmp");
+    err_exit(errno, "mount_container tmp: %s", line);
   }
 
   sprintf(line, "%s/dev/pts", rootfs);
   if (mount("devpts", line, "devpts", 0, NULL) != 0)
   {
-    perror("dev/pts");
+    err_exit(errno, "mount_container dev/pts: %s", line);
   }
   // sprintf(line, "%s/dev/net", rootfs);
   // if (mount("net", line, "net", 0, NULL)!=0) {
@@ -328,22 +321,28 @@ void mount_container(const char *container_id)
 
 }
 
-int container_main(void* arg_)
+
+typedef struct run_option_t {
+  bool interactive;
+  bool detach;
+  char *volume;
+  char *name;
+  char ** cmd_arr;
+  int cmd_arr_len;
+  char *container_id;
+} run_option_t;
+
+int container_main(void* arg)
 {
-  char *rootfs;
-  size_t rootfs_len;
-  char *cmd;
-  size_t cmd_len;
+  // char *rootfs;
+  // size_t rootfs_len;
+  // char *cmd;
+  // size_t cmd_len;
   printf("in container...\n ");
- 
-  close(pipefd[1]);
-  // char buf[1024];\
-  // size_t len;
-  // while((len = read(pipefd[0], buf, 1024)) > 0) {
-  //   // puts("===========\n");
-  //   write(1, buf, len);
-  // }
-  FILE * rf = fdopen(pipefd[0], "r");
+  run_option_t * mopt = (run_option_t *)arg;
+  // close(pipefd[1]);
+  
+  // FILE * rf = fdopen(pipefd[0], "r");
 
   // char *line = NULL;
   //  size_t len = 0;
@@ -356,58 +355,86 @@ int container_main(void* arg_)
 
   
 
-  if(getline(&rootfs, &rootfs_len, rf) == -1) {
-    err_exit(errno, "container_main rootfs");
-  }
+  // if(getline(&rootfs, &rootfs_len, rf) == -1) {
+  //   err_exit(errno, "container_main rootfs");
+  // }
 
-  if(rootfs[strlen(rootfs) - 1] == '\n') {
-    rootfs[strlen(rootfs) - 1] = '\0';
-  }
-  //printf("rootfs=%s =====", rootfs);
+  // if(rootfs[strlen(rootfs) - 1] == '\n') {
+  //   rootfs[strlen(rootfs) - 1] = '\0';
+  // }
 
-  if (getline(&cmd, &cmd_len, rf) == -1) {
-    err_exit(errno, "container_main cmd");
-  }
-  // printf("cmd=%s\n", cmd);
-  fclose(rf);
-  close(pipefd[0]);
+  // if (getline(&cmd, &cmd_len, rf) == -1) {
+  //   err_exit(errno, "container_main cmd");
+  // }
+  // fclose(rf);
+  // close(pipefd[0]);
+
+  char line[4096];
+  char rootfs[1024];
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt->container_id);
+
+  mount_container(rootfs);
+ 
+  
+  // char **cmd_arr;
+  // size_t cmd_arr_len = str_split(cmd, " ", &cmd_arr);
+  // if(cmd_arr_len == 0) {
+  //   err_exit(0, "container_main: invalid command");
+  // }
+ 
+
+
+
 
   /* chroot 隔离目录 */
-  if ( chroot (rootfs) != 0 || chdir("/") != 0)
+  if ( chdir(rootfs) != 0 || chroot("./") != 0 )
   {
     err_exit(errno,"chdir/chroot:%s", rootfs);
   }
-  
-  char **cmd_arr;
-  size_t cmd_arr_len = str_split(cmd, " ", &cmd_arr);
-  if(cmd_arr_len == 0) {
-    err_exit(0, "container_main: invalid command");
+
+   //sprintf(line, "%s/containers/%s/out.log", kucker_repo, mopt->container_id);
+  //printf("log:%s\n", line);
+  if(mopt->detach) {
+    // int outfd = open("out.log", O_RDWR | O_CREAT,
+    //             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
+    //             S_IROTH | S_IWOTH);
+    int outfd = open("/dev/tty", O_RDWR, 0);
+    if(outfd == -1) {
+      err_exit(errno, "container_main open:%s", line);
+    }
+    dup2(outfd, 1);
+    //dup2(outfd, 2);
+    int infd = open("/dev/tty", O_RDONLY, 0);
+    dup2(infd, 0);
   }
-  execvp(cmd_arr[0], cmd_arr);
+  printf("==============2 %s\n",  mopt->cmd_arr[0]);
+  execvp(mopt->cmd_arr[0], mopt->cmd_arr);
   perror("exec");
 
   return 1;
 }
 
 
+
 void exe_run_commond (int argc, char *argv[])
 {
   int c;
 
-  bool interactive = false;
-  bool detach = false;
-  char *volume = NULL;
-  char *name = NULL;
+  // bool interactive = false;
+  // bool detach = false;
+  // char *volume = NULL;
+  // char *name = NULL;
 
-  char ** cmd_arr;
+  // char ** cmd_arr;
+  run_option_t mopt = {};
   char * default_cmd_arr[] =
   {
     "/bin/bash",
     "-l",
     NULL
   };
-  cmd_arr = default_cmd_arr;
-  int cmd_arr_len = 2;
+  mopt.cmd_arr = default_cmd_arr;
+  mopt.cmd_arr_len = 2;
 
   opterr = 0;
   while (1)
@@ -424,7 +451,7 @@ void exe_run_commond (int argc, char *argv[])
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    c = getopt_long (argc, argv, "+iv:", long_options, &option_index);
+    c = getopt_long (argc, argv, "+idv:", long_options, &option_index);
 
     /* Detect the end of the options. */
     if (c == -1)
@@ -445,21 +472,21 @@ void exe_run_commond (int argc, char *argv[])
 
     case 'i':
       // puts ("==interactive \n");
-      interactive = true;
+      mopt.interactive = true;
       break;
     case 'd':
       // puts ("==interactive \n");
-      detach = true;
+      mopt.detach = true;
       break;
 
     case 'v':
       // printf ("==volume with value `%s'\n", optarg);
-      volume = (optarg);
+      mopt.volume = (optarg);
       break;
 
     case 'n':
       // printf ("==name with value `%s'\n", optarg);
-      name = (optarg);
+      mopt.name = (optarg);
       break;
 
     case '?':
@@ -478,8 +505,8 @@ void exe_run_commond (int argc, char *argv[])
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
   {
-    cmd_arr = &argv[optind];
-    cmd_arr_len = argc - optind;
+    mopt.cmd_arr = &argv[optind];
+    mopt.cmd_arr_len = argc - optind;
     // printf ("non-option ARGV-elements: ");
     // while (optind < argc)
     //   printf ("%d, %d, %s \n", optind, argc, argv[optind++]);
@@ -490,38 +517,39 @@ void exe_run_commond (int argc, char *argv[])
   create_container(container_id);
 
 // 容器卷
-  if (volume != NULL)
+  if ( mopt.volume != NULL)
   {
-    mount_volume(container_id, volume);
+    mount_volume(container_id,  mopt.volume);
   }
-
-  mount_container(container_id);
+  mopt.container_id = container_id;
+  
    
-  pipe(pipefd);
+  //pipe(pipefd);
   int container_pid = clone(container_main, container_stack + STACK_SIZE,
-                            CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, NULL);
+                               CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
 
-  close(pipefd[0]);
-  char rootfs[1024];
-  sprintf(rootfs, "%s/aufs/mnt/%s\n", kucker_repo, container_id);
-  if(write(pipefd[1], rootfs, strlen(rootfs)) < 0) {
-    perror("exe_run_commond write rootfs");
-  }
+  // pipe向容器进程发送参数
+  // close(pipefd[0]);
+  // char rootfs[1024];
+  // sprintf(rootfs, "%s/aufs/mnt/%s\n", kucker_repo, container_id);
+  // if(write(pipefd[1], rootfs, strlen(rootfs)) < 0) {
+  //   perror("exe_run_commond write rootfs");
+  // }
 
-  char *command_line = str_join2(cmd_arr, cmd_arr_len, " ");
-  if(write(pipefd[1], command_line, strlen(command_line)) < 0) {
-    perror("exe_run_commond write command_line");
-  }
-  printf("write command_line : %s\n", command_line);
-  free(command_line);
-  close(pipefd[1]);
+  // char *command_line = str_join2(cmd_arr, cmd_arr_len, " ");
+  // if(write(pipefd[1], command_line, strlen(command_line)) < 0) {
+  //   perror("exe_run_commond write command_line");
+  // }
+  // printf("write command_line : %s\n", command_line);
+  // free(command_line);
+  // close(pipefd[1]);
 
   
 
-  printf("Parent_pid [%5d] - Container [%5d]!\n", getpid(), container_pid);
+  printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
 
 
-  if(!detach) {
+  if(!mopt.detach) {
     waitpid(container_pid, NULL, 0);
     printf("Parent - container stopped!\n");
   } else {

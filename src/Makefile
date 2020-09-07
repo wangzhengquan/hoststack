@@ -11,6 +11,7 @@ LDLIBS += -lusgcommon -luuid -ljsoncpp
 
 INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
 
+SOURCES := $(wildcard *.c ./**/*.c)
 
 PROGS =	$(DEST)/kucker
 
@@ -22,9 +23,9 @@ build:	 $(PROGS)
 	cp -a $(ROOT)/etc $(DEST) 
 	sudo chmod 544 $(DEST)/kucker
 	sudo chown root:root $(DEST)/kucker
-# class
-$(DEST)/kucker : kucker.c
 
+# class
+$(DEST)/kucker : $(SOURCES)
 
 
 clean:

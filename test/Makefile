@@ -12,7 +12,7 @@ LDLIBS += -lusgcommon -luuid
 INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
 
 
-PROGS =	${DEST}/clone1 ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test \
+PROGS =	${DEST}/test_str ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test \
 	${DEST}/test_file
 
 DEPENDENCES = $(patsubst %, %.d, $(PROGS)) 

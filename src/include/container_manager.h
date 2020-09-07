@@ -4,38 +4,25 @@
 
 #include "usg_common.h"
 #include "kucker_config.h"
-#include <jsoncpp/json.h>
+
 
  
 
 class ContainerManager {
 public:
-	static void saveContainerInfo(container_info_t &info) {
-		std::ostringstream value;
-		Json::Value root;
-	printf("==============2\n");
-		root["id"] = info.id;
-		root["name"] = info.name;
-		root["pid"] = info.pid;
-		root["command"] = info.command;
-		value.seekp(0);
-		value << info.create_time;
-		root["create_time"] = value.str();
-		root["status"] = info.status;
+	static void save(container_info_t &info);
 
-	  auto str = root.toStyledString();
-    std::cout << str << std::endl;
+	static std::vector<container_info_t>* list() ;
 
-printf("==============3\n");
-    //sprintf(line, "test -d %s/containers/%s || mkdir %s/containers/%s", kucker_repo, container_id, kucker_repo, container_id);
-  
-  	std::ostringstream info_location;
-  	info_location << kucker_repo << "/containers/" << info.id << "/config.json";
-    std::ofstream ofss;
-    ofss.open(info_location.str());
-    ofss << str;
-    ofss.close();
-	}
+	static void create_container(const char *container_id);
+
+	static void mount_container(const char *rootfs);
+
+	static char* gen_id(char *uuidstr);
+
+	static void mount_volume (char *container_id, char *volume) ;
+	static void bind_mount(const char *container_id, const char *src, const char *_dest);
+	
 };
 
 #endif

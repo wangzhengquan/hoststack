@@ -11,7 +11,12 @@
 #define STACK_SIZE (1024 * 1024)
 // static char container_stack[STACK_SIZE];
 
-typedef struct run_option_t {
+static void usage()
+{
+  printf("usage: param error\n");
+}
+
+struct container_run_option_t {
   bool interactive;
   bool detach;
   char *volume;
@@ -19,7 +24,7 @@ typedef struct run_option_t {
   char ** cmd_arr;
   int cmd_arr_len;
   char *container_id;
-} run_option_t;
+} ;
 
 
 int container_main(void* arg)
@@ -29,7 +34,7 @@ int container_main(void* arg)
   char rootfs[1024];
  
 
-  run_option_t & mopt = * ((run_option_t *)arg);
+  container_run_option_t & mopt = * ((container_run_option_t *)arg);
  
   ContainerManager::mount_container(mopt.container_id);
 // 容器卷
@@ -50,10 +55,6 @@ int container_main(void* arg)
   	err_exit(errno, "touch /usr/lib/tmp");
   }
 
-
-  
-  
-
   execvp(mopt.cmd_arr[0], mopt.cmd_arr);
   perror("exec");
 
@@ -63,13 +64,13 @@ int container_main(void* arg)
 
 
 
-void ContainerCli::exe_run_commond (int argc, char *argv[])
+void ContainerCli::handle_run_command (int argc, char *argv[])
 {
   printf("Parent [%5d] - start a container!\n", getpid());
   int c;
 
   // char ** cmd_arr;
-  run_option_t mopt = {};
+  container_run_option_t mopt = {};
   char * default_cmd_arr[] =
   {
     "/bin/bash",
@@ -176,7 +177,7 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
   void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
                MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
   if (stack == MAP_FAILED)
-      err_exit(0, "exe_run_commond mmap:");
+      err_exit(0, "handle_run_command mmap:");
 
   int container_pid = clone(container_main, (char *)stack + STACK_SIZE,
                                CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
@@ -223,9 +224,62 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
   
 }
 
+void ContainerCli::handle_ls_command(int argc, char *argv[]) {
+	char c;
+	container_ls_opt_t mopt;
+  opterr = 0;
+  static struct option long_options[] =
+  {
+    /* These options set a flag. */
+    {"all", no_argument,      0, 'a'},
+    {0, 0, 0, 0}
+  };
+  /* getopt_long stores the option index here. */
+  int option_index = 0;
 
-void ContainerCli::exe_ps_commond(int argc, char *argv[]) {
-  std::vector<Container>* vector = ContainerManager::list();
+  while (1)
+  {
+    c = getopt_long (argc, argv, "a", long_options, &option_index);
+
+    /* Detect the end of the options. */
+    if (c == -1)
+      break;
+
+    switch (c)
+    {
+    case 0:
+      // printf("ffffffff\n");
+      /* If this option set a flag, do nothing else now. */
+      if (long_options[option_index].flag != 0)
+        break;
+      printf ("option %s", long_options[option_index].name);
+      if (optarg)
+        printf (" with arg %s", optarg);
+      printf ("\n");
+      break;
+
+    case 'a':
+      // puts ("==interactive \n");
+      mopt.all = true;
+      break;
+    case '?':
+      //printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
+      /* getopt_long already printed an error message. */
+    	usage();
+    	exit(1);
+      break;
+
+    default:
+    	usage();
+    	exit(1);
+      //printf ("==default optopt=%c, %s, `%s'\n",optopt, optarg,  argv[optind]);
+      break;
+      //abort ();
+    }
+  }
+
+
+  std::vector<Container>* vector = ContainerManager::list(mopt);
 
   std::cout << "ID\tNAME\tPID\tSTATUS\tCOMMAND\tCREATED" << std::endl;
   if(vector == NULL) {
@@ -237,6 +291,31 @@ void ContainerCli::exe_ps_commond(int argc, char *argv[]) {
   }
 
   delete vector;
+}
+
+void ContainerCli::handle_command(int argc, char *argv[]) {
+	char *action;
+  if (argc < 2)
+  {
+    usage();
+    exit(1);
+  }
+  else
+  {
+    action = argv[1];
+  }
+
+	if (strcmp(action, "run") == 0)
+  {
+    ContainerCli::handle_run_command(argc - 1, argv + 1);
+  }
+  else if (strcmp(action, "ls") == 0)
+  {
+    ContainerCli::handle_ls_command(argc - 1, argv + 1);
+  } else {
+  	usage();
+  	exit(1);
+  }
 }
 
 

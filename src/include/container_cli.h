@@ -5,7 +5,8 @@
 #include "kucker_config.h"
 class ContainerCli {
 public:
-	static void exe_run_commond (int argc, char *argv[]);
-	static void exe_ps_commond(int argc, char *argv[]);
+	static void handle_command(int argc, char *argv[]);
+	static void handle_run_command (int argc, char *argv[]);
+	static void handle_ls_command(int argc, char *argv[]);
 };
 #endif

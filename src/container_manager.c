@@ -36,9 +36,9 @@ void ContainerManager::insert(const Container &info) {
   root.append(infojson);
 
   auto str = root.toStyledString();
-  printf("=====insert======= %s\n", kucker_data_file);
-  std::cout << str << std::endl;
-  printf("============\n");
+  // printf("=====insert======= %s\n", kucker_data_file);
+  // std::cout << str << std::endl;
+  // printf("============\n");
   std::ofstream fout;
   fout.open(kucker_data_file);
   fout << str;
@@ -73,9 +73,9 @@ void ContainerManager::update(const Container &info) {
   }
 
   auto str = root.toStyledString();
-  printf("=======update===== %s\n", kucker_data_file);
-  std::cout << str << std::endl;
-  printf("============\n");
+  // printf("=======update===== %s\n", kucker_data_file);
+  // std::cout << str << std::endl;
+  // printf("============\n");
   std::ofstream fout;
   fout.open(kucker_data_file);
   fout << str;
@@ -125,29 +125,41 @@ Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, co
 }
 
 
-Container ContainerManager::get_container_by_id(const std::string& container_id) {
-  std::vector<Container> *vector = list();
-  for(Container & c: *vector) {
-    if(c.id == container_id)
-      return c;
+Container ContainerManager::get_container_by_id(const std::string& value) {
+  return get_container_by("id", value);
+}
+
+Container ContainerManager::get_container_by_name(const std::string& value) {
+  return get_container_by("name", value);
+}
+
+Container ContainerManager::get_container_by(const char * name,const std::string& value) {
+  Json::Value root;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file);
+  if(!fin) {
+    return {};
   }
 
-  free(vector);
+  if(!jsonreader.parse(fin, root)) {
+    return {};
+  }
+
+  int size = root.size();
+  if(size == 0) {
+    return {};
+  }
+
+  for(int i = 0; i < size; i++) {
+    if(root[i][name] == value) {
+      return pack_container_info(root[i]);
+    }
+  }
   return {};
 }
 
-Container ContainerManager::get_container_by_name(const std::string& name) {
-  std::vector<Container> *vector = list();
-  for(Container & c: *vector) {
-    if(c.name == name)
-      return c;
-  }
-
-  free(vector);
-  return {};
-}
-
-std::vector<Container>* ContainerManager::list() {
+std::vector<Container>* ContainerManager::list(container_ls_opt_t &opt) {
   
   std::vector<Container> * vector = new std::vector<Container>;
   Json::Value root;
@@ -168,7 +180,11 @@ std::vector<Container>* ContainerManager::list() {
   }
 
   for(int i = 0; i < size; i++) {
-    vector->push_back(pack_container_info(root[i]));
+    if(opt.all)
+      vector->push_back(pack_container_info(root[i]));
+    else if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+      vector->push_back(pack_container_info(root[i]));
+    }
   }
   return vector;
 }

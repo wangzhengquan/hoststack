@@ -5,8 +5,13 @@ std::ostream & operator<<(std::ostream & out, Container & info){
 	//ID NAME PID STATUS COMMAND CREATED 
 	char create_time_str[100];   
 	strftime(create_time_str, 100, "%Y-%m-%d %H:%M:%S", localtime(&info.create_time));
-  out << info.id << "\t" << (info.name.empty() ? "---" : info.name) << "\t" 
-  	<< info.pid<< "\t\"" << info.command << "\"\t\"" << create_time_str << "\"" << std::endl;
+  out << info.id << "\t" 
+  	<< (info.name.empty() ? "---" : info.name) << "\t" 
+  	<< info.pid<< "\t\"" 
+  	<< info.get_status_name() << "\t" 
+  	<< info.command << "\"\t\"" 
+  	<< create_time_str << "\"" << std::endl;
+
   return out;
 }
 

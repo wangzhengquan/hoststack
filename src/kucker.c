@@ -6,7 +6,7 @@
 #include <getopt.h>
 #include <uuid.h>
 
-void usage()
+static void usage()
 {
   printf("usage: param error\n");
 }
@@ -14,7 +14,7 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-  char *action;
+  char *target;
   if (argc < 2)
   {
     usage();
@@ -22,19 +22,21 @@ int main(int argc, char *argv[])
   }
   else
   {
-    action = argv[1];
+    target = argv[1];
   }
  
-
-  if (strcmp(action, "run") == 0)
-  {
-    ContainerCli::exe_run_commond(argc - 1, argv + 1);
+  if (strcmp(target, "container") == 0){
+    ContainerCli::handle_command(argc - 1, argv + 1);
   }
-  else if (strcmp(action, "ps") == 0)
+  else if (strcmp(target, "run") == 0)
   {
-    ContainerCli::exe_ps_commond(argc - 1, argv + 1);
+    ContainerCli::handle_run_command(argc - 1, argv + 1);
   }
-  else if ( strcmp(action, "start") == 0)
+  else if (strcmp(target, "ps") == 0)
+  {
+    ContainerCli::handle_ls_command(argc - 1, argv + 1);
+  }
+  else if ( strcmp(target, "start") == 0)
   {
 
   } else {

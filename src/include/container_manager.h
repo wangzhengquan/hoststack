@@ -7,6 +7,10 @@
 #include <jsoncpp/json.h>
  
 
+struct container_ls_opt_t {
+  bool all;
+};
+
 class ContainerManager {
 private:
 	static Container pack_container_info(const Json::Value &jsonData) ;
@@ -19,8 +23,9 @@ public:
 
 	static Container get_container_by_id(const std::string& id);
 	static Container get_container_by_name(const std::string& name);
+	static Container get_container_by(const char * name,const std::string& value);
 
-	static std::vector<Container>* list() ;
+	static std::vector<Container>* list(container_ls_opt_t &opt) ;
 
 	static void create_container(const char *container_id);
 

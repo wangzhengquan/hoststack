@@ -5,8 +5,6 @@
 #include "container_manager.h"
 #include "container.h"
 
- 
-
 struct mnt_dir_t {
   const char *src;
   const char *target;

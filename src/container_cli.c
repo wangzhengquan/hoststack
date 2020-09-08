@@ -154,10 +154,14 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
     //   printf ("%d, %d, %s \n", optind, argc, argv[optind++]);
     // putchar ('\n');
   }
+
+  // check arguments
+  // name 去重
+
   char container_id[37];
   ContainerManager::gen_id(container_id);
   mopt.container_id = container_id;
-  
+
   ContainerManager::create_container(mopt.container_id);
   /* Create the child in new namespace(s) */
   void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,

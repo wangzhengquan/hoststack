@@ -174,7 +174,7 @@ void ContainerManager::create_container(const char *container_id)
 }
 
 
-static const mnt_dir_t mnt_dir_arr[]= { 
+static  mnt_dir_t mnt_dir_arr[]= { 
   {"/bin", "/bin", "aufs"}, 
   {"/etc", "/etc", "aufs"},
   {"/lib", "/lib", "aufs"}, 
@@ -184,10 +184,11 @@ static const mnt_dir_t mnt_dir_arr[]= {
   {"/sbin", "/sbin", "aufs"},
   {"/usr", "/usr", "aufs"}, 
   {"/var", "/var", "aufs"},
+  //{"/dev", "/dev", "aufs"},
   {"proc", "/proc", "proc"}, 
   {"sysfs", "/sys", "sysfs"}, 
   {"udev", "/dev", "devtmpfs"},
-  {"devpts", "/dev/pts", "devtmpfs"},
+  {"devpts", "/dev/pts", "devpts"},
   {"shm", "/dev/shm", "tmpfs"},
   
   {"none", "/tmp", "tmpfs"}, 
@@ -205,15 +206,14 @@ void ContainerManager::umount_container(const char *container_id) {
     i++;
   }
 
-  mnt_dir_t mnt_dir ;
+  mnt_dir_t *mnt_dir ;
   while ( --i > 0) {
-    mnt_dir = mnt_dir_arr[i];
-    sprintf(line, "%s%s", rootfs, mnt_dir.target);
+    mnt_dir = &mnt_dir_arr[i];
+    sprintf(line, "%s%s", rootfs, mnt_dir->target);
     printf("umount %s\n", line);
     if(umount(line) == -1) {
       err_msg(errno, "umount_container umount %s", line);
     }
-    mnt_dir = mnt_dir_arr[i];
     
   }
 
@@ -228,23 +228,24 @@ void ContainerManager::mount_container(const char *container_id)
   char line[4096];
 
   size_t i = 0;
-  mnt_dir_t mnt_dir = mnt_dir_arr[i];
-  while( mnt_dir.src != NULL ) {
-    if(strcmp(mnt_dir.type, "aufs") == 0) {
+  mnt_dir_t *mnt_dir = &mnt_dir_arr[i];
+  while( mnt_dir->src != NULL ) {
+    if(strcmp(mnt_dir->type, "aufs") == 0) {
       sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:%s=ro none %s/aufs/mnt/%s%s",
-          kucker_repo, container_id, mnt_dir.src, kucker_repo, container_id, mnt_dir.target);
+          kucker_repo, container_id, mnt_dir->src, kucker_repo, container_id, mnt_dir->target);
       if (system(line) != 0)
       {
         perror(line);
       }
     } else {
-      sprintf(line, "%s%s", rootfs, mnt_dir.target);
-      if (mount(mnt_dir.src, line, mnt_dir.type, 0, NULL) != 0)
+      sprintf(line, "%s%s", rootfs, mnt_dir->target);
+      printf("mount_container: %s\n", line);
+      if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
         err_exit(errno, "mount_container: %s", line);
       }
     }
-    mnt_dir = mnt_dir_arr[i];
+    mnt_dir = &mnt_dir_arr[i];
     i++;
   }
 
@@ -260,18 +261,6 @@ void ContainerManager::mount_container(const char *container_id)
   //   perror("dev");
   // }
 
-  // sprintf(line, "%s/proc", rootfs);
-  // if (mount("proc", line, "proc", 0, NULL) != 0 )
-  // {
-  //   err_exit(errno, "mount_container proc: %s", line);
-  // }
-
-  // sprintf(line, "%s/tmp", rootfs);
-  // if (mount("none", line, "tmpfs", 0, NULL) != 0)
-  // {
-  //   err_exit(errno, "mount_container tmp: %s", line);
-  // }
-
   // sprintf(line, "%s/dev/pts", rootfs);
   // if (mount("devpts", line, "devpts", 0, NULL) != 0)
   // {
@@ -285,6 +274,19 @@ void ContainerManager::mount_container(const char *container_id)
   // if (mount("shm", line, "tmpfs", 0, NULL)!=0) {
   //     perror("dev/shm");
   // }
+
+  // sprintf(line, "%s/proc", rootfs);
+  // if (mount("proc", line, "proc", 0, NULL) != 0 )
+  // {
+  //   err_exit(errno, "mount_container proc: %s", line);
+  // }
+
+  // sprintf(line, "%s/tmp", rootfs);
+  // if (mount("none", line, "tmpfs", 0, NULL) != 0)
+  // {
+  //   err_exit(errno, "mount_container tmp: %s", line);
+  // }
+
   // sprintf(line, "%s/run", rootfs);
   // if (mount("tmpfs", line, "tmpfs", 0, NULL)!=0) {
   //     perror("run");

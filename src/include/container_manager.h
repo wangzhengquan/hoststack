@@ -9,11 +9,12 @@
 
 class ContainerManager {
 private:
-	static Container packContainerInfo(Json::Value jsonData);
-	static Container get_container_by_configfile(const std::string& config_file);
+	static Container pack_container_info(const Json::Value &jsonData) ;
+	static Json::Value & de_pack_container_info(Json::Value &jsonData,  const Container &info);
+	// static Container get_container_by_configfile(const std::string& config_file);
 public:
-	static void save(const Container &info);
-
+	static void insert(const Container &info);
+	static void update(const Container &info);
 	
 
 	static Container get_container_by_id(const std::string& id);

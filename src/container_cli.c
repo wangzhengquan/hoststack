@@ -129,7 +129,7 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
       break;
 
     case 'n':
-       printf ("==name with value `%s'\n", optarg);
+       // printf ("==name with value `%s'\n", optarg);
       mopt.name = (optarg);
       break;
 
@@ -159,6 +159,12 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
 
   // check arguments
   // name 去重
+  if( mopt.name != NULL) {
+  	 if(!ContainerManager::get_container_by_name(mopt.name).id.empty()) {
+  	 		err_exit(0, "duplicate name %s", mopt.name);
+  	 }
+  }
+ 
 
 
   char container_id[37];
@@ -199,14 +205,15 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
   	 container_info.volume = mopt.volume;
   }
   container_info.status = CONTAINER_RUNNING;
-  ContainerManager::save(container_info);
+  ContainerManager::insert(container_info);
   // ------save end
 
   if(!mopt.detach) {
     waitpid(container_pid, NULL, 0);
     Container info = ContainerManager::get_container_by_id(container_id);
     info.status = CONTAINER_STOPED;
-    ContainerManager::save(info);
+    info.pid = 0;
+    ContainerManager::update(info);
     ContainerManager::umount_container(container_id);
     
     printf("Parent - container stopped!\n");

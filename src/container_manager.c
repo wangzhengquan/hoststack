@@ -14,13 +14,14 @@ struct mnt_dir_t {
 };
 
 
-void ContainerManager::save(const Container &info) {
+void ContainerManager::insert(const Container &info) {
 	Json::Value root;
   
   Json::Reader jsonreader;
   std::ifstream fin(kucker_data_file); 
   if(fin) {
     jsonreader.parse(fin, root);
+    fin.close();
   }
 // printf("==============2\n");
   Json::Value infojson;
@@ -35,12 +36,52 @@ void ContainerManager::save(const Container &info) {
   root.append(infojson);
 
   auto str = root.toStyledString();
+  printf("=====insert======= %s\n", kucker_data_file);
   std::cout << str << std::endl;
+  printf("============\n");
   std::ofstream fout;
   fout.open(kucker_data_file);
   fout << str;
   fout.close();
 }
+
+void ContainerManager::update(const Container &info) {
+  Json::Value root;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file);
+  if(!fin) {
+    insert(info);
+  }
+
+  if(!jsonreader.parse(fin, root)) {
+    insert(info);
+  }
+
+  int size = root.size();
+  if(size == 0) {
+    insert(info);
+  }
+
+  Json::Value *record;
+  for(int i = 0; i < size; i++) {
+    record = &root[i];
+    if((*record)["id"].asString() == info.id) {
+      de_pack_container_info(*record, info);
+      break;
+    }
+  }
+
+  auto str = root.toStyledString();
+  printf("=======update===== %s\n", kucker_data_file);
+  std::cout << str << std::endl;
+  printf("============\n");
+  std::ofstream fout;
+  fout.open(kucker_data_file);
+  fout << str;
+  fout.close();
+}
+
 
 
 // Container ContainerManager::get_container_by_configfile(const std::string& config_file) {
@@ -60,7 +101,7 @@ void ContainerManager::save(const Container &info) {
 //   return info;
 // }
 
-Container ContainerManager::packContainerInfo(Json::Value jsonData) {
+Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
   Container info = {};
   info.id = jsonData["id"].asString();
   info.name = jsonData["name"].asString();
@@ -71,6 +112,18 @@ Container ContainerManager::packContainerInfo(Json::Value jsonData) {
   info.status =  (container_status_t)jsonData["status"].asInt();
   return info;
 }
+
+Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, const Container &info) {
+  jsonData["id"] = info.id;
+  jsonData["name"] = info.name;
+  jsonData["pid"] = info.pid;
+  jsonData["command"] = info.command;
+  jsonData["create_time"] = (int)info.create_time;
+  jsonData["status"] = info.status;
+  jsonData["volume"] = info.volume;
+  return jsonData;
+}
+
 
 Container ContainerManager::get_container_by_id(const std::string& container_id) {
   std::vector<Container> *vector = list();
@@ -115,7 +168,7 @@ std::vector<Container>* ContainerManager::list() {
   }
 
   for(int i = 0; i < size; i++) {
-    vector->push_back(packContainerInfo(root[i]));
+    vector->push_back(pack_container_info(root[i]));
   }
   return vector;
 }
@@ -212,7 +265,7 @@ void ContainerManager::umount_container(const char *container_id) {
   }
 
   mnt_dir_t *mnt_dir ;
-  while ( --i > 0) {
+  while ( i-- > 0) {
     mnt_dir = &mnt_dir_arr[i];
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
     printf("umount %s\n", line);

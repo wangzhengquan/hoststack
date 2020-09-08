@@ -36,4 +36,5 @@
 build/
 *.tmp
 *.txt
+*.log
 core

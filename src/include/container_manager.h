@@ -4,16 +4,20 @@
 #include "usg_common.h"
 #include "kucker_config.h"
 #include "container.h"
-
+#include <jsoncpp/json.h>
  
 
 class ContainerManager {
+private:
+	static Container packContainerInfo(Json::Value jsonData);
+	static Container get_container_by_configfile(const std::string& config_file);
 public:
 	static void save(const Container &info);
 
-	static Container get_container_by_configfile(const std::string& config_file);
+	
 
 	static Container get_container_by_id(const std::string& id);
+	static Container get_container_by_name(const std::string& name);
 
 	static std::vector<Container>* list() ;
 

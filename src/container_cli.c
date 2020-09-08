@@ -46,7 +46,9 @@ int container_main(void* arg)
   }
    
 
-  system("touch /usr/lib/tmp");
+  if(system("touch /usr/lib/tmp") !=0) {
+  	err_exit(errno, "touch /usr/lib/tmp");
+  }
 
 
   
@@ -157,6 +159,7 @@ void ContainerCli::exe_run_commond (int argc, char *argv[])
 
   // check arguments
   // name 去重
+
 
   char container_id[37];
   ContainerManager::gen_id(container_id);

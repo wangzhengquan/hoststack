@@ -15,104 +15,109 @@ struct mnt_dir_t {
 
 
 void ContainerManager::save(const Container &info) {
-
 	Json::Value root;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file); 
+  if(fin) {
+    jsonreader.parse(fin, root);
+  }
 // printf("==============2\n");
-	root["id"] = info.id;
-	root["name"] = info.name;
-	root["pid"] = info.pid;
-	root["command"] = info.command;
-	root["create_time"] = (int)info.create_time;
-	root["status"] = info.status;
-  root["volume"] = info.volume;
+  Json::Value infojson;
+	infojson["id"] = info.id;
+	infojson["name"] = info.name;
+	infojson["pid"] = info.pid;
+	infojson["command"] = info.command;
+	infojson["create_time"] = (int)info.create_time;
+	infojson["status"] = info.status;
+  infojson["volume"] = info.volume;
+
+  root.append(infojson);
 
   auto str = root.toStyledString();
   std::cout << str << std::endl;
-
-// printf("==============3\n");
-  
-	std::ostringstream info_location;
-	info_location << kucker_repo << "/containers/" << info.id << "/config.json";
-  std::ofstream ofss;
-  ofss.open(info_location.str());
-  ofss << str;
-  ofss.close();
+  std::ofstream fout;
+  fout.open(kucker_data_file);
+  fout << str;
+  fout.close();
 }
 
 
-Container ContainerManager::get_container_by_configfile(const std::string& config_file) {
-  Json::Reader jsonreader;
-  Container info;
-  Json::Value jsonData;
-  std::ifstream fin(config_file); 
-  if(!fin) {
-    err_msg(errno, "ContainerManager get_container_by_configfile:%s", config_file.c_str());
-    return info;
-  }
+// Container ContainerManager::get_container_by_configfile(const std::string& config_file) {
+//   Json::Reader jsonreader;
+//   Container info;
+//   Json::Value jsonData;
+//   std::ifstream fin(config_file); 
+//   if(!fin) {
+//     err_msg(errno, "ContainerManager get_container_by_configfile:%s", config_file.c_str());
+//     return info;
+//   }
 
-  if(jsonreader.parse(fin, jsonData)) {
+//   if(jsonreader.parse(fin, jsonData)) {
+//     // printf("parse ===== %d\n", info.pid);
+//   }
+//   fin.close();
+//   return info;
+// }
 
-    info.id = jsonData["id"].asString();
-    info.name = jsonData["name"].asString();
-    info.pid = jsonData["pid"].asInt();
-    info.command = jsonData["command"].asString();
-    info.volume = jsonData["volume"].asString();
-    info.create_time = (time_t)jsonData["create_time"].asInt();
-    info.status =  (container_status_t)jsonData["status"].asInt();
-    
-    // printf("parse ===== %d\n", info.pid);
-  }
-  fin.close();
+Container ContainerManager::packContainerInfo(Json::Value jsonData) {
+  Container info = {};
+  info.id = jsonData["id"].asString();
+  info.name = jsonData["name"].asString();
+  info.pid = jsonData["pid"].asInt();
+  info.command = jsonData["command"].asString();
+  info.volume = jsonData["volume"].asString();
+  info.create_time = (time_t)jsonData["create_time"].asInt();
+  info.status =  (container_status_t)jsonData["status"].asInt();
   return info;
-  
-
-
 }
 
 Container ContainerManager::get_container_by_id(const std::string& container_id) {
-  std::string configFile = std::string(kucker_repo) + "/containers/" + container_id + "/config.json";
-  return get_container_by_configfile(configFile);
+  std::vector<Container> *vector = list();
+  for(Container & c: *vector) {
+    if(c.id == container_id)
+      return c;
+  }
+
+  free(vector);
+  return {};
+}
+
+Container ContainerManager::get_container_by_name(const std::string& name) {
+  std::vector<Container> *vector = list();
+  for(Container & c: *vector) {
+    if(c.name == name)
+      return c;
+  }
+
+  free(vector);
+  return {};
 }
 
 std::vector<Container>* ContainerManager::list() {
-	DIR *dirp;
-  struct dirent *dp;
-  bool isCurrent;          /* True if 'dirpath' is "." */
-  std::string dirpath = std::string(kucker_repo) + "/containers";
-  std::string configFile;
   
   std::vector<Container> * vector = new std::vector<Container>;
-
-  isCurrent = dirpath == ".";
-
-  dirp = opendir(dirpath.c_str());
-  if (dirp  == NULL) {
-      err_msg(0, "opendir failed on '%s'", dirpath.c_str());
-      return NULL;
+  Json::Value root;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file);
+  if(!fin) {
+    return NULL;
   }
 
-  /* For each entry in this directory, print directory + filename */
-
-  for (;;) {
-      errno = 0;              /* To distinguish error from end-of-directory */
-      dp = readdir(dirp);
-      if (dp == NULL)
-          break;
-
-      if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
-          continue;           /* Skip . and .. */
-
-      configFile = dirpath + "/" + dp->d_name + "/config.json";
-    	// std::cout << "configFile : " << configFile << std::endl;
-      vector->push_back(get_container_by_configfile(configFile));
+  if(!jsonreader.parse(fin, root)) {
+    return NULL;
   }
 
-  if (errno != 0)
-      err_msg(errno, "list readdir");
+  int size = root.size();
+  if(size == 0) {
+    return NULL;
+  }
 
-  if (closedir(dirp) == -1)
-      err_msg(errno, "closedir");
-   return vector;
+  for(int i = 0; i < size; i++) {
+    vector->push_back(packContainerInfo(root[i]));
+  }
+  return vector;
 }
 
 

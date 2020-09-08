@@ -2,7 +2,8 @@
 #define __KUCKER_CONFIG_H
 
 
-static const char *kucker_repo = "/data/kucker";
+#define kucker_repo  "/data/kucker"
 
+#define kucker_data_file "/data/kucker/data.json"
 
 #endif

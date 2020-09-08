@@ -283,18 +283,27 @@ void ContainerManager::mount_container(const char *container_id)
   //remount "/proc" to make sure the "top" and "ps" show container's information
   char rootfs[1024];
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
-  char line[4096];
+  char line[1024];
+  char data[1024];
 
   size_t i = 0;
   mnt_dir_t *mnt_dir = &mnt_dir_arr[i];
   while( mnt_dir->src != NULL ) {
     if(strcmp(mnt_dir->type, "aufs") == 0) {
-      sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:%s=ro none %s/aufs/mnt/%s%s",
-          kucker_repo, container_id, mnt_dir->src, kucker_repo, container_id, mnt_dir->target);
-      if (system(line) != 0)
-      {
-        perror(line);
+      // sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:%s=ro none %s/aufs/mnt/%s%s",
+      //     kucker_repo, container_id, mnt_dir->src, kucker_repo, container_id, mnt_dir->target);
+      // if (system(line) != 0)
+      // {
+      //   perror(line);
+      // }
+      char *target =  path_join(4, kucker_repo, "/aufs/mnt", container_id, mnt_dir->target);
+      sprintf(data, "dirs=%s/aufs/diff/%s=rw:%s=ro", kucker_repo, container_id, mnt_dir->src);
+// printf("data=%s\n target=%s\n", data, target);
+      if(mount("none", target, "aufs", 0, data) != 0) {
+        err_exit(errno, "data=%s\n target=%s\n", data, target);
       }
+      free(target);
+
     } else {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
       printf("mount_container: %s\n", line);

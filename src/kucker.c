@@ -2,31 +2,18 @@
 #include "kucker_config.h"
 #include "container_manager.h"
 #include "container_cli.h"
-
 #include <sys/mount.h>
 #include <getopt.h>
 #include <uuid.h>
 
-
-
-
- 
-
-int pipefd[2];
- 
 void usage()
 {
-  printf("usage:\n");
+  printf("usage: param error\n");
 }
-
-
-
 
 
 int main(int argc, char *argv[])
 {
-
-
   char *action;
   if (argc < 2)
   {
@@ -50,8 +37,8 @@ int main(int argc, char *argv[])
   else if ( strcmp(action, "start") == 0)
   {
 
+  } else {
+    usage();
   }
-
-
   return 0;
 }

@@ -1,12 +1,11 @@
-#include "container_manager.h"
 #include <sys/mount.h>
 #include <getopt.h>
 #include <uuid.h>
 #include <jsoncpp/json.h>
+#include "container_manager.h"
+#include "container.h"
 
-char* gen_container_id(char *uuid1_str);
-void bind_mount(const char *container_id, const char *src, const char *_dest);
-void mount_volume (char *container_id, char *volume);
+ 
 
 struct mnt_dir_t {
   const char *src;
@@ -15,7 +14,7 @@ struct mnt_dir_t {
 };
 
 
-void ContainerManager::save(container_info_t &info) {
+void ContainerManager::save(const Container &info) {
 
 	Json::Value root;
 // printf("==============2\n");
@@ -25,6 +24,7 @@ void ContainerManager::save(container_info_t &info) {
 	root["command"] = info.command;
 	root["create_time"] = (int)info.create_time;
 	root["status"] = info.status;
+  root["volume"] = info.volume;
 
   auto str = root.toStyledString();
   std::cout << str << std::endl;
@@ -40,17 +40,48 @@ void ContainerManager::save(container_info_t &info) {
 }
 
 
-std::vector<container_info_t>* ContainerManager::list() {
-	Json::Reader jsonreader;
- 
+Container ContainerManager::get_container_by_configfile(const std::string& config_file) {
+  Json::Reader jsonreader;
+  Container info;
+  Json::Value jsonData;
+  std::ifstream fin(config_file); 
+  if(!fin) {
+    err_msg(errno, "ContainerManager get_container_by_configfile:%s", config_file.c_str());
+    return info;
+  }
+
+  if(jsonreader.parse(fin, jsonData)) {
+
+    info.id = jsonData["id"].asString();
+    info.name = jsonData["name"].asString();
+    info.pid = jsonData["pid"].asInt();
+    info.command = jsonData["command"].asString();
+    info.volume = jsonData["volume"].asString();
+    info.create_time = (time_t)jsonData["create_time"].asInt();
+    info.status =  (container_status_t)jsonData["status"].asInt();
+    
+    // printf("parse ===== %d\n", info.pid);
+  }
+  fin.close();
+  return info;
+  
+
+
+}
+
+Container ContainerManager::get_container_by_id(const std::string& container_id) {
+  std::string configFile = std::string(kucker_repo) + "/containers/" + container_id + "/config.json";
+  return get_container_by_configfile(configFile);
+}
+
+std::vector<Container>* ContainerManager::list() {
 	DIR *dirp;
   struct dirent *dp;
   bool isCurrent;          /* True if 'dirpath' is "." */
   std::string dirpath = std::string(kucker_repo) + "/containers";
   std::string configFile;
-  container_info_t info;
-  Json::Value jsonData;
-  std::vector<container_info_t> * vector = new std::vector<container_info_t>;
+  
+  std::vector<Container> * vector = new std::vector<Container>;
 
   isCurrent = dirpath == ".";
 
@@ -72,29 +103,8 @@ std::vector<container_info_t>* ContainerManager::list() {
           continue;           /* Skip . and .. */
 
       configFile = dirpath + "/" + dp->d_name + "/config.json";
-    	std::cout << "configFile : " << configFile << std::endl;
-      std::ifstream fin(configFile); 
-      if(!fin) {
-      	err_msg(errno, "ContainerManager list fin:");
-      	printf("!fin\n");
-      	fin.close();
-      	continue;
-      }
-
-      if(jsonreader.parse(fin, jsonData)) {
-
-      	info.id = jsonData["id"].asString();
-        info.name = jsonData["name"].asString();
-        info.pid = jsonData["pid"].asInt();
-        info.command = jsonData["command"].asString();
-				info.create_time = (time_t)jsonData["create_time"].asInt();
-		 		info.status =  (container_status_t)jsonData["status"].asInt();
-		 		vector->push_back(info);
-
-		 		printf("parse ===== %d\n", info.pid);
-      }
-      printf("finished\n");
-      fin.close();
+    	// std::cout << "configFile : " << configFile << std::endl;
+      vector->push_back(get_container_by_configfile(configFile));
   }
 
   if (errno != 0)
@@ -106,9 +116,7 @@ std::vector<container_info_t>* ContainerManager::list() {
 }
 
 
-void ContainerManager::umount_container(const char *container_id) {
-  
-}
+
 
 void ContainerManager::create_container(const char *container_id)
 {
@@ -163,111 +171,106 @@ void ContainerManager::create_container(const char *container_id)
     perror(line);
   }
 
-  // ====== mount file
-  // if (mount("none", "%s/aufs/mnt/%s/bin", "aufs", flags, "dirs=%s/aufs/diff/%s=rw:/bin=ro") == -1) {
-
-  // }
- 
-
-
 }
 
 
+static const mnt_dir_t mnt_dir_arr[]= { 
+  {"/bin", "/bin", "aufs"}, 
+  {"/etc", "/etc", "aufs"},
+  {"/lib", "/lib", "aufs"}, 
+  {"/lib64", "/lib64", "aufs"},  
+  {"/opt","/opt", "aufs"}, 
+  {"/run", "/run", "aufs"}, 
+  {"/sbin", "/sbin", "aufs"},
+  {"/usr", "/usr", "aufs"}, 
+  {"/var", "/var", "aufs"},
+  {"proc", "/proc", "proc"}, 
+  {"sysfs", "/sys", "sysfs"}, 
+  {"udev", "/dev", "devtmpfs"},
+  {"devpts", "/dev/pts", "devtmpfs"},
+  {"shm", "/dev/shm", "tmpfs"},
+  
+  {"none", "/tmp", "tmpfs"}, 
+  {}
+};
 
-void ContainerManager::mount_container(const char *rootfs)
+void ContainerManager::umount_container(const char *container_id) {
+  char rootfs[1024];
+  char line[4096];
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+
+  size_t i = 0;
+ 
+  while( mnt_dir_arr[i].src != NULL ) {
+    i++;
+  }
+
+  mnt_dir_t mnt_dir ;
+  while ( --i > 0) {
+    mnt_dir = mnt_dir_arr[i];
+    sprintf(line, "%s%s", rootfs, mnt_dir.target);
+    printf("umount %s\n", line);
+    if(umount(line) == -1) {
+      err_msg(errno, "umount_container umount %s", line);
+    }
+    mnt_dir = mnt_dir_arr[i];
+    
+  }
+
+  umount_volume(container_id);
+}
+
+void ContainerManager::mount_container(const char *container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
-  // char rootfs[1024];
-  
-  // sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
-  char line[8192];
+  char rootfs[1024];
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+  char line[4096];
 
-   sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/bin=ro none %s/aufs/mnt/%s/bin",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/lib=ro none %s/aufs/mnt/%s/lib",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/lib64=ro none %s/aufs/mnt/%s/lib64",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/sbin=ro none %s/aufs/mnt/%s/sbin",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
+  size_t i = 0;
+  mnt_dir_t mnt_dir = mnt_dir_arr[i];
+  while( mnt_dir.src != NULL ) {
+    if(strcmp(mnt_dir.type, "aufs") == 0) {
+      sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:%s=ro none %s/aufs/mnt/%s%s",
+          kucker_repo, container_id, mnt_dir.src, kucker_repo, container_id, mnt_dir.target);
+      if (system(line) != 0)
+      {
+        perror(line);
+      }
+    } else {
+      sprintf(line, "%s%s", rootfs, mnt_dir.target);
+      if (mount(mnt_dir.src, line, mnt_dir.type, 0, NULL) != 0)
+      {
+        err_exit(errno, "mount_container: %s", line);
+      }
+    }
+    mnt_dir = mnt_dir_arr[i];
+    i++;
   }
 
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/usr=ro none %s/aufs/mnt/%s/usr",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/var=ro none %s/aufs/mnt/%s/var",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/etc=ro none %s/aufs/mnt/%s/etc",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/run=ro none %s/aufs/mnt/%s/run",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-  sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:/opt=ro none %s/aufs/mnt/%s/opt",
-          kucker_repo, container_id, kucker_repo, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
+ 
+ 
 
   // ===================
 
-  sprintf(line, "%s/sys", rootfs);
-  if (mount("sysfs", line, "sysfs", 0, NULL) != 0)
-  {
-    perror("sys");
-  }
-  sprintf(line, "%s/dev", rootfs);
-  if (mount("udev", line, "devtmpfs", 0, NULL) != 0)
-  {
-    perror("dev");
-  }
+ 
+  // sprintf(line, "%s/dev", rootfs);
+  // if (mount("udev", line, "devtmpfs", 0, NULL) != 0)
+  // {
+  //   perror("dev");
+  // }
 
-  sprintf(line, "%s/proc", rootfs);
-  if (mount("proc", line, "proc", 0, NULL) != 0 )
-  {
-    err_exit(errno, "mount_container proc: %s", line);
-  }
+  // sprintf(line, "%s/proc", rootfs);
+  // if (mount("proc", line, "proc", 0, NULL) != 0 )
+  // {
+  //   err_exit(errno, "mount_container proc: %s", line);
+  // }
 
-  sprintf(line, "%s/tmp", rootfs);
-  if (mount("none", line, "tmpfs", 0, NULL) != 0)
-  {
-    err_exit(errno, "mount_container tmp: %s", line);
-  }
+  // sprintf(line, "%s/tmp", rootfs);
+  // if (mount("none", line, "tmpfs", 0, NULL) != 0)
+  // {
+  //   err_exit(errno, "mount_container tmp: %s", line);
+  // }
 
   // sprintf(line, "%s/dev/pts", rootfs);
   // if (mount("devpts", line, "devpts", 0, NULL) != 0)
@@ -308,15 +311,6 @@ void ContainerManager::mount_container(const char *rootfs)
 
 }
 
-static const mnt_dir_t mnt_dir_arr[]= { {"/bin", "/bin", "aufs"}, {"/etc", "/etc", "aufs"},
-  {"/lib", "/lib", "aufs"}, {"/lib64", "/lib64", "aufs"},  
-  {"/opt","/opt", "aufs"}, {"/run", "/run", "aufs"}, {"/sbin", "/sbin", "aufs"},
-  {"/usr", "/usr", "aufs"}, {"/var", "/var", "aufs"},
-  {"proc", "/proc", "proc"}, 
-  {"sysfs", "/sys", "sysfs"}, 
-  {"udev", "/dev", "devtmpfs"},
-  {"none", "/tmp", "tmpfs"}, {}};
-
 
 char* ContainerManager::gen_id(char *uuidstr)
 {
@@ -332,7 +326,6 @@ void ContainerManager::mount_volume (char *container_id, char *volume) {
     src = strtok(volume, ":");
     if (src != NULL && strlen(src) > 0)
     {
-      printf("%d, %d, %d\n", *src, '/', *src == '/');
       if (*src != '/')
       {
         err_exit(0, "invalid mount path: '%s' mount path must be absolute.", src);
@@ -358,17 +351,58 @@ void ContainerManager::mount_volume (char *container_id, char *volume) {
 }
 
 
+void ContainerManager::umount_volume (const char *container_id) {
+  std::string _volume = get_container_by_id(container_id).volume;
+  if(_volume.empty()) {
+    return;
+  }
+  char *volume = strdup(_volume.c_str());
+  char *src = NULL, *dest = NULL;
+  char rootfs[1024];
+  // char line[4096];
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
 
+  src = strtok(volume, ":");
+  if (src != NULL && strlen(src) > 0)
+  {
+    if (*src != '/')
+    {
+      err_msg(0, "invalid mount path: '%s' mount path must be absolute.", src);
+    }
+    dest = strtok(NULL, ":");
+    if (dest != NULL && strlen(dest) > 0)
+    {
+      if (*dest != '/')
+      {
+        err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
+      }
+      char *target = path_join(2, rootfs, dest);
+printf("====umount_volume %s\n", target);
+      if(umount(target) == -1) {
+        err_msg(errno, "umount_volume umount:");
+      }
+      free(target);
+      free(volume);
+    }
+    else
+    {
+      free(volume);
+      err_msg(0, "param volume format err.");
+    }
+  }
+  else
+  {
+    free(volume);
+    err_msg(0, "param volume format err.");
+  }
+}
 
 /* 挂在容器volume */
 void ContainerManager::bind_mount(const char *container_id, const char *src, const char *_dest)
 {
   char rootfs[1024];
-  char line[8192];
+  char line[4096];
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
-
-
-
 
   sprintf(line, "test -d %s || sudo mkdir -p %s", src, src);
   if (system(line) != 0)
@@ -390,7 +424,7 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
   // }
 
   if (mount(src, dest, "none", MS_BIND, NULL)!=0) {
-      perror("mount_volume");
+      err_exit(errno, "mount_volume");
   }
 
   free(dest);

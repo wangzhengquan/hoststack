@@ -81,19 +81,20 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
 
   opterr = 0;
 
+  static struct option long_options[] =
+  {
+    /* These options set a flag. */
+    {"interactive", no_argument,      0, 'i'},
+    {"detach", no_argument,      0, 'd'},
+    {"volume",  required_argument, 0, 'v'},
+    {"name",  required_argument, 0, 'n'},
+    {0, 0, 0, 0}
+  };
+  /* getopt_long stores the option index here. */
+  int option_index = 0;
   while (1)
   {
-    static struct option long_options[] =
-    {
-      /* These options set a flag. */
-      {"interactive", no_argument,      0, 'i'},
-      {"detach", no_argument,      0, 'd'},
-      {"volume",  required_argument, 0, 'v'},
-      {"name",  required_argument, 0, 'n'},
-      {0, 0, 0, 0}
-    };
-    /* getopt_long stores the option index here. */
-    int option_index = 0;
+    
 
     c = getopt_long (argc, argv, "+idv:n:", long_options, &option_index);
 

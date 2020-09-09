@@ -11,4 +11,5 @@ public:
 	
 	static void handle_command (int argc, char *argv[]);
 };
+
 #endif

@@ -3,6 +3,9 @@
 
 #include "usg_common.h"
 #include "kucker_config.h"
+
+#include "container_ls_cli.h"
+#include "container_run_cli.h"
 class ContainerCli {
 
 public:
@@ -12,4 +15,7 @@ public:
 	static void handle_run_command (int argc, char *argv[]);
 	static void handle_ls_command(int argc, char *argv[]);
 };
+
+
+
 #endif

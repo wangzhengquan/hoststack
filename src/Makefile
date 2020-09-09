@@ -9,7 +9,7 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 # 开源工具包
 LDLIBS += -lusgcommon -luuid -ljsoncpp
 
-INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
+INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid  -I./cli/include/
 
 SOURCES := $(wildcard *.c ./**/*.c)
 

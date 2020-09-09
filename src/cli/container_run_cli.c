@@ -207,14 +207,21 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
   }
   container_info.status = CONTAINER_RUNNING;
   ContainerManager::insert(container_info);
-  // ------save end
+  // ------save end---------
 
   if(!mopt.detach) {
-    waitpid(container_pid, NULL, 0);
-    Container info = ContainerManager::get_container_by_id(container_id);
-    ContainerManager::save_to_stop(info);
-    ContainerManager::umount_container(container_id);
+    int status;
+    waitpid(container_pid, &status, 0);
+    if (WIFEXITED(status))
+    {
+      //printf("===WIFEXITED\n");
+      Container info = ContainerManager::get_container_by_id(container_id);
+      ContainerManager::save_to_stop(info);
     
+    } else if (WIFSIGNALED(status)) {
+      //printf("====SIGCHLD\n");
+    }
+   
     printf("Parent - container stopped!\n");
   } else {
     printf("%s\n", container_id);

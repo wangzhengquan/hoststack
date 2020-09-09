@@ -80,46 +80,28 @@ void ContainerManager::update(const Container &info) {
   fout.close();
 }
 
-
-
-// Container ContainerManager::get_container_by_configfile(const std::string& config_file) {
-//   Json::Reader jsonreader;
-//   Container info;
-//   Json::Value jsonData;
-//   std::ifstream fin(config_file); 
-//   if(!fin) {
-//     err_msg(errno, "ContainerManager get_container_by_configfile:%s", config_file.c_str());
-//     return info;
-//   }
-
-//   if(jsonreader.parse(fin, jsonData)) {
-//     // printf("parse ===== %d\n", info.pid);
-//   }
-//   fin.close();
-//   return info;
-// }
-
-Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
-  Container info = {};
-  info.id = jsonData["id"].asString();
-  info.name = jsonData["name"].asString();
-  info.pid = jsonData["pid"].asInt();
-  info.command = jsonData["command"].asString();
-  info.volume = jsonData["volume"].asString();
-  info.create_time = (time_t)jsonData["create_time"].asInt();
-  info.status =  (container_status_t)jsonData["status"].asInt();
-  return info;
+ 
+void ContainerManager::save_to_stop( Container &info) {
+  info.status = CONTAINER_STOPED;
+  info.pid = 0;
+  ContainerManager::update(info);
+  ContainerManager::umount_container(info.id.c_str());
 }
 
-Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, const Container &info) {
-  jsonData["id"] = info.id;
-  jsonData["name"] = info.name;
-  jsonData["pid"] = info.pid;
-  jsonData["command"] = info.command;
-  jsonData["create_time"] = (int)info.create_time;
-  jsonData["status"] = info.status;
-  jsonData["volume"] = info.volume;
-  return jsonData;
+void ContainerManager::stop(const std::string & name) {
+  Container container = ContainerManager::get_container_by_id_or_name(name);
+  if(container.id.empty() || container.status != CONTAINER_RUNNING) {
+    err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
+    return;
+  }
+  printf("killing pid %d\n", container.pid);
+  if(kill(container.pid, SIGTERM) != 0) {
+    err_exit(errno, "Stop container %s failed.", name.c_str());
+    return;
+  }
+  
+  save_to_stop(container);
+ 
 }
 
 
@@ -157,6 +139,32 @@ Container ContainerManager::get_container_by(const char * name,const std::string
   return {};
 }
 
+Container ContainerManager::get_container_by_id_or_name(const std::string& value) {
+  Json::Value root;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file);
+  if(!fin) {
+    return {};
+  }
+
+  if(!jsonreader.parse(fin, root)) {
+    return {};
+  }
+
+  int size = root.size();
+  if(size == 0) {
+    return {};
+  }
+
+  for(int i = 0; i < size; i++) {
+    if(root[i]["name"] == value || root[i]["id"] == value) {
+      return pack_container_info(root[i]);
+    }
+  }
+  return {};
+}
+
 std::vector<Container>* ContainerManager::list(container_ls_opt_t &opt) {
   
   std::vector<Container> * vector = new std::vector<Container>;
@@ -187,6 +195,31 @@ std::vector<Container>* ContainerManager::list(container_ls_opt_t &opt) {
   return vector;
 }
 
+
+
+
+Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
+  Container info = {};
+  info.id = jsonData["id"].asString();
+  info.name = jsonData["name"].asString();
+  info.pid = jsonData["pid"].asInt();
+  info.command = jsonData["command"].asString();
+  info.volume = jsonData["volume"].asString();
+  info.create_time = (time_t)jsonData["create_time"].asInt();
+  info.status =  (container_status_t)jsonData["status"].asInt();
+  return info;
+}
+
+Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, const Container &info) {
+  jsonData["id"] = info.id;
+  jsonData["name"] = info.name;
+  jsonData["pid"] = info.pid;
+  jsonData["command"] = info.command;
+  jsonData["create_time"] = (int)info.create_time;
+  jsonData["status"] = info.status;
+  jsonData["volume"] = info.volume;
+  return jsonData;
+}
 
 
 

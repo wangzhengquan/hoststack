@@ -16,6 +16,7 @@ void ContainerCli::usage()
   fprintf(stderr, "Commands:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);
   fpe("run         Run a command in a new container\n");
+  fpe("stop        Stop one or more running containers\n");
   fpe("ls          List containers\n");
   fpe("\n");
   fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
@@ -37,9 +38,10 @@ void ContainerCli::handle_command(int argc, char *argv[]) {
   {
     ContainerRunCli::handle_command(argc - 1, argv + 1);
   }
-  else if (strcmp(action, "ls") == 0)
-  {
+  else if (strcmp(action, "ls") == 0) {
     ContainerLsCli::handle_command(argc - 1, argv + 1);
+  } else if (strcmp(action, "stop") == 0) {
+    ContainerStopCli::handle_command(argc - 1, argv + 1);
   } else if (strcmp(action, "--help") == 0)
   {
     usage();

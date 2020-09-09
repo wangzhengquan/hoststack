@@ -212,9 +212,7 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
   if(!mopt.detach) {
     waitpid(container_pid, NULL, 0);
     Container info = ContainerManager::get_container_by_id(container_id);
-    info.status = CONTAINER_STOPED;
-    info.pid = 0;
-    ContainerManager::update(info);
+    ContainerManager::save_to_stop(info);
     ContainerManager::umount_container(container_id);
     
     printf("Parent - container stopped!\n");

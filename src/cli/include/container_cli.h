@@ -6,6 +6,9 @@
 
 #include "container_ls_cli.h"
 #include "container_run_cli.h"
+#include "container_stop_cli.h"
+
+
 class ContainerCli {
 
 public:

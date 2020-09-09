@@ -19,10 +19,14 @@ private:
 public:
 	static void insert(const Container &info);
 	static void update(const Container &info);
+
+	static void stop(const std::string & name);
+	static void save_to_stop( Container &info);
 	
 
 	static Container get_container_by_id(const std::string& id);
 	static Container get_container_by_name(const std::string& name);
+	static Container get_container_by_id_or_name(const std::string& value);
 	static Container get_container_by(const char * name,const std::string& value);
 
 	static std::vector<Container>* list(container_ls_opt_t &opt) ;

@@ -37,5 +37,5 @@ AR=ar
 AWK=awk
 
 # Common temp files to delete from each directory.
-TEMPFILES=core core.* *.o temp.* *.out *.a *.so
+TEMPFILES=core core.* **/*.o *.o temp.* *.out *.a *.so
 

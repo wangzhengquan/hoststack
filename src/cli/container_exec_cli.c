@@ -146,6 +146,7 @@ void ContainerExecCli::handle_command(int argc, char *argv[]) {
   ptyopt.detach = mopt.detach;
   if(mopt.detach) {
   	sprintf(logfile, "%s/containers/%s/stdout.%d.log",kucker_repo,  container.id.c_str(), time(0));
+  	ptyopt.logfile = logfile;
     printf("logfile = %s\n", ptyopt.logfile);
   }
 

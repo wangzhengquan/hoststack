@@ -36,8 +36,7 @@ main(int argc, char *argv[])
     umask(0);                   /* So we get the permissions we want */
     snprintf(clientFifo, CLIENT_FIFO_NAME_LEN, CLIENT_FIFO_TEMPLATE,
             (long) getpid());
-    if (mkfifo(clientFifo, S_IRUSR | S_IWUSR | S_IWGRP) == -1
-                && errno != EEXIST)
+    if (mkfifo(clientFifo, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
         err_exit(errno, "mkfifo %s", clientFifo);
 
     if (atexit(removeFifo) != 0)
@@ -52,8 +51,7 @@ main(int argc, char *argv[])
     if (serverFd == -1)
         err_exit(errno, "open %s", SERVER_FIFO);
 
-    if (write(serverFd, &req, sizeof(struct request)) !=
-            sizeof(struct request))
+    if (write(serverFd, &req, sizeof(struct request)) != sizeof(struct request))
         err_exit(errno, "Can't write to server");
 
     /* Open our FIFO, read and display response */
@@ -62,8 +60,7 @@ main(int argc, char *argv[])
     if (clientFd == -1)
         err_exit(errno, "open %s", clientFifo);
 
-    if (read(clientFd, &resp, sizeof(struct response))
-            != sizeof(struct response))
+    if (read(clientFd, &resp, sizeof(struct response)) != sizeof(struct response))
         err_exit(errno, "Can't read response from server");
 
     printf("%d\n", resp.seqNum);

@@ -64,19 +64,33 @@ static int container_run_main(void* arg)
 
 
   char rootfs[1024];
+  char logfile[1024];
+  char serverFifo[1024];
+  
+  
   pty_exe_opt_t ptyopt = {};
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
   ptyopt.rootfs = rootfs;
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
   if(mopt.detach) {
-    ptyopt.logfile = path_join(kucker_repo, "containers", mopt.container_id, "stdout.log");
+    sprintf(logfile, "%s/containers/%s/stdout.%d.log",kucker_repo,  mopt.container_id, time(0));
+    ptyopt.logfile = logfile;
     printf("logfile = %s\n", ptyopt.logfile);
   }
 
-  pty_exec(ptyopt);
-  if(ptyopt.logfile != NULL)
-    free(ptyopt.logfile);
+   pty_exec(ptyopt);
+
+  // sprintf(serverFifo, "%s/containers/%s/server.fifo",kucker_repo,  mopt.container_id);
+  // printf("serverFifo = %s\n", serverFifo);
+  // char clientFifo[1024];
+  // sprintf(clientFifo, "/tmp/client.%s.fifo", time(0));
+  // ptyopt.serverFifo= serverFifo;
+  // ptyopt.clientFifo= clientFifo;
+
+  // pty_proxy_exec(ptyopt);
+  // pty_client(ptyopt);
+  
 
   return 1;
 }

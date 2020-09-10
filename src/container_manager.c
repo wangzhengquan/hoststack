@@ -349,7 +349,7 @@ void ContainerManager::mount_container(const char *container_id)
       // {
       //   perror(line);
       // }
-      char *target =  path_join(4, kucker_repo, "/aufs/mnt", container_id, mnt_dir->target);
+      char *target =  path_join(kucker_repo, "/aufs/mnt", container_id, mnt_dir->target, NULL);
       sprintf(data, "dirs=%s/aufs/diff/%s=rw:%s=ro", kucker_repo, container_id, mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
@@ -443,7 +443,7 @@ char* ContainerManager::gen_id(char *uuidstr)
 }
 
 
-void ContainerManager::mount_volume (char *container_id, char *volume) {
+void ContainerManager::mount_volume (const char *container_id, char *volume) {
    char *src = NULL, *dest = NULL;
     src = strtok(volume, ":");
     if (src != NULL && strlen(src) > 0)
@@ -498,7 +498,7 @@ void ContainerManager::umount_volume (const char *container_id) {
       {
         err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
       }
-      char *target = path_join(2, rootfs, dest);
+      char *target = path_join(rootfs, dest, NULL );
 printf("====umount_volume %s\n", target);
       if(umount(target) == -1) {
         err_msg(errno, "umount_volume umount:");
@@ -532,7 +532,7 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
     perror(line);
   }
 
-  char *dest = path_join(2, rootfs, _dest);
+  char *dest = path_join(rootfs, _dest, NULL);
   sprintf(line, "test -d %s || sudo mkdir -p %s", dest, dest);
   if (system(line) != 0)
   {

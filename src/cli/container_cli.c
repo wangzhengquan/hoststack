@@ -34,14 +34,15 @@ void ContainerCli::handle_command(int argc, char *argv[]) {
     action = argv[1];
   }
 
-	if (strcmp(action, "run") == 0)
-  {
+	if (strcmp(action, "run") == 0) {
     ContainerRunCli::handle_command(argc - 1, argv + 1);
   }
   else if (strcmp(action, "ls") == 0) {
     ContainerLsCli::handle_command(argc - 1, argv + 1);
   } else if (strcmp(action, "stop") == 0) {
     ContainerStopCli::handle_command(argc - 1, argv + 1);
+  }  else if (strcmp(action, "start") == 0) {
+    ContainerStartCli::handle_command(argc - 1, argv + 1);
   } else if (strcmp(action, "--help") == 0)
   {
     usage();

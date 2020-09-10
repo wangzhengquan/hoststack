@@ -5,56 +5,56 @@
 
 #include "container_manager.h"
 #include "container.h"
-#include "container_run_cli.h"
+#include "container_start_cli.h"
 
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 
-struct container_run_option_t {
+struct container_strat_option_t
+{
   bool interactive;
   bool detach;
-  char *volume;
-  char *name;
-  char ** cmd_arr;
-  int cmd_arr_len;
-  char *container_id;
+  char **container_arr;
+  int container_arr_len;
 } ;
 
 
-void ContainerRunCli::usage()
+void ContainerStartCli::usage()
 {
   printf("usage: param error\n");
 }
 
-int container_run_main(void* arg)
+static int container_run_main(void* arg)
 {
-  
+
   printf("in container...\n ");
   char rootfs[1024];
- 
 
-  container_run_option_t & mopt = * ((container_run_option_t *)arg);
- 
-  ContainerManager::mount_container(mopt.container_id);
+
+  Container & info = *((Container *)arg);
+
+  ContainerManager::mount_container(info.id.c_str());
 // 容器卷
-  if ( mopt.volume != NULL)
+  if ( !info.volume.empty() )
   {
-    ContainerManager::mount_volume(mopt.container_id,  mopt.volume);
+    ContainerManager::mount_volume(info.id.c_str(),  const_cast<char*>(info.volume.c_str()) );
   }
 
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
   /* chroot 隔离目录 */
   if ( chdir(rootfs) != 0 || chroot("./") != 0 )
   {
-    err_exit(errno,"chdir/chroot:%s", rootfs);
-  }
-   
-
-  if(system("touch /usr/lib/tmp") !=0) {
-  	err_exit(errno, "touch /usr/lib/tmp");
+    err_exit(errno, "chdir/chroot:%s", rootfs);
   }
 
-  execvp(mopt.cmd_arr[0], mopt.cmd_arr);
+
+  if (system("touch /usr/lib/tmp") != 0)
+  {
+    err_exit(errno, "touch /usr/lib/tmp");
+  }
+  int cmd_arr_len;
+  char **cmd_arr = str_split(const_cast<char*>(info.command.c_str()), BLANK, &cmd_arr_len);
+  execvp(cmd_arr[0], cmd_arr);
   perror("exec");
 
   return 1;
@@ -63,40 +63,29 @@ int container_run_main(void* arg)
 
 
 
-void ContainerRunCli::handle_command (int argc, char *argv[])
+void ContainerStartCli::handle_command (int argc, char *argv[])
 {
   printf("Parent [%5d] - start a container!\n", getpid());
   int c;
 
   // char ** cmd_arr;
-  container_run_option_t mopt = {};
-  char * default_cmd_arr[] =
-  {
-    "/bin/bash",
-    "-l",
-    NULL
-  };
-  mopt.cmd_arr = default_cmd_arr;
-  mopt.cmd_arr_len = 2;
-
+  container_strat_option_t mopt = {};
+  mopt.detach = false;
   opterr = 0;
 
   static struct option long_options[] =
   {
     /* These options set a flag. */
     {"interactive", no_argument,      0, 'i'},
-    {"detach", no_argument,      0, 'd'},
-    {"volume",  required_argument, 0, 'v'},
-    {"name",  required_argument, 0, 'n'},
     {0, 0, 0, 0}
   };
   /* getopt_long stores the option index here. */
   int option_index = 0;
   while (1)
   {
-    
 
-    c = getopt_long (argc, argv, "+idv:n:", long_options, &option_index);
+
+    c = getopt_long (argc, argv, "+i", long_options, &option_index);
 
     /* Detect the end of the options. */
     if (c == -1)
@@ -118,22 +107,9 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
     case 'i':
       // puts ("==interactive \n");
       mopt.interactive = true;
+      mopt.detach = false;
+      
       break;
-    case 'd':
-      // puts ("==interactive \n");
-      mopt.detach = true;
-      break;
-
-    case 'v':
-      // printf ("==volume with value `%s'\n", optarg);
-      mopt.volume = (optarg);
-      break;
-
-    case 'n':
-       // printf ("==name with value `%s'\n", optarg);
-      mopt.name = (optarg);
-      break;
-
     case '?':
       //printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
       /* getopt_long already printed an error message. */
@@ -150,83 +126,66 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
   {
-    mopt.cmd_arr = &argv[optind];
-    mopt.cmd_arr_len = argc - optind;
+    mopt.container_arr = &argv[optind];
+    mopt.container_arr_len = argc - optind;
     // printf ("non-option ARGV-elements: ");
     // while (optind < argc)
     //   printf ("%d, %d, %s \n", optind, argc, argv[optind++]);
     // putchar ('\n');
   }
-
-  // check arguments
-  // name 去重
-  if( mopt.name != NULL) {
-  	 if(!ContainerManager::get_container_by_name(mopt.name).id.empty()) {
-  	 		err_exit(0, "duplicate name %s", mopt.name);
-  	 }
+  else
+  {
+    usage();
+    exit(1);
   }
- 
 
-
-  char container_id[37];
-  ContainerManager::gen_id(container_id);
-  mopt.container_id = container_id;
-
-  ContainerManager::create_container(mopt.container_id);
-  /* Create the child in new namespace(s) */
-  void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-  if (stack == MAP_FAILED)
+  for (int i = 0; i <  mopt.container_arr_len; i++)
+  {
+    Container info = ContainerManager::get_container_by_id_or_name(mopt.container_arr[i]);
+    if (info.id.empty() || info.status == CONTAINER_RUNNING)
+      continue;
+    /* Create the child in new namespace(s) */
+    void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED)
       err_exit(0, "handle_run_command mmap:");
 
-  int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
-                               CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
- 
-  
+    int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
+                              CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info);
 
-  printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
+    printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
 
- 
- // -------save container info to json file
-  Container container_info = {};
-  container_info.id = mopt.container_id;
-  container_info.pid = container_pid;
-  if(mopt.name != NULL) {
-    container_info.name = mopt.name;
-  }
-  
-  char *cmd_str = str_join2(mopt.cmd_arr,  mopt.cmd_arr_len, " ");
-  container_info.command = cmd_str;
-  // std::cout << "container_info.command ===" << container_info.command << std::endl;
-  free(cmd_str);
 
-  container_info.create_time = time(0);
- 
-  if (mopt.volume != NULL) {
-  	 container_info.volume = mopt.volume;
-  }
-  container_info.status = CONTAINER_RUNNING;
-  ContainerManager::insert(container_info);
-  // ------save end---------
+    // -------save container info to json file
+    info.pid = container_pid;
+    info.start_time = time(0);
+    info.status = CONTAINER_RUNNING;
+    ContainerManager::update(info);
+    // ------save end---------
 
-  if(!mopt.detach) {
-    int status;
-    waitpid(container_pid, &status, 0);
-    if (WIFEXITED(status))
+    if (!mopt.detach)
     {
-      //printf("===WIFEXITED\n");
-      Container info = ContainerManager::get_container_by_id(container_id);
-      ContainerManager::save_to_stop(info);
-    
-    } else if (WIFSIGNALED(status)) {
-      //printf("====SIGCHLD\n");
+      int status;
+      waitpid(container_pid, &status, 0);
+      if (WIFEXITED(status))
+      {
+        //printf("===WIFEXITED\n");
+        ContainerManager::save_to_stop(info);
+
+      }
+      else if (WIFSIGNALED(status))
+      {
+        //printf("====SIGCHLD\n");
+      }
+
+      printf("Parent - container stopped!\n");
     }
-   
-    printf("Parent - container stopped!\n");
-  } else {
-    printf("%s\n", container_id);
+    else
+    {
+      printf("%s\n", info.id.c_str());
+    }
   }
-  
+
+
 }
 
- 

@@ -44,6 +44,10 @@ int main(int argc, char *argv[])
   {
     ContainerStopCli::handle_command(argc - 1, argv + 1);
   }
+  else if (strcmp(target, "start") == 0)
+  {
+    ContainerStartCli::handle_command(argc - 1, argv + 1);
+  }
   else if (strcmp(target, "ps") == 0)
   {
     ContainerLsCli::handle_command(argc - 1, argv + 1);

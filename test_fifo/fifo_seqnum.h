@@ -17,7 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "tlpi_hdr.h"
+#include "usg_common.h"
 
 #define SERVER_FIFO "/tmp/seqnum_sv"
                                 /* Well-known name for server's FIFO */

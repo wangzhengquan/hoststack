@@ -26,7 +26,7 @@ void ContainerRunCli::usage()
   printf("usage: param error\n");
 }
 
-int container_run_main(void* arg)
+static int container_run_main(void* arg)
 {
   
   printf("in container...\n ");
@@ -55,7 +55,7 @@ int container_run_main(void* arg)
   }
 
   execvp(mopt.cmd_arr[0], mopt.cmd_arr);
-  perror("exec");
+  err_msg(errno, "execvp: %s\n", mopt.cmd_arr[0]);
 
   return 1;
 }
@@ -195,7 +195,7 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
     container_info.name = mopt.name;
   }
   
-  char *cmd_str = str_join2(mopt.cmd_arr,  mopt.cmd_arr_len, " ");
+  char *cmd_str = array_join(mopt.cmd_arr, " ");
   container_info.command = cmd_str;
   // std::cout << "container_info.command ===" << container_info.command << std::endl;
   free(cmd_str);
@@ -235,7 +235,7 @@ void mpivot_root(const char *rootfs) {
   if (mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL)!=0) {
     err_exit(errno, "mpivot_toot mount: %s.", rootfs);
   }
-  const char *pivot_dir = path_join(2, rootfs, ".pivot_root");
+  const char *pivot_dir = path_join(rootfs, ".pivot_root", NULL);
   if (mkdir(pivot_dir, DIR_MODE) == -1) {
     err_exit(errno, "mpivot_toot mkdir: %s", pivot_dir);
   }

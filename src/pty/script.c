@@ -26,8 +26,7 @@ ttyReset(void)
         err_exit(errno, "tcsetattr");
 }
 
-int
-main(int argc, char *argv[])
+int pty_exe(int argc, char *argv[])
 {
     char slaveName[MAX_SNAME];
     char *shell;

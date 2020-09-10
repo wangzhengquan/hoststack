@@ -84,7 +84,7 @@ ptyFork(int *masterFd, char *slaveName, size_t snLen,
     if (slaveTermios != NULL)           /* Set slave tty attributes */
         if (tcsetattr(slaveFd, TCSANOW, slaveTermios) == -1)
             err_exit(errno, "ptyFork:tcsetattr");
-
+ 
     if (slaveWS != NULL)                /* Set slave tty window size */
         if (ioctl(slaveFd, TIOCSWINSZ, slaveWS) == -1)
             err_exit(errno, "ptyFork:ioctl-TIOCSWINSZ");

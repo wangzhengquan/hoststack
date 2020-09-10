@@ -50,9 +50,7 @@ static int container_run_main(void* arg)
 {
   
   printf("in container...\n ");
-  char rootfs[1024];
-  pid_t child_pid;
-  pty_exe_opt_t ptyopt = {};
+ 
  
 
   container_run_option_t & mopt = * ((container_run_option_t *)arg);
@@ -64,6 +62,9 @@ static int container_run_main(void* arg)
     ContainerManager::mount_volume(mopt.container_id,  mopt.volume);
   }
 
+
+  char rootfs[1024];
+  pty_exe_opt_t ptyopt = {};
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
   ptyopt.rootfs = rootfs;
   ptyopt.cmd = mopt.cmd_arr;
@@ -73,8 +74,7 @@ static int container_run_main(void* arg)
     printf("logfile = %s\n", ptyopt.logfile);
   }
 
-  pty_exec(ptyopt, &child_pid);
-  printf("==child_pid == %d\n", child_pid);
+  pty_exec(ptyopt);
   if(ptyopt.logfile != NULL)
     free(ptyopt.logfile);
 
@@ -86,20 +86,21 @@ static int container_run_main(void* arg)
 
 void ContainerRunCli::handle_command (int argc, char *argv[])
 {
-  printf("Parent [%5d] - start a container!\n", getpid());
   int c;
 
   char *shell = getenv("SHELL");
   if (shell == NULL || *shell == '\0')
     shell = "/bin/bash";
   // char ** cmd_arr;
-  container_run_option_t mopt = {};
+  
   char * default_cmd_arr[] =
   {
     shell,
     "-l",
     NULL
   };
+
+  container_run_option_t mopt = {};
   mopt.cmd_arr = default_cmd_arr;
   mopt.cmd_arr_len = 2;
 
@@ -159,7 +160,7 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
       break;
 
     case '?':
-      //printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
+      printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
       /* getopt_long already printed an error message. */
       break;
 
@@ -238,12 +239,12 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
     waitpid(container_pid, &status, 0);
     if (WIFEXITED(status))
     {
-      //printf("===WIFEXITED\n");
+      printf("===WIFEXITED\n");
       Container info = ContainerManager::get_container_by_id(container_id);
       ContainerManager::save_to_stop(info);
     
     } else if (WIFSIGNALED(status)) {
-      //printf("====SIGCHLD\n");
+      printf("====SIGCHLD\n");
     }
    
     printf("Parent - container stopped!\n");

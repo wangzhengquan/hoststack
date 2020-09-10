@@ -8,6 +8,7 @@
 #include "container_run_cli.h"
 #include "container_stop_cli.h"
 #include "container_start_cli.h"
+#include "container_exec_cli.h"
 
 class ContainerCli {
 
@@ -15,8 +16,8 @@ public:
 	static void usage();
 	
 	static void handle_command(int argc, char *argv[]);
-	static void handle_run_command (int argc, char *argv[]);
-	static void handle_ls_command(int argc, char *argv[]);
+	// static void handle_run_command (int argc, char *argv[]);
+	// static void handle_ls_command(int argc, char *argv[]);
 };
 
 

@@ -52,6 +52,10 @@ int main(int argc, char *argv[])
   {
     ContainerLsCli::handle_command(argc - 1, argv + 1);
   }
+  else if (strcmp(target, "exec") == 0)
+  {
+    ContainerExecCli::handle_command(argc - 1, argv + 1);
+  }
   else if ( strcmp(target, "--help") == 0)
   {
     usage();

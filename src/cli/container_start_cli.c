@@ -55,7 +55,7 @@ static int container_run_main(void* arg)
   int cmd_arr_len;
   char **cmd_arr = str_split(const_cast<char*>(info.command.c_str()), BLANK, &cmd_arr_len);
   execvp(cmd_arr[0], cmd_arr);
-  perror("exec");
+  perror(" ContainerStartCli execvp");
 
   return 1;
 }

@@ -9,7 +9,7 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 # 开源工具包
 LDLIBS += -lusgcommon -luuid -ljsoncpp
 
-INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid  -I./cli/include/
+INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid  -I./cli/include/ -I./pty
 
 SOURCES := $(wildcard *.c ./**/*.c)
 
@@ -20,9 +20,10 @@ DEPENDENCES = $(patsubst %, %.d, $(PROGS))
 #LIBCOMMON=${ROOT}/lib/libusgcommon.a
 
 build:	 $(PROGS)
-	cp -a $(ROOT)/etc $(DEST) 
-	sudo chmod 544 $(DEST)/kucker
+	#cp -a $(ROOT)/etc $(DEST) 
 	sudo chown root:root $(DEST)/kucker
+	#sudo chmod 755 $(DEST)/kucker
+	
 
 # class
 $(DEST)/kucker : $(SOURCES)

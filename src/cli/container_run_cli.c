@@ -6,7 +6,7 @@
 #include "container_manager.h"
 #include "container.h"
 #include "container_run_cli.h"
-
+#include "pty_exec_util.h"
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 
@@ -26,11 +26,33 @@ void ContainerRunCli::usage()
   printf("usage: param error\n");
 }
 
+
+// void exec() {
+//    /* chroot 隔离目录 */
+//     if ( chdir(rootfs) != 0 || chroot("./") != 0 )
+//     {
+//       err_exit(errno, "chdir/chroot:%s", rootfs);
+//     }
+
+
+//     if (system("touch /usr/lib/tmp") != 0)
+//     {
+//       err_exit(errno, "touch /usr/lib/tmp");
+//     }
+
+//     execvp(mopt.cmd_arr[0], mopt.cmd_arr);
+         // err_msg(errno, "execvp: %s\n", mopt.cmd_arr[0]);
+// }
+
+ 
+
 static int container_run_main(void* arg)
 {
   
   printf("in container...\n ");
   char rootfs[1024];
+  pid_t child_pid;
+  pty_exe_opt_t ptyopt = {};
  
 
   container_run_option_t & mopt = * ((container_run_option_t *)arg);
@@ -43,19 +65,18 @@ static int container_run_main(void* arg)
   }
 
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
-  /* chroot 隔离目录 */
-  if ( chdir(rootfs) != 0 || chroot("./") != 0 )
-  {
-    err_exit(errno,"chdir/chroot:%s", rootfs);
-  }
-   
-
-  if(system("touch /usr/lib/tmp") !=0) {
-  	err_exit(errno, "touch /usr/lib/tmp");
+  ptyopt.rootfs = rootfs;
+  ptyopt.cmd = mopt.cmd_arr;
+  ptyopt.detach = mopt.detach;
+  if(mopt.detach) {
+    ptyopt.logfile = path_join(kucker_repo, "containers", mopt.container_id, "stdout.log");
+    printf("logfile = %s\n", ptyopt.logfile);
   }
 
-  execvp(mopt.cmd_arr[0], mopt.cmd_arr);
-  err_msg(errno, "execvp: %s\n", mopt.cmd_arr[0]);
+  pty_exec(ptyopt, &child_pid);
+  printf("==child_pid == %d\n", child_pid);
+  if(ptyopt.logfile != NULL)
+    free(ptyopt.logfile);
 
   return 1;
 }
@@ -68,11 +89,14 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
   printf("Parent [%5d] - start a container!\n", getpid());
   int c;
 
+  char *shell = getenv("SHELL");
+  if (shell == NULL || *shell == '\0')
+    shell = "/bin/bash";
   // char ** cmd_arr;
   container_run_option_t mopt = {};
   char * default_cmd_arr[] =
   {
-    "/bin/bash",
+    shell,
     "-l",
     NULL
   };
@@ -231,40 +255,40 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
 
 
 
-void mpivot_root(const char *rootfs) {
-  if (mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL)!=0) {
-    err_exit(errno, "mpivot_toot mount: %s.", rootfs);
-  }
-  const char *pivot_dir = path_join(rootfs, ".pivot_root", NULL);
-  if (mkdir(pivot_dir, DIR_MODE) == -1) {
-    err_exit(errno, "mpivot_toot mkdir: %s", pivot_dir);
-  }
+// void mpivot_root(const char *rootfs) {
+//   if (mount(rootfs, rootfs, "bind", MS_BIND | MS_REC, NULL)!=0) {
+//     err_exit(errno, "mpivot_toot mount: %s.", rootfs);
+//   }
+//   const char *pivot_dir = path_join(rootfs, ".pivot_root", NULL);
+//   if (mkdir(pivot_dir, DIR_MODE) == -1) {
+//     err_exit(errno, "mpivot_toot mkdir: %s", pivot_dir);
+//   }
 
-  // if(unshare(CLONE_NEWNS) == -1) {
-  //    err_exit(errno, "mpivot_toot unshare");
-  // }
-  //system("unshare -m");
+//   // if(unshare(CLONE_NEWNS) == -1) {
+//   //    err_exit(errno, "mpivot_toot unshare");
+//   // }
+//   //system("unshare -m");
 
-  if(syscall(SYS_pivot_root, rootfs, pivot_dir) == -1) {
-     err_exit(errno, "mpivot_toot pivot_root: %s, %s", rootfs, pivot_dir);
-  }
+//   if(syscall(SYS_pivot_root, rootfs, pivot_dir) == -1) {
+//      err_exit(errno, "mpivot_toot pivot_root: %s, %s", rootfs, pivot_dir);
+//   }
 
-  if ( chroot(rootfs) != 0)
-  {
-    err_exit(errno, "mpivot_toot  chroot: %s", rootfs);
-  }
+//   if ( chroot(rootfs) != 0)
+//   {
+//     err_exit(errno, "mpivot_toot  chroot: %s", rootfs);
+//   }
 
-  if ( chdir("/") != 0  )
-  {
-    err_exit(errno, "mpivot_toot  chdir: %s", rootfs);
-  }
+//   if ( chdir("/") != 0  )
+//   {
+//     err_exit(errno, "mpivot_toot  chdir: %s", rootfs);
+//   }
 
-  if(umount2("/.pivot_root", MNT_DETACH) == -1) {
-     err_exit(errno, "mpivot_toot  umount2");
-  }
+//   if(umount2("/.pivot_root", MNT_DETACH) == -1) {
+//      err_exit(errno, "mpivot_toot  umount2");
+//   }
 
-  if(remove("/.pivot_root") == -1) {
-    err_msg(errno, "mpivot_toot  remove");
-  }
+//   if(remove("/.pivot_root") == -1) {
+//     err_msg(errno, "mpivot_toot  remove");
+//   }
 
-}
+// }

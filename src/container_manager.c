@@ -95,14 +95,14 @@ void ContainerManager::stop(const std::string & name) {
     return;
   }
   printf("killing pid %d\n", container.pid);
-  if(kill(-container.pid, SIGTERM) != 0) {
-    err_exit(errno, "Stop container %s failed.", name.c_str());
+  if(kill(container.pid, SIGTERM) != 0) {
+    err_exit(errno, "SIGTERM Stop container %s failed.", name.c_str());
     return;
   }
 
   sleep(3);
   if(kill(container.pid, SIGKILL) != 0) {
-    err_msg(errno, "Stop container %s failed.", name.c_str());
+    //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
 
   

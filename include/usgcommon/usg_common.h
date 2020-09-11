@@ -56,7 +56,6 @@ extern "C" {
 //c++ header
 #ifdef __cplusplus
 
- 
 #include <iostream>
 #include <fstream>
 #include <sstream>

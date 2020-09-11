@@ -2,13 +2,32 @@
 #include <getopt.h>
 #include <uuid.h>
 #include <sys/syscall.h>
-
 #include "container_manager.h"
 #include "container.h"
 #include "container_start_cli.h"
 
+#include <fcntl.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include "pty_master_open.h"
+#include "pty_fork.h"                   /* Declares ptyFork() */
+#include "usg_common.h"
+#include "tty_functions.h"
+
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
+
+
+#define BUF_SIZE 4096
+static struct termios ttyOrig;
+
+static void             /* Reset terminal mode on program exit */
+ttyReset(void)
+{
+  if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
+    err_exit(errno, "tcsetattr");
+}
+
 
 struct container_strat_option_t
 {
@@ -142,19 +161,35 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   for (int i = 0; i <  mopt.container_arr_len; i++)
   {
     Container info = ContainerManager::get_container_by_id_or_name(mopt.container_arr[i]);
-    if (info.id.empty() || info.status == CONTAINER_RUNNING)
-      continue;
+    // if (info.id.empty() || info.status == CONTAINER_RUNNING)
+    //   continue;
     /* Create the child in new namespace(s) */
     void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
       err_exit(0, "handle_run_command mmap:");
 
-    int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
-                              CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info);
+    // int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
+    //                           CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info);
+    int masterFd;
+    fd_set inFds;
+    char buf[BUF_SIZE];
+    struct winsize ws;
+    ssize_t numRead;
+
+
+    if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+      err_exit(errno, "tcgetattr");
+    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+      err_exit(errno, "ioctl-TIOCGWINSZ");
+
+    int container_pid = ptyClone(container_run_main, (char *)stack + STACK_SIZE, 
+                            CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info, &masterFd, &ttyOrig, &ws);
+ 
+
 
     printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
-
+    
 
     // -------save container info to json file
     info.pid = container_pid;
@@ -163,6 +198,61 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     ContainerManager::update(info);
     // ------save end---------
 
+    // =================
+
+     /* Place terminal in raw mode so that we can pass all terminal
+     input to the pseudoterminal master untouched */
+
+    ttySetRaw(STDIN_FILENO, &ttyOrig);
+
+    if (atexit(ttyReset) != 0)
+      err_exit(errno, "atexit");
+
+    /* Loop monitoring terminal and pty master for input. If the
+       terminal is ready for input, then read some bytes and write
+       them to the pty master. If the pty master is ready for input,
+       then read some bytes and write them to the terminal. */
+
+    for (;;)
+    {
+      FD_ZERO(&inFds);
+      FD_SET(STDIN_FILENO, &inFds);
+      FD_SET(masterFd, &inFds);
+
+      if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1)
+        err_exit(errno, "select");
+
+
+      if (FD_ISSET(STDIN_FILENO, &inFds))     /* stdin --> pty */
+      {
+         
+        numRead = read(STDIN_FILENO, buf, BUF_SIZE);
+        if (numRead <= 0) {
+          // exit(EXIT_SUCCESS);
+          break;
+        }
+
+        if (write(masterFd, buf, numRead) != numRead)
+          err_exit(errno, "partial/failed write (masterFd)");
+      }
+
+      if (FD_ISSET(masterFd, &inFds))        /* pty --> stdout+file */
+      {
+        numRead = read(masterFd, buf, BUF_SIZE);
+        if (numRead <= 0) {
+          // exit(EXIT_SUCCESS);
+          break;
+        }
+
+        if (write(STDOUT_FILENO, buf, numRead) != numRead)
+          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
+
+
+      }
+    }
+
+    ttyReset();
+    //==========================
     if (!mopt.detach)
     {
       int status;

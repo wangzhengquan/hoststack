@@ -34,6 +34,7 @@ int pty_exec(pty_exe_opt_t arg)
 {
   char slaveName[MAX_SNAME];
   int masterFd, logFd;
+ 
   struct winsize ws;
   fd_set inFds;
   char buf[BUF_SIZE];
@@ -134,6 +135,7 @@ int pty_exec(pty_exe_opt_t arg)
     }
   }
 }
+
 
 
 int pty_proxy_exec(pty_exe_opt_t arg)

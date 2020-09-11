@@ -85,7 +85,7 @@ void ContainerManager::save_to_stop( Container &info) {
   info.status = CONTAINER_STOPED;
   info.pid = 0;
   ContainerManager::update(info);
-  ContainerManager::umount_container(info.id.c_str());
+  
 }
 
 void ContainerManager::stop(const std::string & name) {
@@ -100,12 +100,12 @@ void ContainerManager::stop(const std::string & name) {
     return;
   }
 
-  sleep(3);
+  sleep(5);
   if(kill(container.pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
 
-  
+  ContainerManager::umount_container(info.id.c_str());
   save_to_stop(container);
  
 }
@@ -360,7 +360,7 @@ void ContainerManager::mount_container(const char *container_id)
 
     } else {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
-      printf("mount_container: %s\n", line);
+      //printf("mount_container: %s\n", line);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
         err_exit(errno, "mount_container: %s", line);

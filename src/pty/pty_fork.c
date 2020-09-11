@@ -190,7 +190,7 @@ int ptyClone(int (*fn)(void *), void *child_stack, int flags, void *arg,
   int *mfd, const struct termios *slaveTermios, const struct winsize *slaveWS)
 {
   int masterFd, savedErrno;
-  pid_t childPid;
+  int childPid;
   char slaveName[MAX_SNAME];
 
   masterFd = ptyMasterOpen(slaveName, MAX_SNAME);

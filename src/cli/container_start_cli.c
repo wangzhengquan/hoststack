@@ -33,10 +33,11 @@ struct container_strat_option_t
 {
   bool interactive;
   bool detach;
-  char **container_arr;
-  int container_arr_len;
+  // char **container_arr;
+  // int container_arr_len;
 } ;
 
+static void start_container(container_strat_option_t & mopt, char *container_id)  ;
 
 void ContainerStartCli::usage()
 {
@@ -89,7 +90,10 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
 
   // char ** cmd_arr;
   container_strat_option_t mopt = {};
-  mopt.detach = false;
+  mopt.interactive = false;
+
+  char **container_arr;
+  int container_arr_len;
   opterr = 0;
 
   static struct option long_options[] =
@@ -126,7 +130,6 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     case 'i':
       // puts ("==interactive \n");
       mopt.interactive = true;
-      mopt.detach = false;
       
       break;
     case '?':
@@ -145,8 +148,8 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
   {
-    mopt.container_arr = &argv[optind];
-    mopt.container_arr_len = argc - optind;
+    container_arr = &argv[optind];
+    container_arr_len = argc - optind;
     // printf ("non-option ARGV-elements: ");
     // while (optind < argc)
     //   printf ("%d, %d, %s \n", optind, argc, argv[optind++]);
@@ -158,9 +161,21 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     exit(1);
   }
 
-  for (int i = 0; i <  mopt.container_arr_len; i++)
-  {
-    Container info = ContainerManager::get_container_by_id_or_name(mopt.container_arr[i]);
+  // for (int i = 0; i <  mopt.container_arr_len; i++)
+  // {
+  //   start_container(mopt.container_arr[i]);
+  // }
+  start_container(mopt, container_arr[0]);
+
+
+}
+
+
+static void start_container(container_strat_option_t & mopt, char *container_id) {
+    Container info = ContainerManager::get_container_by_id_or_name(container_id);
+    if(!mopt.interactive) {
+      err_msg(0, "%s\n", info.id.c_str());
+    }
     // if (info.id.empty() || info.status == CONTAINER_RUNNING)
     //   continue;
     /* Create the child in new namespace(s) */
@@ -172,11 +187,7 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     // int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
     //                           CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info);
     int masterFd;
-    fd_set inFds;
-    char buf[BUF_SIZE];
     struct winsize ws;
-    ssize_t numRead;
-
 
     if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
       err_exit(errno, "tcgetattr");
@@ -187,7 +198,7 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info, &masterFd, &ttyOrig, &ws);
  
 
-
+    // printf("%s\n", info.id.c_str());
     printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
     
 
@@ -197,85 +208,122 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     info.status = CONTAINER_RUNNING;
     ContainerManager::update(info);
     // ------save end---------
-
+    
     // =================
-
-     /* Place terminal in raw mode so that we can pass all terminal
-     input to the pseudoterminal master untouched */
-
-    ttySetRaw(STDIN_FILENO, &ttyOrig);
-
-    if (atexit(ttyReset) != 0)
-      err_exit(errno, "atexit");
-
-    /* Loop monitoring terminal and pty master for input. If the
-       terminal is ready for input, then read some bytes and write
-       them to the pty master. If the pty master is ready for input,
-       then read some bytes and write them to the terminal. */
-
-    for (;;)
-    {
-      FD_ZERO(&inFds);
-      FD_SET(STDIN_FILENO, &inFds);
-      FD_SET(masterFd, &inFds);
-
-      if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1)
-        err_exit(errno, "select");
-
-
-      if (FD_ISSET(STDIN_FILENO, &inFds))     /* stdin --> pty */
-      {
+    int pid =  fork();
+    if(pid == -1) {
+       ContainerManager::save_to_stop(info);
+       err_exit(errno, "fork");
+    }
+    else if(pid == 0) {
+      //server
+      //  if(mopt.interactive) {
+      //   int status;
+      //   waitpid(container_pid, &status, 0);
+      //   if (WIFEXITED(status))
+      //   {
+      //     err_msg(0, "===WIFEXITED\n");
          
-        numRead = read(STDIN_FILENO, buf, BUF_SIZE);
-        if (numRead <= 0) {
-          // exit(EXIT_SUCCESS);
-          break;
-        }
 
-        if (write(masterFd, buf, numRead) != numRead)
-          err_exit(errno, "partial/failed write (masterFd)");
+      //   }
+      //   else if (WIFSIGNALED(status))
+      //   {
+      //     err_msg(0, "====SIGCHLD\n");
+      //   }
+      //   ContainerManager::save_to_stop(info);
+      // } else {
+      //   printf("Parent - container stopped!\n");
+      // }
+
+      
+
+    } else if(pid > 0){
+      if(!mopt.interactive) {
+        return;
       }
+      // client
+      fd_set inFds;
+      char buf[BUF_SIZE];
+      ssize_t numRead;
+      char logfile[1024];
+      int logfd;
+      int infd;
+      if(!mopt.interactive) {
+       
+        sprintf(logfile, "%s/containers/%s/stdout.%ld.log",kucker_repo, container_id, time(0));
+        logfd = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+        if (logfd == -1)
+          err_exit(errno, "open typescript");
+        dup2(logfd, STDOUT_FILENO);
+        dup2(logfd, STDERR_FILENO);
+        close(logfd);
+        // infd = open("/dev/null", O_RDONLY);
+        // dup2(infd, STDIN_FILENO);
+        // printf("log:%s\n", logfile);
 
-      if (FD_ISSET(masterFd, &inFds))        /* pty --> stdout+file */
+      } else {
+         /* Place terminal in raw mode so that we can pass all terminal
+         input to the pseudoterminal master untouched */
+
+        ttySetRaw(STDIN_FILENO, &ttyOrig);
+
+        if (atexit(ttyReset) != 0)
+          err_exit(errno, "atexit");
+      }
+     
+
+      /* Loop monitoring terminal and pty master for input. If the
+         terminal is ready for input, then read some bytes and write
+         them to the pty master. If the pty master is ready for input,
+         then read some bytes and write them to the terminal. */
+
+      for (;;)
       {
-        numRead = read(masterFd, buf, BUF_SIZE);
-        if (numRead <= 0) {
-          // exit(EXIT_SUCCESS);
-          break;
+        FD_ZERO(&inFds);
+        FD_SET(STDIN_FILENO, &inFds);
+        FD_SET(masterFd, &inFds);
+
+        if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1)
+          err_exit(errno, "select");
+
+
+        if (FD_ISSET(STDIN_FILENO, &inFds))     /* stdin --> pty */
+        {
+           
+          numRead = read(STDIN_FILENO, buf, BUF_SIZE);
+          if (numRead <= 0) {
+            // exit(EXIT_SUCCESS);
+            break;
+          }
+
+          if (write(masterFd, buf, numRead) != numRead)
+            err_exit(errno, "partial/failed write (masterFd)");
         }
 
-        if (write(STDOUT_FILENO, buf, numRead) != numRead)
-          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
+        if (FD_ISSET(masterFd, &inFds))        /* pty --> stdout+file */
+        {
+          numRead = read(masterFd, buf, BUF_SIZE);
+          if (numRead <= 0) {
+            // exit(EXIT_SUCCESS);
+            break;
+          }
+
+          if (write(STDOUT_FILENO, buf, numRead) != numRead)
+            err_exit(errno, "partial/failed write (STDOUT_FILENO)");
 
 
+        }
       }
     }
 
-    ttyReset();
+   
+
+    //ttyReset();
     //==========================
-    if (!mopt.detach)
-    {
-      int status;
-      waitpid(container_pid, &status, 0);
-      if (WIFEXITED(status))
-      {
-        //printf("===WIFEXITED\n");
-        ContainerManager::save_to_stop(info);
-
-      }
-      else if (WIFSIGNALED(status))
-      {
-        //printf("====SIGCHLD\n");
-      }
-
-      printf("Parent - container stopped!\n");
-    }
-    else
-    {
-      printf("%s\n", info.id.c_str());
-    }
-  }
-
-
+   
+   
+    
+   
+    
 }
 

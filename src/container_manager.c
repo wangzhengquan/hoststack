@@ -23,13 +23,8 @@ void ContainerManager::insert(const Container &info) {
   }
 // printf("==============2\n");
   Json::Value infojson;
-	infojson["id"] = info.id;
-	infojson["name"] = info.name;
-	infojson["pid"] = info.pid;
-	infojson["command"] = info.command;
-	infojson["create_time"] = (int)info.create_time;
-	infojson["status"] = info.status;
-  infojson["volume"] = info.volume;
+  de_pack_container_info(infojson, info);
+	 
 
   root.append(infojson);
 
@@ -81,33 +76,32 @@ void ContainerManager::update(const Container &info) {
 }
 
  
-void ContainerManager::change_status_to_stop( Container &info) {
+void ContainerManager::change_status_to_stop( const std::string & name) {
+ 
+  Container info = ContainerManager::get_container_by_id_or_name(name);
   info.status = CONTAINER_STOPED;
+  info.stop_time = time(0);
   info.pid = 0;
   ContainerManager::update(info);
   
 }
 
 void ContainerManager::stop(const std::string & name) {
-  Container container = ContainerManager::get_container_by_id_or_name(name);
-  if(container.id.empty() || container.status != CONTAINER_RUNNING) {
+  Container info = ContainerManager::get_container_by_id_or_name(name);
+  if(info.id.empty() || info.status != CONTAINER_RUNNING) {
     err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
     return;
   }
-  printf("killing pid %d\n", container.pid);
-  if(kill(container.pid, SIGTERM) != 0) {
-    err_exit(errno, "SIGTERM Stop container %s failed.", name.c_str());
+  printf("killing pid %d\n", info.pid);
+  if(kill(info.pid, SIGTERM) != 0) {
+    err_msg(errno, "SIGTERM Stop container %s failed.", name.c_str());
     return;
   }
 
-  sleep(5);
-  if(kill(container.pid, SIGKILL) != 0) {
+  sleep(3);
+  if(kill(info.pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
-
-  ContainerManager::umount_container(container.id);
-  change_status_to_stop(container);
- 
 }
 
 
@@ -223,6 +217,8 @@ Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, co
   jsonData["pid"] = info.pid;
   jsonData["command"] = info.command;
   jsonData["create_time"] = (int)info.create_time;
+  jsonData["start_time"] = (int)info.start_time;
+  jsonData["stop_time"] = (int)info.stop_time;
   jsonData["status"] = info.status;
   jsonData["volume"] = info.volume;
   return jsonData;

@@ -15,6 +15,7 @@ public:
 	std::string command; // 容器运行的命令
 	time_t create_time; // 创建时间
 	time_t start_time; //启动时间
+	time_t stop_time; //停止时间
 	container_status_t status; //运行状态
 	std::string volume;
 public:

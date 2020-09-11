@@ -255,7 +255,7 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
       printf("===WIFEXITED\n");
       Container info = ContainerManager::get_container_by_id(container_id);
       ContainerManager::umount_container(info.id);
-      ContainerManager::change_status_to_stop(info);
+      ContainerManager::change_status_to_stop(info.id);
     
     } else if (WIFSIGNALED(status)) {
       printf("====SIGCHLD\n");

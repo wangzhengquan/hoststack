@@ -18,15 +18,24 @@
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 
-struct container_strat_option_t
+struct container_start_option_t
 {
   bool interactive;
-  char * container_id;
+  char * cid; // container identify
   // char **container_arr;
   // int container_arr_len;
 } ;
 
-static void start_container(container_strat_option_t mopt)  ;
+static void start_container(container_start_option_t mopt)  ;
+
+std::string containerId;
+static void sigStopHandler(int sig) {
+  std::cout << "sig stop " << containerId << std::endl;
+ 
+  ContainerManager::umount_container(containerId);
+  ContainerManager::stop(containerId);
+}
+
 
 void ContainerStartCli::usage()
 {
@@ -40,8 +49,16 @@ static int container_run_main(void* arg)
 
   // Container & info = *((Container *)arg);
 
-  container_strat_option_t mopt = *((container_strat_option_t *)arg);
-  Container info = ContainerManager::get_container_by_id_or_name(mopt.container_id);
+  container_start_option_t mopt = *((container_start_option_t *)arg);
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.cid);
+
+  containerId = mopt.cid;
+  struct sigaction sa;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sa.sa_handler = sigStopHandler;
+  if (sigaction(SIGTERM, &sa, NULL) == -1)
+      err_msg(errno, "sigaction");
 
   ContainerManager::mount_container(info.id.c_str());
 // 容器卷
@@ -55,15 +72,15 @@ static int container_run_main(void* arg)
   char logfile[1024];
 
   pty_exe_opt_t ptyopt = {};
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
   ptyopt.rootfs = rootfs;
   ptyopt.cmd = str_split(const_cast<char*>(info.command.c_str()), BLANK, 0);
   ptyopt.detach = !mopt.interactive;
   if(ptyopt.detach)
   {
-    sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo,  mopt.container_id, time(0));
+    sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, info.id.c_str(), time(0));
     ptyopt.logfile = logfile;
-    // printf("logfile = %s\n", ptyopt.logfile);
+    printf("logfile = %s\n", ptyopt.logfile);
   } 
   pty_exec(ptyopt);
 
@@ -79,7 +96,7 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   int c;
 
   // char ** cmd_arr;
-  container_strat_option_t mopt = {};
+  container_start_option_t mopt = {};
   mopt.interactive = false;
 
   char **container_arr;
@@ -156,14 +173,14 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   //   start_container(mopt.container_arr[i]);
   // }
 
-  mopt.container_id = container_arr[0];
+  mopt.cid = container_arr[0];
   start_container(mopt);
 
 
 }
 
 
-static void start_container(container_strat_option_t mopt)
+static void start_container(container_start_option_t mopt)
 {
 
   
@@ -184,7 +201,7 @@ static void start_container(container_strat_option_t mopt)
 
 
   // -------save container info to json file
-  Container info = ContainerManager::get_container_by_id_or_name(mopt.container_id);
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.cid);
   info.pid = container_pid;
   info.start_time = time(0);
   info.status = CONTAINER_RUNNING;
@@ -204,7 +221,7 @@ static void start_container(container_strat_option_t mopt)
       printf("====SIGCHLD\n");
     }
     ContainerManager::umount_container(info.id);
-    ContainerManager::change_status_to_stop(info);
+    ContainerManager::change_status_to_stop(info.id);
 
     printf("Parent - container stopped!\n");
   }

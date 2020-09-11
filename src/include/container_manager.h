@@ -21,7 +21,7 @@ public:
 	static void update(const Container &info);
 
 	static void stop(const std::string & name);
-	static void change_status_to_stop( Container &info);
+	static void change_status_to_stop( const std::string & name);
 	
 
 	static Container get_container_by_id(const std::string& id);

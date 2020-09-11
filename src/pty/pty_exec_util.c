@@ -27,7 +27,7 @@ static void             /* Reset terminal mode on program exit */
 ttyReset(void)
 {
   if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
-    err_exit(errno, "tcsetattr");
+    err_exit(errno, "pty_exec_util ttyReset tcsetattr");
 }
 
 int pty_exec(pty_exe_opt_t arg)

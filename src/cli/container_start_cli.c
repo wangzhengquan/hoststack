@@ -63,9 +63,8 @@ static int container_run_main(void* arg)
   {
     sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo,  mopt.container_id, time(0));
     ptyopt.logfile = logfile;
-    printf("logfile = %s\n", ptyopt.logfile);
+    // printf("logfile = %s\n", ptyopt.logfile);
   } 
-  printf("2 logfile = %s\n", ptyopt.logfile);
   pty_exec(ptyopt);
 
   return 1;
@@ -199,19 +198,18 @@ static void start_container(container_strat_option_t mopt)
     if (WIFEXITED(status))
     {
       printf("===WIFEXITED\n");
-      ContainerManager::umount_container(info.id);
-      ContainerManager::change_status_to_stop(info);
-
     }
     else if (WIFSIGNALED(status))
     {
       printf("====SIGCHLD\n");
     }
+    ContainerManager::umount_container(info.id);
+    ContainerManager::change_status_to_stop(info);
 
     printf("Parent - container stopped!\n");
   }
   else
   {
-    printf("%s\n", info.id);
+    printf("containerid=%s\n", info.id.c_str());
   }
 }

@@ -74,7 +74,7 @@ static int container_run_main(void* arg)
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
   if(mopt.detach) {
-    sprintf(logfile, "%s/containers/%s/stdout.%d.log",kucker_repo,  mopt.container_id, time(0));
+    sprintf(logfile, "%s/containers/%s/stdout.%ld.log",kucker_repo,  mopt.container_id, time(0));
     ptyopt.logfile = logfile;
     printf("logfile = %s\n", ptyopt.logfile);
   }

@@ -18,7 +18,7 @@
 struct request {                /* Request (client --> server) */
   char *clientFifo;                 /* fifo of client */
   char buf[BUF_SIZE];
-  size_t bufSize;
+  int bufSize;
 };
 
 struct termios ttyOrig;

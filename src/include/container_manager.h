@@ -21,7 +21,7 @@ public:
 	static void update(const Container &info);
 
 	static void stop(const std::string & name);
-	static void save_to_stop( Container &info);
+	static void change_status_to_stop( Container &info);
 	
 
 	static Container get_container_by_id(const std::string& id);
@@ -33,15 +33,15 @@ public:
 
 	static void create_container(const char *container_id);
 
-	static void mount_container(const char *container_id);
+	static void mount_container(const std::string & container_id);
 
-  static void umount_container(const char *container_id);
+  static void umount_container(const std::string & container_id);
 
-  static void umount_volume (const char *container_id) ;
+  static void umount_volume (const std::string & container_id) ;
 
 	static char* gen_id(char *uuidstr);
 
-	static void mount_volume (const char *container_id, char *volume) ;
+	static void mount_volume (const char * container_id, char *volume) ;
 	static void bind_mount(const char *container_id, const char *src, const char *_dest);
 
 };

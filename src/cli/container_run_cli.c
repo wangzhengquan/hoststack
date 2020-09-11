@@ -65,8 +65,6 @@ static int container_run_main(void* arg)
 
   char rootfs[1024];
   char logfile[1024];
-  char serverFifo[1024];
-  
   
   pty_exe_opt_t ptyopt = {};
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
@@ -79,8 +77,9 @@ static int container_run_main(void* arg)
     printf("logfile = %s\n", ptyopt.logfile);
   }
 
-   pty_exec(ptyopt);
+  pty_exec(ptyopt);
 
+  //char serverFifo[1024];
   // sprintf(serverFifo, "%s/containers/%s/server.fifo",kucker_repo,  mopt.container_id);
   // printf("serverFifo = %s\n", serverFifo);
   // char clientFifo[1024];
@@ -255,7 +254,8 @@ void ContainerRunCli::handle_command (int argc, char *argv[])
     {
       printf("===WIFEXITED\n");
       Container info = ContainerManager::get_container_by_id(container_id);
-      ContainerManager::save_to_stop(info);
+      ContainerManager::umount_container(info.id);
+      ContainerManager::change_status_to_stop(info);
     
     } else if (WIFSIGNALED(status)) {
       printf("====SIGCHLD\n");

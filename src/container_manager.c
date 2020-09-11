@@ -81,7 +81,7 @@ void ContainerManager::update(const Container &info) {
 }
 
  
-void ContainerManager::save_to_stop( Container &info) {
+void ContainerManager::change_status_to_stop( Container &info) {
   info.status = CONTAINER_STOPED;
   info.pid = 0;
   ContainerManager::update(info);
@@ -105,8 +105,8 @@ void ContainerManager::stop(const std::string & name) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
 
-  ContainerManager::umount_container(info.id.c_str());
-  save_to_stop(container);
+  ContainerManager::umount_container(container.id);
+  change_status_to_stop(container);
  
 }
 
@@ -307,10 +307,11 @@ static  mnt_dir_t mnt_dir_arr[]= {
   {}
 };
 
-void ContainerManager::umount_container(const char *container_id) {
+void ContainerManager::umount_container(const std::string & container_id) {
+  Container container = ContainerManager::get_container_by_id_or_name(container_id);
   char rootfs[1024];
   char line[4096];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container.id.c_str());
 
   size_t i = 0;
  
@@ -332,11 +333,11 @@ void ContainerManager::umount_container(const char *container_id) {
   umount_volume(container_id);
 }
 
-void ContainerManager::mount_container(const char *container_id)
+void ContainerManager::mount_container(const std::string & container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
   char rootfs[1024];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id.c_str());
   char line[1024];
   char data[1024];
 
@@ -350,11 +351,11 @@ void ContainerManager::mount_container(const char *container_id)
       // {
       //   perror(line);
       // }
-      char *target =  path_join(kucker_repo, "/aufs/mnt", container_id, mnt_dir->target, NULL);
-      sprintf(data, "dirs=%s/aufs/diff/%s=rw:%s=ro", kucker_repo, container_id, mnt_dir->src);
+      char *target =  path_join(kucker_repo, "/aufs/mnt", container_id.c_str(), mnt_dir->target, NULL);
+      sprintf(data, "dirs=%s/aufs/diff/%s=rw:%s=ro", kucker_repo, container_id.c_str(), mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
-        err_exit(errno, "data=%s\n target=%s\n", data, target);
+        err_msg(errno, "data=%s\n target=%s\n", data, target);
       }
       free(target);
 
@@ -363,7 +364,7 @@ void ContainerManager::mount_container(const char *container_id)
       //printf("mount_container: %s\n", line);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
-        err_exit(errno, "mount_container: %s", line);
+        err_msg(errno, "mount_container: %s", line);
       }
     }
     mnt_dir = &mnt_dir_arr[i];
@@ -474,8 +475,8 @@ void ContainerManager::mount_volume (const char *container_id, char *volume) {
 }
 
 
-void ContainerManager::umount_volume (const char *container_id) {
-  std::string _volume = get_container_by_id(container_id).volume;
+void ContainerManager::umount_volume (const std::string & container_id) {
+  std::string _volume = get_container_by_id_or_name(container_id).volume;
   if(_volume.empty()) {
     return;
   }
@@ -483,7 +484,7 @@ void ContainerManager::umount_volume (const char *container_id) {
   char *src = NULL, *dest = NULL;
   char rootfs[1024];
   // char line[4096];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id.c_str());
 
   src = strtok(volume, ":");
   if (src != NULL && strlen(src) > 0)

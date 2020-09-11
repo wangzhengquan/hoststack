@@ -13,31 +13,20 @@
 #include "pty_fork.h"                   /* Declares ptyFork() */
 #include "usg_common.h"
 #include "tty_functions.h"
+#include "pty_exec_util.h"
 
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 
-
-#define BUF_SIZE 4096
-static struct termios ttyOrig;
-
-static void             /* Reset terminal mode on program exit */
-ttyReset(void)
-{
-  if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
-    err_exit(errno, "tcsetattr");
-}
-
-
 struct container_strat_option_t
 {
   bool interactive;
-  bool detach;
+  char * container_id;
   // char **container_arr;
   // int container_arr_len;
 } ;
 
-static void start_container(container_strat_option_t & mopt, char *container_id)  ;
+static void start_container(container_strat_option_t mopt)  ;
 
 void ContainerStartCli::usage()
 {
@@ -48,10 +37,11 @@ static int container_run_main(void* arg)
 {
 
   printf("in container...\n ");
-  char rootfs[1024];
 
+  // Container & info = *((Container *)arg);
 
-  Container & info = *((Container *)arg);
+  container_strat_option_t mopt = *((container_strat_option_t *)arg);
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.container_id);
 
   ContainerManager::mount_container(info.id.c_str());
 // 容器卷
@@ -60,22 +50,23 @@ static int container_run_main(void* arg)
     ContainerManager::mount_volume(info.id.c_str(),  const_cast<char*>(info.volume.c_str()) );
   }
 
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
-  /* chroot 隔离目录 */
-  if ( chdir(rootfs) != 0 || chroot("./") != 0 )
-  {
-    err_exit(errno, "chdir/chroot:%s", rootfs);
-  }
 
+  char rootfs[1024];
+  char logfile[1024];
 
-  if (system("touch /usr/lib/tmp") != 0)
+  pty_exe_opt_t ptyopt = {};
+  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
+  ptyopt.rootfs = rootfs;
+  ptyopt.cmd = str_split(const_cast<char*>(info.command.c_str()), BLANK, 0);
+  ptyopt.detach = !mopt.interactive;
+  if(ptyopt.detach)
   {
-    err_exit(errno, "touch /usr/lib/tmp");
-  }
-  int cmd_arr_len;
-  char **cmd_arr = str_split(const_cast<char*>(info.command.c_str()), BLANK, &cmd_arr_len);
-  execvp(cmd_arr[0], cmd_arr);
-  perror(" ContainerStartCli execvp");
+    sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo,  mopt.container_id, time(0));
+    ptyopt.logfile = logfile;
+    printf("logfile = %s\n", ptyopt.logfile);
+  } 
+  printf("2 logfile = %s\n", ptyopt.logfile);
+  pty_exec(ptyopt);
 
   return 1;
 }
@@ -130,7 +121,7 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     case 'i':
       // puts ("==interactive \n");
       mopt.interactive = true;
-      
+
       break;
     case '?':
       //printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
@@ -165,165 +156,62 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   // {
   //   start_container(mopt.container_arr[i]);
   // }
-  start_container(mopt, container_arr[0]);
+
+  mopt.container_id = container_arr[0];
+  start_container(mopt);
 
 
 }
 
 
-static void start_container(container_strat_option_t & mopt, char *container_id) {
-    Container info = ContainerManager::get_container_by_id_or_name(container_id);
-    if(!mopt.interactive) {
-      err_msg(0, "%s\n", info.id.c_str());
+static void start_container(container_strat_option_t mopt)
+{
+
+  
+  // if (info.id.empty() || info.status == CONTAINER_RUNNING)
+  //   continue;
+  /* Create the child in new namespace(s) */
+  void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+  if (stack == MAP_FAILED)
+    err_exit(0, "handle_run_command mmap:");
+
+  int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
+                            CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
+
+
+  // printf("%s\n", info.id.c_str());
+  printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
+
+
+  // -------save container info to json file
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.container_id);
+  info.pid = container_pid;
+  info.start_time = time(0);
+  info.status = CONTAINER_RUNNING;
+  ContainerManager::update(info);
+  // ------save end---------
+
+  if (mopt.interactive)
+  {
+    int status;
+    waitpid(container_pid, &status, 0);
+    if (WIFEXITED(status))
+    {
+      printf("===WIFEXITED\n");
+      ContainerManager::umount_container(info.id);
+      ContainerManager::change_status_to_stop(info);
+
     }
-    // if (info.id.empty() || info.status == CONTAINER_RUNNING)
-    //   continue;
-    /* Create the child in new namespace(s) */
-    void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-    if (stack == MAP_FAILED)
-      err_exit(0, "handle_run_command mmap:");
-
-    // int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
-    //                           CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info);
-    int masterFd;
-    struct winsize ws;
-
-    if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
-      err_exit(errno, "tcgetattr");
-    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
-      err_exit(errno, "ioctl-TIOCGWINSZ");
-
-    int container_pid = ptyClone(container_run_main, (char *)stack + STACK_SIZE, 
-                            CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &info, &masterFd, &ttyOrig, &ws);
- 
-
-    // printf("%s\n", info.id.c_str());
-    printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
-    
-
-    // -------save container info to json file
-    info.pid = container_pid;
-    info.start_time = time(0);
-    info.status = CONTAINER_RUNNING;
-    ContainerManager::update(info);
-    // ------save end---------
-    
-    // =================
-    int pid =  fork();
-    if(pid == -1) {
-       ContainerManager::save_to_stop(info);
-       err_exit(errno, "fork");
-    }
-    else if(pid == 0) {
-      //server
-      //  if(mopt.interactive) {
-      //   int status;
-      //   waitpid(container_pid, &status, 0);
-      //   if (WIFEXITED(status))
-      //   {
-      //     err_msg(0, "===WIFEXITED\n");
-         
-
-      //   }
-      //   else if (WIFSIGNALED(status))
-      //   {
-      //     err_msg(0, "====SIGCHLD\n");
-      //   }
-      //   ContainerManager::save_to_stop(info);
-      // } else {
-      //   printf("Parent - container stopped!\n");
-      // }
-
-      
-
-    } else if(pid > 0){
-      if(!mopt.interactive) {
-        return;
-      }
-      // client
-      fd_set inFds;
-      char buf[BUF_SIZE];
-      ssize_t numRead;
-      char logfile[1024];
-      int logfd;
-      int infd;
-      if(!mopt.interactive) {
-       
-        sprintf(logfile, "%s/containers/%s/stdout.%ld.log",kucker_repo, container_id, time(0));
-        logfd = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-        if (logfd == -1)
-          err_exit(errno, "open typescript");
-        dup2(logfd, STDOUT_FILENO);
-        dup2(logfd, STDERR_FILENO);
-        close(logfd);
-        // infd = open("/dev/null", O_RDONLY);
-        // dup2(infd, STDIN_FILENO);
-        // printf("log:%s\n", logfile);
-
-      } else {
-         /* Place terminal in raw mode so that we can pass all terminal
-         input to the pseudoterminal master untouched */
-
-        ttySetRaw(STDIN_FILENO, &ttyOrig);
-
-        if (atexit(ttyReset) != 0)
-          err_exit(errno, "atexit");
-      }
-     
-
-      /* Loop monitoring terminal and pty master for input. If the
-         terminal is ready for input, then read some bytes and write
-         them to the pty master. If the pty master is ready for input,
-         then read some bytes and write them to the terminal. */
-
-      for (;;)
-      {
-        FD_ZERO(&inFds);
-        FD_SET(STDIN_FILENO, &inFds);
-        FD_SET(masterFd, &inFds);
-
-        if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1)
-          err_exit(errno, "select");
-
-
-        if (FD_ISSET(STDIN_FILENO, &inFds))     /* stdin --> pty */
-        {
-           
-          numRead = read(STDIN_FILENO, buf, BUF_SIZE);
-          if (numRead <= 0) {
-            // exit(EXIT_SUCCESS);
-            break;
-          }
-
-          if (write(masterFd, buf, numRead) != numRead)
-            err_exit(errno, "partial/failed write (masterFd)");
-        }
-
-        if (FD_ISSET(masterFd, &inFds))        /* pty --> stdout+file */
-        {
-          numRead = read(masterFd, buf, BUF_SIZE);
-          if (numRead <= 0) {
-            // exit(EXIT_SUCCESS);
-            break;
-          }
-
-          if (write(STDOUT_FILENO, buf, numRead) != numRead)
-            err_exit(errno, "partial/failed write (STDOUT_FILENO)");
-
-
-        }
-      }
+    else if (WIFSIGNALED(status))
+    {
+      printf("====SIGCHLD\n");
     }
 
-   
-
-    //ttyReset();
-    //==========================
-   
-   
-    
-   
-    
+    printf("Parent - container stopped!\n");
+  }
+  else
+  {
+    printf("%s\n", info.id);
+  }
 }
-

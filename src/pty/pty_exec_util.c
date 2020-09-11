@@ -79,7 +79,7 @@ int pty_exec(pty_exe_opt_t arg)
   if(arg.detach) {
     logFd = open( arg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (logFd == -1)
-        err_exit(errno, "open typescript");
+        err_exit(errno, "pty_exec open typescript: %s",  arg.logfile);
   }
  
 

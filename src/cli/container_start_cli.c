@@ -14,27 +14,91 @@
 #include "usg_common.h"
 #include "tty_functions.h"
 #include "pty_exec_util.h"
+#include "logger_factory.h"
 
 /* 定义一个给 clone 用的栈，栈大小1M */
 #define STACK_SIZE (1024 * 1024)
 
+static bool waitfg;
+static bool conatinerExit;
+static int container_pid;
+
 struct container_start_option_t
 {
   bool interactive;
-  char * cid; // container identify
+  char * containerName; // container identify
   // char **container_arr;
   // int container_arr_len;
 } ;
 
-static void start_container(container_start_option_t mopt)  ;
+static void startContainer(container_start_option_t & mopt)  ;
 
-std::string containerId;
-static void sigStopHandler(int sig) {
-  std::cout << "sig stop " << containerId << std::endl;
- 
-  ContainerManager::umount_container(containerId);
-  ContainerManager::stop(containerId);
+
+/*****************
+ * Signal handlers
+ *****************/
+
+/*
+ * sigchld_handler - The kernel sends a SIGCHLD to the shell whenever
+ *     a child job terminates (becomes a zombie), or stops because it
+ *     received a SIGSTOP or SIGTSTP signal. The handler reaps all
+ *     available zombie children, but doesn't wait for any other
+ *     currently running children to terminate.
+ */
+static void sigchld_handler(int sig)
+{
+  int olderrno = errno;
+  pid_t pid;
+  int status;
+  while ( (pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED)) > 0)
+  {
+    if (WIFEXITED(status))
+    {
+      LoggerFactory::getDebugLogger().debug("%d container_start_cli.sigchld_handler exit", pid);
+      waitfg = false;
+      conatinerExit = true;
+     
+      /*if (verbose)*/
+      /*printf("Job [%d] (%d)  normally exit by signal %d\t%s\n", pid2jid(pid), pid, WEXITSTATUS(status), getjobpid(jobs, pid)->cmdline);*/
+     // deletejob(jobs, pid);
+    }
+    else if (WIFSIGNALED(status))
+    {
+      LoggerFactory::getDebugLogger().debug("%d container_start_cli.sigchld_handler terminated by signal %d", 
+        pid, 
+        WTERMSIG(status));
+      waitfg = false;
+      conatinerExit = true;
+     // deletejob(jobs, pid);
+    }
+    else if (WIFSTOPPED(status))
+    {
+      LoggerFactory::getDebugLogger().debug("(%d) stopted by signal %d\n", pid, WSTOPSIG(status));
+     // getjobpid(jobs, pid)->state = ST;
+    }
+    else if (WIFCONTINUED(status))
+    {
+    }
+  }
+
+  if (pid == -1 && errno != ECHILD)
+  {
+    err_msg(errno, "sigchld_handler error");
+  }
+  errno = olderrno;
 }
+
+static void sighup_handler(int sig) {
+  LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler container_pid=%d", container_pid);
+  
+  if(kill(container_pid, SIGHUP) != 0) {
+   // err_msg(errno, "container_start_cli.sighup_handler");
+    LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler kill %s", strerror(errno));
+  }
+  waitfg = false;
+}
+
+ 
 
 
 void ContainerStartCli::usage()
@@ -50,15 +114,7 @@ static int container_run_main(void* arg)
   // Container & info = *((Container *)arg);
 
   container_start_option_t mopt = *((container_start_option_t *)arg);
-  Container info = ContainerManager::get_container_by_id_or_name(mopt.cid);
-
-  containerId = mopt.cid;
-  struct sigaction sa;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_RESTART;
-  sa.sa_handler = sigStopHandler;
-  if (sigaction(SIGTERM, &sa, NULL) == -1)
-      err_msg(errno, "sigaction");
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.containerName);
 
   ContainerManager::mount_container(info.id.c_str());
 // 容器卷
@@ -72,16 +128,16 @@ static int container_run_main(void* arg)
   char logfile[1024];
 
   pty_exe_opt_t ptyopt = {};
+  ptyopt.containerName = mopt.containerName;
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
   ptyopt.rootfs = rootfs;
   ptyopt.cmd = str_split(const_cast<char*>(info.command.c_str()), BLANK, 0);
   ptyopt.detach = !mopt.interactive;
-  if(ptyopt.detach)
-  {
-    sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, info.id.c_str(), time(0));
-    ptyopt.logfile = logfile;
-    printf("logfile = %s\n", ptyopt.logfile);
-  } 
+  // stdout 重定向日志文件
+  sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, info.id.c_str(), time(0));
+  ptyopt.logfile = logfile;
+  printf("logfile = %s\n", ptyopt.logfile);
+   
   pty_exec(ptyopt);
 
   return 1;
@@ -101,6 +157,10 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
 
   char **container_arr;
   int container_arr_len;
+
+
+  
+
   opterr = 0;
 
   static struct option long_options[] =
@@ -142,6 +202,8 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     case '?':
       //printf ("==? optopt=%c, %s, `%s', %d\n", optopt, optarg, argv[optind], optind);
       /* getopt_long already printed an error message. */
+      usage();
+      exit(1);
       break;
 
     default:
@@ -151,6 +213,7 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     }
   }
 
+  
   // printf ("optind = %d, argc=%d \n", optind, argc);
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
@@ -167,23 +230,29 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
     usage();
     exit(1);
   }
-
+ 
   // for (int i = 0; i <  mopt.container_arr_len; i++)
   // {
-  //   start_container(mopt.container_arr[i]);
+  //   startContainer(mopt.container_arr[i]);
   // }
 
-  mopt.cid = container_arr[0];
-  start_container(mopt);
+  mopt.containerName = container_arr[0];
+  startContainer(mopt);
 
 
 }
 
 
-static void start_container(container_start_option_t mopt)
+static void startContainer(container_start_option_t & mopt)
 {
-
+  waitfg = mopt.interactive;
+  conatinerExit = false;
   
+
+  Container info = ContainerManager::get_container_by_id_or_name(mopt.containerName);
+  if(info.id.empty()) {
+    err_exit(0, "there is no container identify by %s", mopt.containerName);
+  }
   // if (info.id.empty() || info.status == CONTAINER_RUNNING)
   //   continue;
   /* Create the child in new namespace(s) */
@@ -192,41 +261,63 @@ static void start_container(container_start_option_t mopt)
   if (stack == MAP_FAILED)
     err_exit(0, "handle_run_command mmap:");
 
-  int container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
+  container_pid = clone(container_run_main, (char *)stack + STACK_SIZE,
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
 
+  Signal(SIGCHLD, sigchld_handler);  /* Terminated or stopped child */
+  Signal(SIGHUP, sighup_handler);
 
   // printf("%s\n", info.id.c_str());
   printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
-
-
   // -------save container info to json file
-  Container info = ContainerManager::get_container_by_id_or_name(mopt.cid);
+ 
   info.pid = container_pid;
   info.start_time = time(0);
   info.status = CONTAINER_RUNNING;
   ContainerManager::update(info);
   // ------save end---------
-
-  if (mopt.interactive)
+ 
+  sigset_t mask, prev;
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGCHLD);
+  sigprocmask(SIG_BLOCK, &mask, &prev);
+  while (waitfg)
   {
-    int status;
-    waitpid(container_pid, &status, 0);
-    if (WIFEXITED(status))
-    {
-      printf("===WIFEXITED\n");
-    }
-    else if (WIFSIGNALED(status))
-    {
-      printf("====SIGCHLD\n");
-    }
+     
+    sigsuspend(&prev);
+    
+  }
+  sigprocmask(SIG_SETMASK, &prev, NULL);
+
+  if(conatinerExit) {
     ContainerManager::umount_container(info.id);
     ContainerManager::change_status_to_stop(info.id);
+    printf("exit\n");
+  } else {
+    printf("containerName=%s\n", info.id.c_str());
+  }
 
-    printf("Parent - container stopped!\n");
-  }
-  else
-  {
-    printf("containerid=%s\n", info.id.c_str());
-  }
+
+ 
+  // if (mopt.interactive)
+  // {
+  //   int status;
+  //   waitpid(container_pid, &status, 0);
+  //   if (WIFEXITED(status))
+  //   {
+  //     printf("===WIFEXITED\n");
+  //   }
+  //   else if (WIFSIGNALED(status))
+  //   {
+  //     printf("====SIGCHLD\n");
+  //   }
+  //   ContainerManager::umount_container(info.id);
+  //   ContainerManager::change_status_to_stop(info.id);
+
+  //   printf("Parent - container stopped!\n");
+  // }
+  // else
+  // {
+  //   printf("containerName=%s\n", info.id.c_str());
+  // }
 }

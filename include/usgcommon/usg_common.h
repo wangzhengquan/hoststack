@@ -56,6 +56,7 @@ extern "C" {
 //c++ header
 #ifdef __cplusplus
 
+ 
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -81,6 +82,12 @@ extern "C" {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Signal wrappers */
+typedef void handler_t(int);
+handler_t *Signal(int signum, handler_t *handler);
+
+
 
 /* Our own error-handling functions */
 

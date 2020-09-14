@@ -3,6 +3,7 @@
 
 struct pty_exe_opt_t
 {
+	const char *containerName;
   char *rootfs;
   char **cmd;
   bool detach;

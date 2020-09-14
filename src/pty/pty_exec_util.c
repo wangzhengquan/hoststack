@@ -10,8 +10,8 @@
 #include "tty_functions.h"      /* Declaration of ttySetRaw() */
 #include "usg_common.h"
 #include "pty_exec_util.h"
-
-
+#include "container_manager.h"
+#include "logger_factory.h"
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
 
@@ -23,6 +23,18 @@ struct request {                /* Request (client --> server) */
 
 struct termios ttyOrig;
 
+pty_exe_opt_t garg;
+
+static std::string containerName;
+
+static void redirectStdOut() {
+ 
+  int logFd = open( garg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  if (logFd == -1)
+      err_exit(errno, "pty_exec open log: %s", garg.logfile);
+  dup2(logFd, STDOUT_FILENO);
+}
+
 static void             /* Reset terminal mode on program exit */
 ttyReset(void)
 {
@@ -30,10 +42,30 @@ ttyReset(void)
     err_exit(errno, "pty_exec_util ttyReset tcsetattr");
 }
 
+
+static void sigStopHandler(int sig) {
+  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigStopHandler");
+  ContainerManager::umount_container(containerName);
+  ContainerManager::change_status_to_stop(containerName);
+  // ContainerManager::stop(containerName);
+}
+
+static void sigHupHandler(int sig) {
+  // std::cout << "sigHupHandler " << std::endl;
+  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
+  redirectStdOut();
+  ttyReset();
+}
+
+static void sigQuitHandler(int sig) {
+  std::cout << "sigQuitHandler \n" << std::endl;
+}
+
 int pty_exec(pty_exe_opt_t arg)
 {
+
   char slaveName[MAX_SNAME];
-  int masterFd, logFd;
+  int masterFd;
  
   struct winsize ws;
   fd_set inFds;
@@ -41,12 +73,24 @@ int pty_exec(pty_exe_opt_t arg)
   ssize_t numRead;
   pid_t childPid;
 
+  garg = arg;
   /* Retrieve the attributes of terminal on which we are started */
 
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
     err_exit(errno, "tcgetattr");
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
     err_exit(errno, "ioctl-TIOCGWINSZ");
+
+  if (setsid() == -1) {
+    err_msg(errno, "pty_exec:setsid");
+    LoggerFactory::getDebugLogger().debug("error pty_exec_util.setsid");
+  }
+
+  // signal for "kill 容器进程"
+  containerName = arg.containerName;
+  Signal(SIGTERM, sigStopHandler);
+  Signal(SIGHUP, sigHupHandler);
+  // Signal(SIGQUIT, sigQuitHandler);
 
   /* Create a child process, with parent and child connected via a
      pty pair. The child is connected to the pty slave and its terminal
@@ -77,19 +121,20 @@ int pty_exec(pty_exe_opt_t arg)
 
   /* Parent: relay data between terminal and pty master */
   if(arg.detach) {
-    logFd = open( arg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (logFd == -1)
-        err_exit(errno, "pty_exec open typescript: %s",  arg.logfile);
+    redirectStdOut();
+    // close(logFd);
   }
  
+  if(!arg.detach) {
+     /* Place terminal in raw mode so that we can pass all terminal
+     input to the pseudoterminal master untouched */
 
-  /* Place terminal in raw mode so that we can pass all terminal
-   input to the pseudoterminal master untouched */
+    ttySetRaw(STDIN_FILENO, &ttyOrig);
 
-  ttySetRaw(STDIN_FILENO, &ttyOrig);
-
-  if (atexit(ttyReset) != 0)
-    err_exit(errno, "atexit");
+    if (atexit(ttyReset) != 0)
+      err_exit(errno, "atexit");
+  }
+ 
 
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
@@ -102,8 +147,15 @@ int pty_exec(pty_exe_opt_t arg)
     FD_SET(STDIN_FILENO, &inFds);
     FD_SET(masterFd, &inFds);
 
-    if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1)
-      err_exit(errno, "select");
+    if (select(masterFd + 1, &inFds, NULL, NULL, NULL) == -1) {
+      
+      if(errno == EINTR) {
+        err_msg(errno, "pty_exec select EINTR");
+        continue;
+      } else {
+        err_msg(errno, "pty_exec select");
+      }
+    }
 
     
     if (FD_ISSET(STDIN_FILENO, &inFds))     /* stdin --> pty */
@@ -114,7 +166,7 @@ int pty_exec(pty_exe_opt_t arg)
           exit(EXIT_SUCCESS);
 
         if (write(masterFd, buf, numRead) != numRead)
-          err_exit(errno, "partial/failed write (masterFd)");
+          err_msg(errno, "partial/failed write (masterFd)");
       }
     }
 
@@ -123,18 +175,18 @@ int pty_exec(pty_exe_opt_t arg)
       numRead = read(masterFd, buf, BUF_SIZE);
       if (numRead <= 0)
         exit(EXIT_SUCCESS);
-      if(arg.detach) {
-        if (write(logFd, buf, numRead) != numRead)
-          err_exit(errno, "partial/failed write (logFd)");
-      } else {
-        if (write(STDOUT_FILENO, buf, numRead) != numRead)
-          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
-      }
+      if (write(STDOUT_FILENO, buf, numRead) != numRead)
+          err_msg(errno, "partial/failed write (STDOUT_FILENO)");
      
       
     }
   }
 }
+
+
+
+
+
 
 
 

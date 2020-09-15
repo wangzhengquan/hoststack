@@ -455,8 +455,6 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     check_clients_and_master(&pool); 
   }
 
-  
-
 }
 
 

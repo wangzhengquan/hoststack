@@ -215,8 +215,8 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
   int masterfd;
 } pool; //line:conc:echoservers:endpool
 /* $end echoserversmain */
-void init_pool(int listenfd, pool *p);
-void add_client(int connfd, pool *p);
+void init_pool(int listenfd, int masterfd, pool *p);
+void add_client(int connfd, int masterfd, pool *p);
 void check_clients(pool *p);
 
 /* $begin init_pool */
@@ -229,17 +229,17 @@ void init_pool(int listenfd, int masterfd, pool *p)
     p->clientfd[i] = -1;        //line:conc:echoservers:endempty
 
   /* Initially, listenfd is only member of select read set */
-  p->maxfd = MAX(listenfd, masterfd);            //line:conc:echoservers:begininit
+  p->maxfd = listenfd;            //line:conc:echoservers:begininit
   FD_ZERO(&p->read_set);
   FD_SET(listenfd, &p->read_set);  
-  FD_SET(masterfd, &p->read_set);
+  // FD_SET(masterfd, &p->read_set);
 
-  p->masterfd = masterfd;
+  p->masterfd = -1;
 }
 
 
 /* $begin add_client */
-void add_client(int connfd, pool *p)
+void add_client(int connfd, int masterfd, pool *p)
 {
   int i;
   p->nready--;
@@ -260,6 +260,11 @@ void add_client(int connfd, pool *p)
       break;
     }
 
+  if(p->masterfd == -1) {
+    p->masterfd = masterfd;
+    FD_SET(masterfd, &p->read_set);
+  }
+ 
   if (i == FD_SETSIZE) /* Couldn't find an empty slot */
     err_msg(0, "add_client error: Too many clients");
 }
@@ -279,33 +284,42 @@ void check_clients_and_master(pool *p)
     if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set)))
     {
       p->nready--;
+err_msg(0, "============%d==========\n", 1);
       if ((n = read(connfd, buf, MAXLINE)) <= 0) {
+err_msg(0, "============%d===before=======\n", 11);
         close(connfd); 
         FD_CLR(connfd, &p->read_set);
         p->clientfd[i] = -1;
+err_msg(0, "============%d====after=====\n", 11);
         
       } else {
-        //printf("Server received %d  bytes on fd %d\n", n, connfd);
+err_msg(0, "============%d===before=======\n", 12);
+        // printf("Server received %d  bytes on fd %d\n", n, connfd);
         Rio_writen(p->masterfd, buf, n);
+err_msg(0, "============%d====after======\n", 12);
       }
     }
+  }
 
-    if (FD_ISSET(p->masterfd,  &p->ready_set))         
-    {
-      p->nready--;
-      if ((n = read(p->masterfd, buf, MAXLINE)) <= 0) {
-        close(connfd); 
-        FD_CLR(connfd, &p->read_set);
-        p->clientfd[i] = -1;
-      } else {
-        
-        for (int j = 0; j <= p->maxi; j++) {
-          if(p->clientfd[j] > 0) {
-            Rio_writen(p->clientfd[j], buf, n);
-          }
+  if (p->masterfd != -1 && FD_ISSET(p->masterfd,  &p->ready_set))         
+  {
+    p->nready--;
+err_msg(0, "============%d==========\n", 2);
+    if ((n = read(p->masterfd, buf, MAXLINE)) <= 0) {
+err_msg(0, "============%d=====before=====\n", 21);
+      close(p->masterfd); 
+      FD_CLR(p->masterfd, &p->read_set);
+      p->masterfd = -1;
+err_msg(0, "============%d=====after=====\n", 21);
+    } else {
+err_msg(0, "============%d====before======\n", 22);        
+      for (int j = 0; j <= p->maxi; j++) {
+        if(p->clientfd[j] > 0) {
+          Rio_writen(p->clientfd[j], buf, n);
         }
-  
       }
+err_msg(0, "============%d====after======\n", 22);    
+
     }
   }
 
@@ -319,7 +333,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   struct winsize ws;
  
   pid_t childPid;
-
+int tmp = 0;
   /* Retrieve the attributes of terminal on which we are started */
 
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
@@ -406,17 +420,19 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     if (FD_ISSET(listenfd, &pool.ready_set))   //line:conc:echoservers:listenfdready
     {
 
-      clientlen = sizeof(struct sockaddr_un) ;;
+      clientlen = sizeof(struct sockaddr_un);
 
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
-        err_msg(0, "============ accept\n");
-        add_client(connfd, &pool);
+        add_client(connfd, masterFd, &pool);
       }
       
     }
 
+
     /* Echo a text line from each ready connected descriptor */
+err_msg(0, "===========check_clients_and_master before================%d\n", ++tmp);
     check_clients_and_master(&pool); 
+err_msg(0, "===========check_clients_and_master after================%d\n", tmp);
   }
 
   err_msg(0, "===========server exit================\n");
@@ -473,16 +489,15 @@ int pty_client(pty_exe_opt_t arg) {
     err_exit(errno, "pty_client connect");
   }
   
-  if(arg.detach) {
-    logFd = open( arg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (logFd == -1)
-        err_msg(errno, "open typescript");
-  }
+   
 
   FD_ZERO(&read_set);
   FD_SET(STDIN_FILENO, &read_set);
   FD_SET(clientfd, &read_set);
 
+  snprintf(buf, BUF_SIZE, "\n");
+  if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
+    err_msg(errno, "partial/failed write (masterFd)");
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
      them to the pty master. If the pty master is ready for input,
@@ -496,27 +511,20 @@ int pty_client(pty_exe_opt_t arg) {
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-      if(!arg.detach) {
-       
-        if (( numRead = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0)
-          exit(EXIT_SUCCESS);
+      if (( numRead = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0)
+        exit(EXIT_SUCCESS);
         
-        if (write(clientfd, buf, numRead) !=  numRead)
-          err_msg(errno, "partial/failed write (masterFd)");
-      }
+      if (write(clientfd, buf, numRead) !=  numRead)
+        err_msg(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
     {
       if ((numRead = read(clientfd, buf, BUF_SIZE)) <= 0)
         exit(EXIT_SUCCESS);
-      if(arg.detach) {
-        if (write(logFd, buf, numRead) != numRead)
-          err_msg(errno, "partial/failed write (logFd)");
-      } else {
-        if (write(STDOUT_FILENO, buf, numRead) != numRead)
-          err_msg(errno, "partial/failed write (STDOUT_FILENO)");
-      }
+
+      if (write(STDOUT_FILENO, buf, numRead) != numRead)
+        err_msg(errno, "partial/failed write (STDOUT_FILENO)");
      
       
     }

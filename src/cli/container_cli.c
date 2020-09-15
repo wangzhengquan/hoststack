@@ -7,6 +7,7 @@
 #include "container_manager.h"
 #include "container.h"
 #include "container_cli.h"
+#include "container_attach_cli.h"
 
 // static char container_stack[STACK_SIZE];
 void ContainerCli::usage()
@@ -49,6 +50,9 @@ printf("action=%s\n", action);
   } 
   else if (strcmp(action, "exec") == 0) {
     ContainerExecCli::handle_command(argc - 1, argv + 1);
+  }
+  else if (strcmp(action, "attach") == 0) {
+    ContainerAttachCli::handle_command(argc - 1, argv + 1);
   } 
   else if (strcmp(action, "--help") == 0)
   {

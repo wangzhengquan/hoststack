@@ -9,6 +9,7 @@
 #include "container_stop_cli.h"
 #include "container_start_cli.h"
 #include "container_exec_cli.h"
+#include "container_attach_cli.h"
 
 class ContainerCli {
 

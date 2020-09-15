@@ -64,9 +64,9 @@ static void sigchld_handler(int sig)
     }
     else if (WIFSIGNALED(status))
     {
-      LoggerFactory::getDebugLogger().debug("%d container_start_cli.sigchld_handler terminated by signal %d", 
+      LoggerFactory::getDebugLogger().debug("%d container_start_cli.sigchld_handler terminated by signal %s", 
         pid, 
-        WTERMSIG(status));
+        strsignal(WTERMSIG(status)));
       waitfg = false;
       conatinerExit = true;
      // deletejob(jobs, pid);
@@ -139,8 +139,9 @@ static int container_run_main(void* arg)
   sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, info.id.c_str(), time(0));
   ptyopt.logfile = logfile;
   printf("logfile = %s\n", ptyopt.logfile);
-   
-  pty_exec(ptyopt);
+  
+  pty_proxy_exec(ptyopt);
+ // pty_exec(ptyopt);
 
   return 1;
 }
@@ -153,15 +154,11 @@ void ContainerStartCli::handle_command (int argc, char *argv[])
   printf("Parent [%5d] - start a container!\n", getpid());
   int c;
 
-  // char ** cmd_arr;
   container_start_option_t mopt = {};
   mopt.interactive = false;
 
   char **container_arr;
   int container_arr_len;
-
-
-  
 
   opterr = 0;
 

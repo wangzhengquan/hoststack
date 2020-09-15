@@ -211,17 +211,13 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
   int nready;       /* Number of ready descriptors from select */
   int maxi;         /* Highwater index into client array */
   int clientfd[FD_SETSIZE];    /* Set of active descriptors */
-  rio_t clientrio[FD_SETSIZE]; /* Set of active read buffers */
-  rio_t masterrio;
+  
   int masterfd;
 } pool; //line:conc:echoservers:endpool
 /* $end echoserversmain */
 void init_pool(int listenfd, pool *p);
 void add_client(int connfd, pool *p);
 void check_clients(pool *p);
-
-
-
 
 /* $begin init_pool */
 void init_pool(int listenfd, int masterfd, pool *p)
@@ -239,9 +235,8 @@ void init_pool(int listenfd, int masterfd, pool *p)
   FD_SET(masterfd, &p->read_set);
 
   p->masterfd = masterfd;
-  Rio_readinitb(&p->masterrio, masterfd); 
 }
-/* $end init_pool */
+
 
 /* $begin add_client */
 void add_client(int connfd, pool *p)
@@ -253,18 +248,18 @@ void add_client(int connfd, pool *p)
     {
       /* Add connected descriptor to the pool */
       p->clientfd[i] = connfd;
-      Rio_readinitb(&p->clientrio[i], connfd); 
 
       /* Add the descriptor to descriptor set */
-      FD_SET(connfd, &p->read_set); //line:conc:echoservers:addconnfd
+      FD_SET(connfd, &p->read_set);
 
       /* Update max descriptor and pool highwater mark */
-      if (connfd > p->maxfd) //line:conc:echoservers:beginmaxfd
-        p->maxfd = connfd; //line:conc:echoservers:endmaxfd
-      if (i > p->maxi)       //line:conc:echoservers:beginmaxi
-        p->maxi = i;       //line:conc:echoservers:endmaxi
+      if (connfd > p->maxfd) 
+        p->maxfd = connfd; 
+      if (i > p->maxi)     
+        p->maxi = i;      
       break;
     }
+
   if (i == FD_SETSIZE) /* Couldn't find an empty slot */
     err_msg(0, "add_client error: Too many clients");
 }
@@ -275,24 +270,22 @@ void check_clients_and_master(pool *p)
 {
   int i, connfd, n;
   char buf[MAXLINE];
-  rio_t rio;
 
   for (i = 0; (i <= p->maxi) && (p->nready > 0); i++)
   {
     connfd = p->clientfd[i];
-    rio = p->clientrio[i];
 
     /* If the descriptor is ready, echo a text line from it */
     if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set)))
     {
       p->nready--;
-      if ((n = Rio_readn(connfd, buf, MAXLINE)) <= 0) {
+      if ((n = read(connfd, buf, MAXLINE)) <= 0) {
         close(connfd); 
         FD_CLR(connfd, &p->read_set);
         p->clientfd[i] = -1;
         
       } else {
-        printf("Server received %d  bytes on fd %d\n", n, connfd);
+        //printf("Server received %d  bytes on fd %d\n", n, connfd);
         Rio_writen(p->masterfd, buf, n);
       }
     }
@@ -300,54 +293,22 @@ void check_clients_and_master(pool *p)
     if (FD_ISSET(p->masterfd,  &p->ready_set))         
     {
       p->nready--;
-      if ((n = Rio_readn(p->masterfd, buf, MAXLINE)) <= 0) {
-        err_msg(0, "read mater <= 0");
-        exit(EXIT_SUCCESS);
+      if ((n = read(p->masterfd, buf, MAXLINE)) <= 0) {
+        close(connfd); 
+        FD_CLR(connfd, &p->read_set);
+        p->clientfd[i] = -1;
       } else {
         
         for (int j = 0; j <= p->maxi; j++) {
-          Rio_writen(p->clientfd[i], buf, n);
+          if(p->clientfd[j] > 0) {
+            Rio_writen(p->clientfd[j], buf, n);
+          }
         }
   
       }
     }
   }
 
-
-  // for (;;)
-  // {
-    
-
-  //   if (select(maxFd + 1, &ready_set, NULL, NULL, NULL) == -1)
-  //     err_msg(errno, "select");
-
-  //   // 收到client请求
-  //   if (FD_ISSET(serverFd, &ready_set))     /* stdin --> pty */
-  //   {
-  //       numRead = read(serverFd, &req, sizeof(struct request));
-  //       if (numRead != sizeof(struct request))
-  //         exit(EXIT_SUCCESS);
-
-  //       if (write(masterFd, req.buf, req.bufSize) != req.bufSize)
-  //         err_msg(errno, "partial/failed write (masterFd)");
-  //   }
-
-  //   if (FD_ISSET(masterFd, &ready_set))         pty --> stdout+file 
-  //   {
-  //     numRead = read(masterFd, buf, BUF_SIZE);
-  //     if (numRead <= 0)
-  //       exit(EXIT_SUCCESS);
-  //     clientFd = open(req.clientFifo, O_WRONLY);
-  //     if (clientFd == -1) {           /* Open failed, give up on client */
-  //         err_msg(errno, "open %s", arg.clientFifo);
-  //         continue;
-  //     }
-  //     if (write(clientFd, buf, numRead) != numRead)
-  //         err_msg(errno, "partial/failed write (STDOUT_FILENO)");
-  //     if (close(clientFd) == -1)
-  //         err_msg(errno, "close");
-  //   }
-  // }
 }
 
 
@@ -414,18 +375,19 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   listen_addr.sun_family = AF_UNIX ;
   snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
     "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
-  // if( access( listen_addr.sun_path , F_OK ) == 0 )
-  // {
-  //   unlink( listen_addr.sun_path );
-  // }
+
+
+  if( access( listen_addr.sun_path , F_OK ) == 0 )
+  {
+    unlink( listen_addr.sun_path );
+  }
   if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
   {
     err_exit(errno, "*** ERROR : bind failed , errno[%d]\n"  );
     return -1;
   }
   
-  nret = listen( listenfd , 1024 ) ;
-  if( nret == -1 )
+  if( listen( listenfd , 1024 ) == -1 )
   {
     err_exit(errno, "*** ERROR : listen failed , errno[%d]\n"  );
     return -1;
@@ -445,8 +407,10 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     {
 
       clientlen = sizeof(struct sockaddr_un) ;;
+
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
-        add_client(connfd, &pool); //line:conc:echoservers:addclient
+        err_msg(0, "============ accept\n");
+        add_client(connfd, &pool);
       }
       
     }
@@ -455,10 +419,20 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     check_clients_and_master(&pool); 
   }
 
+  err_msg(0, "===========server exit================\n");
+
 }
 
 
 
+struct termios            g_termios_init ;
+struct termios            g_termios_raw ;
+
+static void RestoreTerminalAttr()
+{
+  tcsetattr( 0 , TCSANOW , &g_termios_init );
+  return; 
+}
 
 
 int pty_client(pty_exe_opt_t arg) {
@@ -473,7 +447,13 @@ int pty_client(pty_exe_opt_t arg) {
   /* Place terminal in raw mode so that we can pass all terminal
   input to the pseudoterminal master untouched */
 
-  ttySetRaw(STDIN_FILENO, &ttyOrig);
+  tcgetattr( STDIN_FILENO , & g_termios_init );
+  atexit( & RestoreTerminalAttr );
+  memcpy( & g_termios_raw , & g_termios_init , sizeof(struct termios) );
+  cfmakeraw( & g_termios_raw );
+  tcsetattr( STDIN_FILENO , TCSANOW , & g_termios_raw ) ;
+
+
 
   if (atexit(ttyReset) != 0)
     err_msg(errno, "atexit");
@@ -484,17 +464,15 @@ int pty_client(pty_exe_opt_t arg) {
     err_exit(errno, "*** ERROR : socket failed , errno[%d]\n"  );
     return -1;
   }
-  memset( &addr , 0 , sizeof(struct sockaddr_un) );
+  memset( &addr, 0 , sizeof(struct sockaddr_un) );
   addr.sun_family = AF_UNIX ;
   snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
-  if(connect( clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
+  
+
+  if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
     err_exit(errno, "pty_client connect");
   }
   
-  
-  
-
-
   if(arg.detach) {
     logFd = open( arg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (logFd == -1)

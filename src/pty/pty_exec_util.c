@@ -26,7 +26,7 @@ struct request {                /* Request (client --> server) */
 };
 
 struct termios ttyOrig;
-
+struct termios  g_termios_raw ;
 pty_exe_opt_t garg;
 
 static std::string containerName;
@@ -38,7 +38,6 @@ ttyReset(void)
   if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
     err_msg(errno, "pty_exec_util ttyReset");
 }
-
 
 static void redirectStdOut() {
  
@@ -66,7 +65,7 @@ static void sigStopHandler(int sig) {
 static void sigHupHandler(int sig) {
   // std::cout << "sigHupHandler " << std::endl;
   LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
-  //redirectStdOut();
+  // redirectStdOut();
   // ttyReset();
 }
 
@@ -333,7 +332,6 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   struct winsize ws;
  
   pid_t childPid;
-int tmp = 0;
   /* Retrieve the attributes of terminal on which we are started */
 
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
@@ -430,9 +428,7 @@ int tmp = 0;
 
 
     /* Echo a text line from each ready connected descriptor */
-err_msg(0, "===========check_clients_and_master before================%d\n", ++tmp);
     check_clients_and_master(&pool); 
-err_msg(0, "===========check_clients_and_master after================%d\n", tmp);
   }
 
   err_msg(0, "===========server exit================\n");
@@ -440,15 +436,6 @@ err_msg(0, "===========check_clients_and_master after================%d\n", tmp)
 }
 
 
-
-struct termios            g_termios_init ;
-struct termios            g_termios_raw ;
-
-static void RestoreTerminalAttr()
-{
-  tcsetattr( 0 , TCSANOW , &g_termios_init );
-  return; 
-}
 
 
 int pty_client(pty_exe_opt_t arg) {
@@ -463,18 +450,15 @@ int pty_client(pty_exe_opt_t arg) {
   /* Place terminal in raw mode so that we can pass all terminal
   input to the pseudoterminal master untouched */
 
-  tcgetattr( STDIN_FILENO , & g_termios_init );
-  atexit( & RestoreTerminalAttr );
-  memcpy( & g_termios_raw , & g_termios_init , sizeof(struct termios) );
-  cfmakeraw( & g_termios_raw );
-  tcsetattr( STDIN_FILENO , TCSANOW , & g_termios_raw ) ;
-
-
+  tcgetattr( STDIN_FILENO , &ttyOrig );
+  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
+  cfmakeraw( &g_termios_raw );
+  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
 
   if (atexit(ttyReset) != 0)
     err_msg(errno, "atexit");
 
-  clientfd = socket( AF_UNIX , SOCK_STREAM , 0 ) ;
+  clientfd = socket( AF_UNIX , SOCK_STREAM , 0) ;
   if( clientfd == -1 )
   {
     err_exit(errno, "*** ERROR : socket failed , errno[%d]\n"  );
@@ -511,8 +495,10 @@ int pty_client(pty_exe_opt_t arg) {
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-      if (( numRead = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0)
+      if (( numRead = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
+        
         exit(EXIT_SUCCESS);
+      }
         
       if (write(clientfd, buf, numRead) !=  numRead)
         err_msg(errno, "partial/failed write (masterFd)");
@@ -520,8 +506,10 @@ int pty_client(pty_exe_opt_t arg) {
 
     if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
     {
-      if ((numRead = read(clientfd, buf, BUF_SIZE)) <= 0)
+      if ((numRead = read(clientfd, buf, BUF_SIZE)) <= 0) {
+
         exit(EXIT_SUCCESS);
+      }
 
       if (write(STDOUT_FILENO, buf, numRead) != numRead)
         err_msg(errno, "partial/failed write (STDOUT_FILENO)");

@@ -95,7 +95,7 @@ static void sighup_handler(int sig) {
    // err_msg(errno, "container_start_cli.sighup_handler");
     LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler kill %s", strerror(errno));
   }
-  sleep(2);
+  // sleep(2);
   waitfg = false;
 }
 

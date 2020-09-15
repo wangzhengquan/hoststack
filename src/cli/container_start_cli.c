@@ -95,6 +95,7 @@ static void sighup_handler(int sig) {
    // err_msg(errno, "container_start_cli.sighup_handler");
     LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler kill %s", strerror(errno));
   }
+  sleep(2);
   waitfg = false;
 }
 
@@ -128,6 +129,7 @@ static int container_run_main(void* arg)
   char logfile[1024];
 
   pty_exe_opt_t ptyopt = {};
+  ptyopt.containerId = info.id.c_str();
   ptyopt.containerName = mopt.containerName;
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
   ptyopt.rootfs = rootfs;

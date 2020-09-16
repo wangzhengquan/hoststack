@@ -1,9 +1,6 @@
-#include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 #include "logger_factory.h"
-#include "sem_util.h"
 
 #include "container_manager.h"
 #include "container.h"
@@ -25,19 +22,8 @@ struct container_start_arg_t
 } ;
 
 
-static void startContainer(container_start_arg_t & mopt, char * containerName)  ;
-
-// static void sighup_handler(int sig) {
-//   LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler containerPid=%d", containerPid);
-  
-//   if(kill(containerPid, SIGHUP) != 0) {
-//    // err_msg(errno, "container_start_cli.sighup_handler");
-//     LoggerFactory::getDebugLogger().debug("container_start_cli.sighup_handler kill %s", strerror(errno));
-//   }
-// }
-
+static void startContainer(container_start_arg_t & mopt, char * containerName);
  
-
 
 void ContainerStartCli::usage()
 {
@@ -160,47 +146,7 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
     info.status = CONTAINER_RUNNING;
     ContainerManager::update(info);
   });
-  // -------save container info to json file
 }
 
-
-// static int container_run_main(void* arg)
-// {
-
-//   printf("in container...\n ");
-
-//   // Container & info = *((Container *)arg);
-
-//   container_start_arg_t mopt = *((container_start_arg_t *)arg);
-//   Container info = ContainerManager::get_container_by_id_or_name(mopt.containerName);
-
-//   ContainerManager::mount_container(info.id.c_str());
-// // 容器卷
-//   if ( !info.volume.empty() )
-//   {
-//     ContainerManager::mount_volume(info.id.c_str(),  const_cast<char*>(info.volume.c_str()) );
-//   }
-
-
-//   char rootfs[1024];
-//   char logfile[1024];
-
-//   pty_exe_opt_t ptyopt = {};
-//   ptyopt.synchSem = mopt.synchSem;
-//   ptyopt.containerId = info.id.c_str();
-//   ptyopt.containerName = mopt.containerName;
-//   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, info.id.c_str());
-//   ptyopt.rootfs = rootfs;
-//   ptyopt.cmd = str_split(const_cast<char*>(info.command.c_str()), BLANK, 0);
-//   ptyopt.detach = !mopt.interactive;
-//   // stdout 重定向日志文件
-//   sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, info.id.c_str(), time(0));
-//   ptyopt.logfile = logfile;
-//   printf("logfile = %s\n", ptyopt.logfile);
-  
-//   pty_proxy_exec(ptyopt);
-//  // pty_exec(ptyopt);
-
-//   return 1;
-// }
+ 
 

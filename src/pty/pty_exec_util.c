@@ -36,6 +36,7 @@ void check_clients_and_master(pool *p);
 
 struct termios ttyOrig;
 struct termios  g_termios_raw ;
+
 pty_exe_opt_t garg;
 
 static std::string containerId;
@@ -63,23 +64,6 @@ static void redirectStdOut() {
 }
 
 
-static void sigStopHandler(int sig) {
-  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigStopHandler");
-  ContainerManager::umount_container(containerId);
-  ContainerManager::change_status_to_stop(containerId);
-  // ContainerManager::stop(containerId);
-}
-
-static void sigHupHandler(int sig) {
-  // std::cout << "sigHupHandler " << std::endl;
-  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
-  // redirectStdOut();
-  // ttyReset();
-}
-
-static void sigQuitHandler(int sig) {
-  std::cout << "sigQuitHandler \n" << std::endl;
-}
 
 int pty_exec(pty_exe_opt_t arg)
 {
@@ -105,12 +89,6 @@ int pty_exec(pty_exe_opt_t arg)
   //   err_msg(errno, "pty_exec:setsid");
   //   LoggerFactory::getDebugLogger().debug("error pty_exec_util.setsid");
   // }
-
-  // signal for "kill 容器进程"
-  containerId = arg.containerId;
-  Signal(SIGTERM, sigStopHandler);
-  Signal(SIGHUP, sigHupHandler);
-  // Signal(SIGQUIT, sigQuitHandler);
 
   /* Create a child process, with parent and child connected via a
      pty pair. The child is connected to the pty slave and its terminal
@@ -183,18 +161,18 @@ int pty_exec(pty_exe_opt_t arg)
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
       numRead = read(STDIN_FILENO, buf, BUF_SIZE);
-      if (numRead <= 0) {
-       // exit(EXIT_SUCCESS);
+      if (numRead < 0) {
+        exit(EXIT_SUCCESS);
       }
 
       if (write(masterFd, buf, numRead) != numRead)
-        err_msg(errno, "partial/failed write (masterFd)");
+        err_exit(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
     {
       numRead = read(masterFd, buf, BUF_SIZE);
-      if (numRead <= 0) {
+      if (numRead < 0) {
         exit(EXIT_SUCCESS);
       }
       if (write(STDOUT_FILENO, buf, numRead) != numRead)
@@ -204,9 +182,6 @@ int pty_exec(pty_exe_opt_t arg)
     }
   }
 }
-
-
-
 
 
 int pty_proxy_exec(pty_exe_opt_t arg)
@@ -231,7 +206,8 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   if (childPid == -1)
     err_msg(errno, "ptyFork");
 
-  if (childPid == 0)          /* Child: execute a shell on pty slave */
+  /* =============== Child: execute a shell on pty slave */
+  if (childPid == 0)          
   {
     /* chroot 隔离目录 */
     if ( chdir(arg.rootfs) != 0 || chroot("./") != 0 )
@@ -248,6 +224,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     execvp(arg.cmd[0], arg.cmd);
     err_msg(errno, "execvp: %s\n", arg.cmd[0]);
   }
+  /*==============exec end==============*/
 
  
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
@@ -279,13 +256,13 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   }
   if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
   {
-    err_exit(errno, "*** ERROR : bind failed , errno[%d]\n"  );
+    err_exit(errno, "*** ERROR : bind failed , errno\n"  );
     return -1;
   }
   
   if( listen( listenfd , 1024 ) == -1 )
   {
-    err_exit(errno, "*** ERROR : listen failed , errno[%d]\n"  );
+    err_exit(errno, "*** ERROR : listen failed , errno\n"  );
     return -1;
   }
 

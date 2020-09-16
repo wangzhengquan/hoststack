@@ -17,6 +17,7 @@ struct container_start_option_t
 class ContainerService {
 public:
 	static void start(container_start_option_t & startOpt,  std::function<void(int)>  startSuccess);
+	static void stop(const std::string & name);
 };
 
 #endif

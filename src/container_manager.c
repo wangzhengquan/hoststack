@@ -86,23 +86,6 @@ void ContainerManager::change_status_to_stop( const std::string & name) {
   
 }
 
-void ContainerManager::stop(const std::string & name) {
-  Container info = ContainerManager::get_container_by_id_or_name(name);
-  if(info.id.empty() || info.status != CONTAINER_RUNNING) {
-    err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
-    return;
-  }
-  printf("killing pid %d\n", info.pid);
-  if(kill(info.pid, SIGTERM) != 0) {
-    err_msg(errno, "SIGTERM Stop container %s failed.", name.c_str());
-    return;
-  }
-
-  sleep(3);
-  if(kill(info.pid, SIGKILL) != 0) {
-    //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
-  }
-}
 
 
 

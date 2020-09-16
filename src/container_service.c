@@ -9,17 +9,40 @@
 
 int synchSem;
 
+static const char *containerId;
+
+static void sigStopHandler(int sig) {
+  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigStopHandler");
+  ContainerManager::umount_container(containerId);
+  ContainerManager::change_status_to_stop(containerId);
+  // ContainerManager::stop(containerId);
+}
+
+static void sigHupHandler(int sig) {
+  // std::cout << "sigHupHandler " << std::endl;
+ // LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
+  // redirectStdOut();
+  // ttyReset();
+}
+
+static void sigQuitHandler(int sig) {
+  std::cout << "sigQuitHandler \n" << std::endl;
+}
+
 static int container_run_main(void* arg)
 {
 
   printf("in container...\n ");
-
-  // Container & info = *((Container *)arg);
-
   container_start_option_t startOpt = *((container_start_option_t *)arg);
 
+  // signal for "kill 容器进程"
+  containerId = startOpt.containerId;
+  // Signal(SIGTERM, sigStopHandler);
+  // Signal(SIGHUP, sigHupHandler);
+  // Signal(SIGQUIT, sigQuitHandler);
+
   ContainerManager::mount_container(startOpt.containerId);
-// 容器卷
+  // 容器卷
   if (startOpt.volume != NULL )
   {
     ContainerManager::mount_volume(startOpt.containerId,  startOpt.volume );
@@ -50,6 +73,7 @@ static int container_run_main(void* arg)
 
 void ContainerService::start(container_start_option_t & startOpt,  std::function<void(int)>  startSuccess)
 {
+
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
 
  
@@ -79,8 +103,24 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
     printf("containerName=%s\n", startOpt.containerId);
   }
   
- 
+}
 
 
-  
+
+void ContainerService::stop(const std::string & name) {
+  Container info = ContainerManager::get_container_by_id_or_name(name);
+  if(info.id.empty() || info.status != CONTAINER_RUNNING) {
+    err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
+    return;
+  }
+  printf("killing pid %d\n", info.pid);
+  if(kill(info.pid, SIGTERM) != 0) {
+    err_msg(errno, "SIGTERM Stop container %s failed.", name.c_str());
+    return;
+  }
+
+  sleep(3);
+  if(kill(info.pid, SIGKILL) != 0) {
+    //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
+  }
 }

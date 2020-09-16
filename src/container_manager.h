@@ -20,7 +20,7 @@ public:
 	static void insert(const Container &info);
 	static void update(const Container &info);
 
-	static void stop(const std::string & name);
+
 	static void change_status_to_stop( const std::string & name);
 	
 

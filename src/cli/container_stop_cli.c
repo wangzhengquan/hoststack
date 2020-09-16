@@ -3,7 +3,7 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 
-#include "container_manager.h"
+#include "container_service.h"
 #include "container.h"
 #include "container_stop_cli.h"
 
@@ -21,7 +21,7 @@ void ContainerStopCli::handle_command(int argc, char *argv[]) {
   }
 
   for(int i = 1; i < argc; i++) {
-    ContainerManager::stop(argv[i]);
+    ContainerService::stop(argv[i]);
   }
   
 }

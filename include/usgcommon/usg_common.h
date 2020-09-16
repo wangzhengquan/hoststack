@@ -99,7 +99,7 @@ char *rtrim(char *str, const char *seps);
 char *trim(char *str, const char *seps);
 
 char * str_join( const char *seperator, const char *first...);
-char ** str_split( char *str, const char *delim, int *arr_len);
+char ** str_split(const char *str, const char *delim, int *arr_len);
 char * array_join(char * const arr[], const char *seperator);
 char * path_join(const char *path, ...);
 

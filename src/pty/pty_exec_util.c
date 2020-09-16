@@ -148,13 +148,10 @@ int pty_exec(pty_exe_opt_t arg)
 
 
     if (pselect(masterFd + 1, &ready_set, NULL, NULL, NULL, &selectBlockSet) == -1) {
-      
+      err_msg(errno, "pty_exec select EINTR");
       if(errno == EINTR) {
-        err_msg(errno, "pty_exec select EINTR");
         continue;
-      } else {
-        err_msg(errno, "pty_exec select");
-      }
+      } 
     }
 
     
@@ -269,17 +266,23 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   init_pool(listenfd, masterFd, &pool); 
   // 通知client
   SemUtil::set(arg.synchSem, 0);
+
+  sigset_t selectBlockSet;
+  sigemptyset(&selectBlockSet);
+  sigaddset(&selectBlockSet, SIGTERM);
   while (1) {
     /* Wait for listening/connected descriptor(s) to become ready */
     pool.ready_set = pool.read_set;
-    if( (pool.nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL)) == -1) {
+    if( (pool.nready = pselect(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL, &selectBlockSet)) == -1) {
       err_msg(errno, "server_proxy select");
+      if(errno == EINTR) {
+        continue;
+      }
     }
 
     /* If listening descriptor ready, add new client to pool */
     if (FD_ISSET(listenfd, &pool.ready_set))   //line:conc:echoservers:listenfdready
     {
-
       clientlen = sizeof(struct sockaddr_un);
 
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
@@ -353,7 +356,7 @@ void add_client(int connfd, int masterfd, pool *p)
 void check_clients_and_master(pool *p)
 {
   int i, connfd, n;
-  char buf[MAXLINE];
+  char buf[BUF_SIZE];
 
   for (i = 0; (i <= p->maxi) && (p->nready > 0); i++)
   {
@@ -364,17 +367,20 @@ void check_clients_and_master(pool *p)
     {
       p->nready--;
 // err_msg(0, "============%d==========\n", 1);
-      if ((n = read(connfd, buf, MAXLINE)) <= 0) {
+      if ((n = read(connfd, buf, BUF_SIZE)) <= 0) {
 // err_msg(0, "============%d===before=======\n", 11);
-        close(connfd); 
-        FD_CLR(connfd, &p->read_set);
-        p->clientfd[i] = -1;
+        if(errno != EINTR) {
+          close(connfd); 
+          FD_CLR(connfd, &p->read_set);
+          p->clientfd[i] = -1;
+        }
+       
 // err_msg(0, "============%d====after=====\n", 11);
         
       } else {
 // err_msg(0, "============%d===before=======\n", 12);
         // printf("Server received %d  bytes on fd %d\n", n, connfd);
-        if(rio_writen(p->masterfd, buf, n) < 0) {
+        if(rio_writen(p->masterfd, buf, n) <= 0) {
            exit(EXIT_SUCCESS);
         }
 // err_msg(0, "============%d====after======\n", 12);
@@ -386,18 +392,32 @@ void check_clients_and_master(pool *p)
   {
     p->nready--;
 // err_msg(0, "============%d==========\n", 2);
-    if ((n = read(p->masterfd, buf, MAXLINE)) <= 0) {
+    if ((n = read(p->masterfd, buf, BUF_SIZE)) <= 0) {
 // err_msg(0, "============%d=====before=====\n", 21);
       // close(p->masterfd); 
       // FD_CLR(p->masterfd, &p->read_set);
       // p->masterfd = -1;
-      exit(EXIT_SUCCESS);
+      if(errno != EINTR) {
+         exit(EXIT_SUCCESS);
+      }
+     
 // err_msg(0, "============%d=====after=====\n", 21);
     } else {
 // err_msg(0, "============%d====before======\n", 22);        
-      for (int j = 0; j <= p->maxi; j++) {
-        if(p->clientfd[j] > 0) {
-          Rio_writen(p->clientfd[j], buf, n);
+      for (i = 0; i <= p->maxi; i++) {
+        // debug
+        if (rio_writen(STDOUT_FILENO, buf, n) != n) {
+          err_msg(errno, "check_clients_and_master>>rio_writen STDOUT_FILENO");
+        }
+        connfd = p->clientfd[i];
+        if(connfd > 0) {
+          if (rio_writen(connfd, buf, n) != n) {
+             err_msg(errno, "client closed.check_clients_and_master>>rio_writen client");
+            close(connfd); 
+            FD_CLR(connfd, &p->read_set);
+            p->clientfd[i] = -1;
+            
+          }
         }
       }
 // err_msg(0, "============%d====after======\n", 22);    

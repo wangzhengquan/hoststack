@@ -11,12 +11,18 @@ int synchSem;
 
 static const char *containerId;
 
-static void sigStopHandler(int sig) {
-  LoggerFactory::getDebugLogger().debug("pty_exec_util.sigStopHandler");
-  ContainerManager::umount_container(containerId);
-  ContainerManager::change_status_to_stop(containerId);
-  // ContainerManager::stop(containerId);
+static void sigStermHandler(int sig) {
+  LoggerFactory::getDebugLogger().debug("sigStermHandler %s", strsignal(sig));
+  // ContainerManager::umount_container(containerId);
+  // ContainerManager::change_status_to_stop(containerId);
 }
+
+static void sigKillHandler(int sig) {
+  LoggerFactory::getDebugLogger().debug("sigKillHandler %s", strsignal(sig));
+  // ContainerManager::umount_container(containerId);
+  // ContainerManager::change_status_to_stop(containerId);
+}
+
 
 static void sigHupHandler(int sig) {
   // std::cout << "sigHupHandler " << std::endl;
@@ -37,7 +43,9 @@ static int container_run_main(void* arg)
 
   // signal for "kill 容器进程"
   containerId = startOpt.containerId;
-  // Signal(SIGTERM, sigStopHandler);
+  Signal(SIGTERM, sigStermHandler);
+  // Signal(SIGKILL, sigKillHandler);
+  
   // Signal(SIGHUP, sigHupHandler);
   // Signal(SIGQUIT, sigQuitHandler);
 

@@ -134,7 +134,8 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
   Container info = ContainerManager::get_container_by_id_or_name(containerName);
   container_start_option_t startOpt = {};
   startOpt.containerId = info.id.c_str();
-  startOpt.cmd = str_split(const_cast<char*>(info.command.c_str()), BLANK, 0);
+  printf("info.command=%s\n", info.command.c_str());
+  startOpt.cmd = str_split(info.command.c_str(), BLANK, 0);
   startOpt.detach = !mopt.interactive;
   if(!info.volume.empty()) {
     startOpt.volume = info.volume.c_str();

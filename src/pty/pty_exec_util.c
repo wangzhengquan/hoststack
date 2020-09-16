@@ -31,7 +31,7 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
 } pool; //line:conc:echoservers:endpool
 /* $end echoserversmain */
 void init_pool(int listenfd, int masterfd, pool *p);
-void add_client(int connfd, int masterfd, pool *p);
+void add_client(int connfd, pool *p);
 void check_clients_and_master(pool *p);
 
 struct termios ttyOrig;
@@ -286,7 +286,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
       clientlen = sizeof(struct sockaddr_un);
 
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
-        add_client(connfd, masterFd, &pool);
+        add_client(connfd, &pool);
       }
       
     }
@@ -313,15 +313,15 @@ void init_pool(int listenfd, int masterfd, pool *p)
   /* Initially, listenfd is only member of select read set */
   p->maxfd = listenfd;            //line:conc:echoservers:begininit
   FD_ZERO(&p->read_set);
-  FD_SET(listenfd, &p->read_set);  
-  // FD_SET(masterfd, &p->read_set);
+  FD_SET(listenfd, &p->read_set);
 
-  p->masterfd = -1;
+  FD_SET(masterfd, &p->read_set);
+  p->masterfd = masterfd;
 }
 
 
 /* $begin add_client */
-void add_client(int connfd, int masterfd, pool *p)
+void add_client(int connfd, pool *p)
 {
   int i;
   p->nready--;
@@ -342,10 +342,10 @@ void add_client(int connfd, int masterfd, pool *p)
       break;
     }
 
-  if(p->masterfd == -1) {
-    p->masterfd = masterfd;
-    FD_SET(masterfd, &p->read_set);
-  }
+  // if(p->masterfd == -1) {
+  //   p->masterfd = masterfd;
+  //   FD_SET(masterfd, &p->read_set);
+  // }
  
   if (i == FD_SETSIZE) /* Couldn't find an empty slot */
     err_msg(0, "add_client error: Too many clients");
@@ -366,9 +366,7 @@ void check_clients_and_master(pool *p)
     if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set)))
     {
       p->nready--;
-// err_msg(0, "============%d==========\n", 1);
       if ((n = read(connfd, buf, BUF_SIZE)) <= 0) {
-// err_msg(0, "============%d===before=======\n", 11);
         if(errno != EINTR) {
           close(connfd); 
           FD_CLR(connfd, &p->read_set);
@@ -412,7 +410,7 @@ void check_clients_and_master(pool *p)
         connfd = p->clientfd[i];
         if(connfd > 0) {
           if (rio_writen(connfd, buf, n) != n) {
-             err_msg(errno, "client closed.check_clients_and_master>>rio_writen client");
+            err_msg(errno, "client closed.check_clients_and_master>>rio_writen client");
             close(connfd); 
             FD_CLR(connfd, &p->read_set);
             p->clientfd[i] = -1;
@@ -438,16 +436,8 @@ int pty_client(pty_exe_opt_t arg) {
   ssize_t numRead;
   // struct request req;
   fd_set read_set, ready_set;
-  /* Place terminal in raw mode so that we can pass all terminal
-  input to the pseudoterminal master untouched */
 
-  tcgetattr( STDIN_FILENO , &ttyOrig );
-  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
-  cfmakeraw( &g_termios_raw );
-  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
-
-  if (atexit(ttyReset) != 0)
-    err_msg(errno, "atexit");
+ 
 
   clientfd = socket( AF_UNIX , SOCK_STREAM , 0) ;
   if( clientfd == -1 )
@@ -464,7 +454,16 @@ int pty_client(pty_exe_opt_t arg) {
     err_exit(errno, "pty_client connect");
   }
   
-   
+  
+ /* Place terminal in raw mode so that we can pass all terminal
+  input to the pseudoterminal master untouched */
+  tcgetattr(STDIN_FILENO , &ttyOrig );
+  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
+  cfmakeraw( &g_termios_raw );
+  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
+
+  if (atexit(ttyReset) != 0)
+    err_msg(errno, "atexit");
 
   FD_ZERO(&read_set);
   FD_SET(STDIN_FILENO, &read_set);

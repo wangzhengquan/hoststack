@@ -441,9 +441,9 @@ char* ContainerManager::gen_id(char *uuidstr)
 }
 
 
-void ContainerManager::mount_volume (const char *container_id, char *volume) {
+void ContainerManager::mount_volume (const char *container_id, const char *volume) {
    char *src = NULL, *dest = NULL;
-    src = strtok(volume, ":");
+    src = strtok(const_cast<char *>(volume), ":");
     if (src != NULL && strlen(src) > 0)
     {
       if (*src != '/')

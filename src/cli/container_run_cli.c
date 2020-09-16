@@ -127,7 +127,7 @@ static int container_run_main(void* arg)
   char logfile[1024];
   
   pty_exe_opt_t ptyopt = {};
-  ptyopt.containerName = mopt.container_id;
+  ptyopt.containerId = mopt.container_id;
   sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
   ptyopt.rootfs = rootfs;
   ptyopt.cmd = mopt.cmd_arr;
@@ -280,8 +280,7 @@ static void startContainer(container_run_option_t mopt) {
   conatinerExit = false;
 
 
-  Signal(SIGCHLD, sigchld_handler);  /* Terminated or stopped child */
-  Signal(SIGHUP, sighup_handler);
+
 
   ContainerManager::create_container(mopt.container_id);
   /* Create the child in new namespace(s) */
@@ -294,6 +293,8 @@ static void startContainer(container_run_option_t mopt) {
                                CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &mopt);
  
   
+  Signal(SIGCHLD, sigchld_handler);  /* Terminated or stopped child */
+  Signal(SIGHUP, sighup_handler);
 
   printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), container_pid);
 

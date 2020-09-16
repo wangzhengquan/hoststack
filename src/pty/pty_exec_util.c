@@ -16,24 +16,32 @@
 #include "container_manager.h"
 #include "logger_factory.h"
 #include "socket_io.h"
+#include "sem_util.h"
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
 
-struct request {                /* Request (client --> server) */
-  char *clientFifo;                 /* fifo of client */
-  char buf[BUF_SIZE];
-  int bufSize;
-};
+typedef struct { /* Represents a pool of connected descriptors */ //line:conc:echoservers:beginpool
+  int maxfd;        /* Largest descriptor in read_set */
+  fd_set read_set;  /* Set of all active descriptors */
+  fd_set ready_set; /* Subset of descriptors ready for reading  */
+  int nready;       /* Number of ready descriptors from select */
+  int maxi;         /* Highwater index into client array */
+  int clientfd[FD_SETSIZE];    /* Set of active descriptors */
+  int masterfd;
+} pool; //line:conc:echoservers:endpool
+/* $end echoserversmain */
+void init_pool(int listenfd, int masterfd, pool *p);
+void add_client(int connfd, int masterfd, pool *p);
+void check_clients_and_master(pool *p);
 
 struct termios ttyOrig;
 struct termios  g_termios_raw ;
 pty_exe_opt_t garg;
 
-static std::string containerName;
+static std::string containerId;
 
 
-static void             /* Reset terminal mode on program exit */
-ttyReset(void)
+static void ttyReset(void)
 {
   if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
     err_msg(errno, "pty_exec_util ttyReset");
@@ -57,9 +65,9 @@ static void redirectStdOut() {
 
 static void sigStopHandler(int sig) {
   LoggerFactory::getDebugLogger().debug("pty_exec_util.sigStopHandler");
-  ContainerManager::umount_container(containerName);
-  ContainerManager::change_status_to_stop(containerName);
-  // ContainerManager::stop(containerName);
+  ContainerManager::umount_container(containerId);
+  ContainerManager::change_status_to_stop(containerId);
+  // ContainerManager::stop(containerId);
 }
 
 static void sigHupHandler(int sig) {
@@ -99,7 +107,7 @@ int pty_exec(pty_exe_opt_t arg)
   // }
 
   // signal for "kill 容器进程"
-  containerName = arg.containerName;
+  containerId = arg.containerId;
   Signal(SIGTERM, sigStopHandler);
   Signal(SIGHUP, sigHupHandler);
   // Signal(SIGQUIT, sigQuitHandler);
@@ -134,7 +142,6 @@ int pty_exec(pty_exe_opt_t arg)
   /* Parent: relay data between terminal and pty master */
   if(arg.detach) {
     redirectStdOut();
-    // close(logFd);
   }
  
   if(!arg.detach) {
@@ -157,7 +164,6 @@ int pty_exec(pty_exe_opt_t arg)
   sigaddset(&selectBlockSet, SIGHUP);
   for (;;)
   {
-    err_msg(0, "for\n");
     FD_ZERO(&ready_set);
     FD_SET(STDIN_FILENO, &ready_set);
     FD_SET(masterFd, &ready_set);
@@ -176,15 +182,13 @@ int pty_exec(pty_exe_opt_t arg)
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-      if(!arg.detach) {
-        numRead = read(STDIN_FILENO, buf, BUF_SIZE);
-        if (numRead <= 0) {
-          exit(EXIT_SUCCESS);
-        }
-
-        if (write(masterFd, buf, numRead) != numRead)
-          err_msg(errno, "partial/failed write (masterFd)");
+      numRead = read(STDIN_FILENO, buf, BUF_SIZE);
+      if (numRead <= 0) {
+       // exit(EXIT_SUCCESS);
       }
+
+      if (write(masterFd, buf, numRead) != numRead)
+        err_msg(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
@@ -203,20 +207,119 @@ int pty_exec(pty_exe_opt_t arg)
 
 
 
-typedef struct { /* Represents a pool of connected descriptors */ //line:conc:echoservers:beginpool
-  int maxfd;        /* Largest descriptor in read_set */
-  fd_set read_set;  /* Set of all active descriptors */
-  fd_set ready_set; /* Subset of descriptors ready for reading  */
-  int nready;       /* Number of ready descriptors from select */
-  int maxi;         /* Highwater index into client array */
-  int clientfd[FD_SETSIZE];    /* Set of active descriptors */
+
+
+int pty_proxy_exec(pty_exe_opt_t arg)
+{
+  char slaveName[MAX_SNAME];
+  int masterFd;
+  struct winsize ws;
+ 
+  pid_t childPid;
+  /* Retrieve the attributes of terminal on which we are started */
+
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
+  /* Create a child process, with parent and child connected via a
+     pty pair. The child is connected to the pty slave and its terminal
+     attributes are set to be the same as those retrieved above. */
+
+  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
+  if (childPid == -1)
+    err_msg(errno, "ptyFork");
+
+  if (childPid == 0)          /* Child: execute a shell on pty slave */
+  {
+    /* chroot 隔离目录 */
+    if ( chdir(arg.rootfs) != 0 || chroot("./") != 0 )
+    {
+      err_msg(errno, "chdir/chroot:%s", arg.rootfs);
+    }
+
+
+    if (system("touch /usr/lib/tmp") != 0)
+    {
+      err_msg(errno, "touch /usr/lib/tmp");
+    }
+
+    execvp(arg.cmd[0], arg.cmd);
+    err_msg(errno, "execvp: %s\n", arg.cmd[0]);
+  }
+
+ 
+  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
+
+  int     listenfd , connfd;
+  struct sockaddr_un  listen_addr, clientaddr ;
+  int nret;
+  static pool pool;
+  socklen_t     clientlen ;
+ 
+
+  /* Create well-known FIFO, and open it for reading */
+  listenfd = socket( AF_UNIX , SOCK_STREAM , 0 ) ;
+  if( listenfd == -1 )
+  {
+    err_exit( errno, "*** ERROR : socket failed , errno[%d]\n"  );
+    return -1;
+  }
   
-  int masterfd;
-} pool; //line:conc:echoservers:endpool
-/* $end echoserversmain */
-void init_pool(int listenfd, int masterfd, pool *p);
-void add_client(int connfd, int masterfd, pool *p);
-void check_clients(pool *p);
+  memset( &listen_addr , 0 , sizeof(struct sockaddr_un) );
+  listen_addr.sun_family = AF_UNIX ;
+  snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
+    "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+
+
+  if( access( listen_addr.sun_path , F_OK ) == 0 )
+  {
+    unlink( listen_addr.sun_path );
+  }
+  if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
+  {
+    err_exit(errno, "*** ERROR : bind failed , errno[%d]\n"  );
+    return -1;
+  }
+  
+  if( listen( listenfd , 1024 ) == -1 )
+  {
+    err_exit(errno, "*** ERROR : listen failed , errno[%d]\n"  );
+    return -1;
+  }
+
+  init_pool(listenfd, masterFd, &pool); 
+  // 通知client
+  SemUtil::set(arg.synchSem, 0);
+  while (1) {
+    /* Wait for listening/connected descriptor(s) to become ready */
+    pool.ready_set = pool.read_set;
+    if( (pool.nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL)) == -1) {
+      err_msg(errno, "server_proxy select");
+    }
+
+    /* If listening descriptor ready, add new client to pool */
+    if (FD_ISSET(listenfd, &pool.ready_set))   //line:conc:echoservers:listenfdready
+    {
+
+      clientlen = sizeof(struct sockaddr_un);
+
+      if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
+        add_client(connfd, masterFd, &pool);
+      }
+      
+    }
+
+
+    /* Echo a text line from each ready connected descriptor */
+    check_clients_and_master(&pool); 
+  }
+
+  err_msg(0, "===========server exit================\n");
+
+}
+
 
 /* $begin init_pool */
 void init_pool(int listenfd, int masterfd, pool *p)
@@ -283,19 +386,21 @@ void check_clients_and_master(pool *p)
     if ((connfd > 0) && (FD_ISSET(connfd, &p->ready_set)))
     {
       p->nready--;
-err_msg(0, "============%d==========\n", 1);
+// err_msg(0, "============%d==========\n", 1);
       if ((n = read(connfd, buf, MAXLINE)) <= 0) {
-err_msg(0, "============%d===before=======\n", 11);
+// err_msg(0, "============%d===before=======\n", 11);
         close(connfd); 
         FD_CLR(connfd, &p->read_set);
         p->clientfd[i] = -1;
-err_msg(0, "============%d====after=====\n", 11);
+// err_msg(0, "============%d====after=====\n", 11);
         
       } else {
-err_msg(0, "============%d===before=======\n", 12);
+// err_msg(0, "============%d===before=======\n", 12);
         // printf("Server received %d  bytes on fd %d\n", n, connfd);
-        Rio_writen(p->masterfd, buf, n);
-err_msg(0, "============%d====after======\n", 12);
+        if(rio_writen(p->masterfd, buf, n) < 0) {
+           exit(EXIT_SUCCESS);
+        }
+// err_msg(0, "============%d====after======\n", 12);
       }
     }
   }
@@ -303,138 +408,27 @@ err_msg(0, "============%d====after======\n", 12);
   if (p->masterfd != -1 && FD_ISSET(p->masterfd,  &p->ready_set))         
   {
     p->nready--;
-err_msg(0, "============%d==========\n", 2);
+// err_msg(0, "============%d==========\n", 2);
     if ((n = read(p->masterfd, buf, MAXLINE)) <= 0) {
-err_msg(0, "============%d=====before=====\n", 21);
-      close(p->masterfd); 
-      FD_CLR(p->masterfd, &p->read_set);
-      p->masterfd = -1;
-err_msg(0, "============%d=====after=====\n", 21);
+// err_msg(0, "============%d=====before=====\n", 21);
+      // close(p->masterfd); 
+      // FD_CLR(p->masterfd, &p->read_set);
+      // p->masterfd = -1;
+      exit(EXIT_SUCCESS);
+// err_msg(0, "============%d=====after=====\n", 21);
     } else {
-err_msg(0, "============%d====before======\n", 22);        
+// err_msg(0, "============%d====before======\n", 22);        
       for (int j = 0; j <= p->maxi; j++) {
         if(p->clientfd[j] > 0) {
           Rio_writen(p->clientfd[j], buf, n);
         }
       }
-err_msg(0, "============%d====after======\n", 22);    
+// err_msg(0, "============%d====after======\n", 22);    
 
     }
   }
 
 }
-
-
-int pty_proxy_exec(pty_exe_opt_t arg)
-{
-  char slaveName[MAX_SNAME];
-  int masterFd;
-  struct winsize ws;
- 
-  pid_t childPid;
-  /* Retrieve the attributes of terminal on which we are started */
-
-  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
-    err_msg(errno, "tcgetattr");
-  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
-    err_msg(errno, "ioctl-TIOCGWINSZ");
-
-  /* Create a child process, with parent and child connected via a
-     pty pair. The child is connected to the pty slave and its terminal
-     attributes are set to be the same as those retrieved above. */
-
-  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
-  if (childPid == -1)
-    err_msg(errno, "ptyFork");
-
-  if (childPid == 0)          /* Child: execute a shell on pty slave */
-  {
-    /* chroot 隔离目录 */
-    if ( chdir(arg.rootfs) != 0 || chroot("./") != 0 )
-    {
-      err_msg(errno, "chdir/chroot:%s", arg.rootfs);
-    }
-
-
-    if (system("touch /usr/lib/tmp") != 0)
-    {
-      err_msg(errno, "touch /usr/lib/tmp");
-    }
-
-    execvp(arg.cmd[0], arg.cmd);
-    err_msg(errno, "execvp: %s\n", arg.cmd[0]);
-  }
-
-   
-  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
-
-  int     listenfd , connfd;
-  struct sockaddr_un  listen_addr, clientaddr ;
-  int nret;
-  static pool pool;
-  socklen_t     clientlen ;
- 
-
-  /* Create well-known FIFO, and open it for reading */
-  listenfd = socket( AF_UNIX , SOCK_STREAM , 0 ) ;
-  if( listenfd == -1 )
-  {
-    err_exit( errno, "*** ERROR : socket failed , errno[%d]\n"  );
-    return -1;
-  }
-  
-  memset( &listen_addr , 0 , sizeof(struct sockaddr_un) );
-  listen_addr.sun_family = AF_UNIX ;
-  snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
-    "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
-
-
-  if( access( listen_addr.sun_path , F_OK ) == 0 )
-  {
-    unlink( listen_addr.sun_path );
-  }
-  if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
-  {
-    err_exit(errno, "*** ERROR : bind failed , errno[%d]\n"  );
-    return -1;
-  }
-  
-  if( listen( listenfd , 1024 ) == -1 )
-  {
-    err_exit(errno, "*** ERROR : listen failed , errno[%d]\n"  );
-    return -1;
-  }
-
-  init_pool(listenfd, masterFd, &pool); 
-
-  while (1) {
-    /* Wait for listening/connected descriptor(s) to become ready */
-    pool.ready_set = pool.read_set;
-    if( (pool.nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL)) == -1) {
-      err_msg(errno, "server_proxy select");
-    }
-
-    /* If listening descriptor ready, add new client to pool */
-    if (FD_ISSET(listenfd, &pool.ready_set))   //line:conc:echoservers:listenfdready
-    {
-
-      clientlen = sizeof(struct sockaddr_un);
-
-      if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
-        add_client(connfd, masterFd, &pool);
-      }
-      
-    }
-
-
-    /* Echo a text line from each ready connected descriptor */
-    check_clients_and_master(&pool); 
-  }
-
-  err_msg(0, "===========server exit================\n");
-
-}
-
 
 
 
@@ -500,22 +494,23 @@ int pty_client(pty_exe_opt_t arg) {
         exit(EXIT_SUCCESS);
       }
         
-      if (write(clientfd, buf, numRead) !=  numRead)
-        err_msg(errno, "partial/failed write (masterFd)");
+      if (rio_writen(clientfd, buf, numRead) !=  numRead)
+        err_exit(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
     {
       if ((numRead = read(clientfd, buf, BUF_SIZE)) <= 0) {
-
         exit(EXIT_SUCCESS);
       }
 
-      if (write(STDOUT_FILENO, buf, numRead) != numRead)
-        err_msg(errno, "partial/failed write (STDOUT_FILENO)");
-     
+      if (rio_writen(STDOUT_FILENO, buf, numRead) != numRead)
+        err_exit(errno, "partial/failed write (STDOUT_FILENO)");
       
     }
   }
 
 }
+
+
+

@@ -41,7 +41,7 @@ public:
 
 	static char* gen_id(char *uuidstr);
 
-	static void mount_volume (const char * container_id, char *volume) ;
+	static void mount_volume (const char * container_id, const char *volume) ;
 	static void bind_mount(const char *container_id, const char *src, const char *_dest);
 
 };

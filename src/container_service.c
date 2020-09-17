@@ -11,19 +11,19 @@ int synchSem;
 
 static const char *containerId;
 
+
+static void exitHandler(void)
+{
+  LoggerFactory::getDebugLogger().debug("exitHandler containerId=%s", containerId); 
+  ContainerManager::umount_container(containerId);
+  ContainerManager::change_status_to_stop(containerId);
+}
+
 static void sigStermHandler(int sig) {
   LoggerFactory::getDebugLogger().debug("sigStermHandler %s", strsignal(sig));
-  // ContainerManager::umount_container(containerId);
-  // ContainerManager::change_status_to_stop(containerId);
+  exit(0);
 }
-
-static void sigKillHandler(int sig) {
-  LoggerFactory::getDebugLogger().debug("sigKillHandler %s", strsignal(sig));
-  // ContainerManager::umount_container(containerId);
-  // ContainerManager::change_status_to_stop(containerId);
-}
-
-
+ 
 static void sigHupHandler(int sig) {
   // std::cout << "sigHupHandler " << std::endl;
  // LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
@@ -44,10 +44,11 @@ static int container_run_main(void* arg)
   // signal for "kill 容器进程"
   containerId = startOpt.containerId;
   Signal(SIGTERM, sigStermHandler);
-  // Signal(SIGKILL, sigKillHandler);
-  
   // Signal(SIGHUP, sigHupHandler);
   // Signal(SIGQUIT, sigQuitHandler);
+
+  if (atexit(exitHandler) != 0)
+    err_msg(errno, "container_run_main >> atexit");
 
   ContainerManager::mount_container(startOpt.containerId);
   // 容器卷
@@ -121,13 +122,13 @@ void ContainerService::stop(const std::string & name) {
     err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
     return;
   }
-  printf("killing pid %d\n", info.pid);
+  printf("Stopping container=%s, pid=%d\n",  name.c_str(), info.pid);
   if(kill(info.pid, SIGTERM) != 0) {
-    err_msg(errno, "SIGTERM Stop container %s failed.", name.c_str());
+    err_msg(errno, "SIGTERM Stop container %s failed.pid = %d", name.c_str(), info.pid);
     return;
   }
 
-  sleep(3);
+  sleep(5);
   if(kill(info.pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }

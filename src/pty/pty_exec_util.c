@@ -17,6 +17,7 @@
 #include "logger_factory.h"
 #include "socket_io.h"
 #include "sem_util.h"
+
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
 
@@ -29,7 +30,7 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
   int clientfd[FD_SETSIZE];    /* Set of active descriptors */
   int masterfd;
 } pool; //line:conc:echoservers:endpool
-/* $end echoserversmain */
+
 void init_pool(int listenfd, int masterfd, pool *p);
 void add_client(int connfd, pool *p);
 void check_clients_and_master(pool *p);
@@ -137,9 +138,9 @@ int pty_exec(pty_exe_opt_t arg)
      terminal is ready for input, then read some bytes and write
      them to the pty master. If the pty master is ready for input,
      then read some bytes and write them to the terminal. */
-  sigset_t selectBlockSet;
-  sigemptyset(&selectBlockSet);
-  sigaddset(&selectBlockSet, SIGHUP);
+  // sigset_t selectBlockSet;
+  // sigemptyset(&selectBlockSet);
+  // sigaddset(&selectBlockSet, SIGHUP);
   for (;;)
   {
     FD_ZERO(&ready_set);
@@ -147,7 +148,7 @@ int pty_exec(pty_exe_opt_t arg)
     FD_SET(masterFd, &ready_set);
 
 
-    if (pselect(masterFd + 1, &ready_set, NULL, NULL, NULL, &selectBlockSet) == -1) {
+    if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
       err_msg(errno, "pty_exec select EINTR");
       if(errno == EINTR) {
         continue;
@@ -267,13 +268,13 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   // 通知client
   SemUtil::set(arg.synchSem, 0);
 
-  sigset_t selectBlockSet;
-  sigemptyset(&selectBlockSet);
-  sigaddset(&selectBlockSet, SIGTERM);
+  // sigset_t selectBlockSet;
+  // sigemptyset(&selectBlockSet);
+  // sigaddset(&selectBlockSet, SIGTERM);
   while (1) {
     /* Wait for listening/connected descriptor(s) to become ready */
     pool.ready_set = pool.read_set;
-    if( (pool.nready = pselect(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL, &selectBlockSet)) == -1) {
+    if( (pool.nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL)) == -1) {
       err_msg(errno, "server_proxy select");
       if(errno == EINTR) {
         continue;
@@ -399,14 +400,13 @@ void check_clients_and_master(pool *p)
          exit(EXIT_SUCCESS);
       }
      
-// err_msg(0, "============%d=====after=====\n", 21);
     } else {
-// err_msg(0, "============%d====before======\n", 22);        
       for (i = 0; i <= p->maxi; i++) {
-        // debug
-        if (rio_writen(STDOUT_FILENO, buf, n) != n) {
-          err_msg(errno, "check_clients_and_master>>rio_writen STDOUT_FILENO");
-        }
+        // === debug
+        // if (rio_writen(STDOUT_FILENO, buf, n) != n) {
+        //   err_msg(errno, "check_clients_and_master>>rio_writen STDOUT_FILENO");
+        // }
+        //====
         connfd = p->clientfd[i];
         if(connfd > 0) {
           if (rio_writen(connfd, buf, n) != n) {
@@ -463,7 +463,7 @@ int pty_client(pty_exe_opt_t arg) {
   tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
 
   if (atexit(ttyReset) != 0)
-    err_msg(errno, "atexit");
+    err_msg(errno, "pty_client >> atexit");
 
   FD_ZERO(&read_set);
   FD_SET(STDIN_FILENO, &read_set);

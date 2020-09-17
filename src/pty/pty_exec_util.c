@@ -17,7 +17,6 @@
 #include "socket_io.h"
 #include "sem_util.h"
 #include "path_assembler.h"
-#include "become_daemon.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000

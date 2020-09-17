@@ -18,8 +18,15 @@ public:
 	time_t stop_time; //停止时间
 	container_status_t status; //运行状态
 	std::string volume;
+
+private:
+	static const char * TITLE_FORMAT;
+	static const char * INFO_FORMAT;
+	std::string getStatusName();
+	char * formatTime(const time_t time, char *_time_str);
 public:
-	std::string get_status_name();
+	static void showTitle();
+	void show();
 
 	friend std::ostream & operator<<(std::ostream & out, Container & info);
 

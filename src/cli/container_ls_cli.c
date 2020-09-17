@@ -73,13 +73,13 @@ void ContainerLsCli::handleCommand(int argc, char *argv[]) {
 
   std::vector<Container>* vector = ContainerManager::list();
 
-  std::cout << "ID\tNAME\tPID\tSTATUS\tCOMMAND\tCREATED" << std::endl;
+  Container::showTitle();
   if(vector == NULL) {
     return;
   }
   for(Container & info : *vector) {
     if(mopt.all || info.status == CONTAINER_RUNNING)
-      std::cout << info;
+      info.show();
     // printf("%d\n", i++);
   }
 

@@ -7,7 +7,6 @@
 #include "container_exec_cli.h"
 #include "pty_exec_util.h"
 #include "path_assembler.h"
-#include "become_daemon.h"
 
 struct container_exec_arg_t {
   bool interactive;
@@ -149,7 +148,7 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   ptyopt.containerId = container.id.c_str();
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
- 
+
 
 
  

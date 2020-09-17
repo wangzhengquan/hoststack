@@ -6,7 +6,6 @@
 /* HP-UX 11 doesn't have this header file */
 #include <sys/select.h>
 #endif
-
 #include <sys/un.h>
 #include <sys/socket.h>
 #include "pty_fork.h"           /* Declaration of ptyFork() */
@@ -18,6 +17,7 @@
 #include "socket_io.h"
 #include "sem_util.h"
 #include "path_assembler.h"
+#include "become_daemon.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
@@ -51,21 +51,36 @@ static void ttyReset(void)
 }
 
 static void redirectStdOut() {
- 
-  int outFd = open( garg.logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  int inFd, outFd;
+  char stdoutfile[1024];
+  //sprintf(stdoutfile, "%s/containers/%s/stdout.%ld.log",kucker_repo,  garg.containerId, time(0));
+  sprintf(stdoutfile, "/dev/null");
+  // printf("stdoutfile = %s\n", stdoutfile);
+
+  outFd = open(stdoutfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   if (outFd == -1)
-      err_msg(errno, "pty_exec open log: %s", garg.logfile);
-  dup2(outFd, STDOUT_FILENO);
-  close(outFd);
+    err_exit(errno, "pty_exec open log: %s", stdoutfile);
+  if( dup2(outFd, STDOUT_FILENO) == -1) {
+    err_exit(errno, "redirectStdOut >> dup2 STDOUT_FILENO");
+  } else {
+    close(outFd);
+  }
 
-  int inFd = open("/dev/null", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  char stdinfile[1024];
+  sprintf(stdinfile, "%s/containers/%s/stdin.log",kucker_repo,  garg.containerId);
+  if (mkfifo(stdinfile, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
+      err_exit(errno, "mkfifo %s", stdinfile);
+ 
+  //inFd = open("/dev/null", O_RDONLY);
+  inFd = open(stdinfile, O_RDONLY);
   if (inFd == -1)
-      err_msg(errno, "pty_exec open /dev/null");
-  dup2(inFd, STDIN_FILENO);
-  close(inFd);
+      err_exit(errno, "open %s", stdinfile);
+  if(dup2(inFd, STDIN_FILENO) == -1) {
+     err_exit(errno, "redirectStdOut >> dup2 STDIN_FILENO");
+  } else {
+    close(inFd);
+  }
 }
-
-
 
 int pty_exec(pty_exe_opt_t arg)
 {
@@ -76,7 +91,7 @@ int pty_exec(pty_exe_opt_t arg)
   struct winsize ws;
   fd_set ready_set;
   char buf[BUF_SIZE];
-  ssize_t numRead;
+  ssize_t n;
   pid_t childPid;
   const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   garg = arg;
@@ -113,25 +128,20 @@ int pty_exec(pty_exe_opt_t arg)
     {
       err_msg(errno, "touch /usr/lib/tmp");
     }
-
     execvp(arg.cmd[0], arg.cmd);
     err_msg(errno, "execvp: %s\n", arg.cmd[0]);
   }
 
 
   /* Parent: relay data between terminal and pty master */
-  if(arg.detach) {
-    redirectStdOut();
-  }
- 
-  if(!arg.detach) {
-     /* Place terminal in raw mode so that we can pass all terminal
+  if(! arg.detach) {
+    /* Place terminal in raw mode so that we can pass all terminal
      input to the pseudoterminal master untouched */
-
     ttySetRaw(STDIN_FILENO, &ttyOrig);
-
     if (atexit(ttyReset) != 0)
       err_msg(errno, "atexit");
+  } else {
+    redirectStdOut();
   }
  
 
@@ -148,7 +158,6 @@ int pty_exec(pty_exe_opt_t arg)
     FD_SET(STDIN_FILENO, &ready_set);
     FD_SET(masterFd, &ready_set);
 
-
     if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
       err_msg(errno, "pty_exec select EINTR");
       if(errno == EINTR) {
@@ -159,24 +168,26 @@ int pty_exec(pty_exe_opt_t arg)
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-      numRead = read(STDIN_FILENO, buf, BUF_SIZE);
-      if (numRead < 0) {
-        exit(EXIT_SUCCESS);
+     
+      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
+        if(errno != EINTR)  {
+          exit(EXIT_SUCCESS);
+        }
       }
 
-      if (write(masterFd, buf, numRead) != numRead)
+      if (write(masterFd, buf, n) != n)
         err_exit(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
     {
-      numRead = read(masterFd, buf, BUF_SIZE);
-      if (numRead < 0) {
-        exit(EXIT_SUCCESS);
+      if ( (n = read(masterFd, buf, BUF_SIZE)) <= 0) {
+        if(errno != EINTR)  {
+          exit(EXIT_SUCCESS);
+        }
       }
-      if (write(STDOUT_FILENO, buf, numRead) != numRead)
-          err_msg(errno, "partial/failed write (STDOUT_FILENO)");
-     
+      if (write(STDOUT_FILENO, buf, n) != n)
+          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
       
     }
   }
@@ -342,11 +353,6 @@ void add_client(int connfd, pool *p)
         p->maxi = i;      
       break;
     }
-
-  // if(p->masterfd == -1) {
-  //   p->masterfd = masterfd;
-  //   FD_SET(masterfd, &p->read_set);
-  // }
  
   if (i == FD_SETSIZE) /* Couldn't find an empty slot */
     err_msg(0, "add_client error: Too many clients");
@@ -374,15 +380,10 @@ void check_clients_and_master(pool *p)
           p->clientfd[i] = -1;
         }
        
-// err_msg(0, "============%d====after=====\n", 11);
-        
       } else {
-// err_msg(0, "============%d===before=======\n", 12);
-        // printf("Server received %d  bytes on fd %d\n", n, connfd);
         if(rio_writen(p->masterfd, buf, n) <= 0) {
            exit(EXIT_SUCCESS);
         }
-// err_msg(0, "============%d====after======\n", 12);
       }
     }
   }
@@ -390,7 +391,6 @@ void check_clients_and_master(pool *p)
   if (p->masterfd != -1 && FD_ISSET(p->masterfd,  &p->ready_set))         
   {
     p->nready--;
-// err_msg(0, "============%d==========\n", 2);
     if ((n = read(p->masterfd, buf, BUF_SIZE)) <= 0) {
 // err_msg(0, "============%d=====before=====\n", 21);
       // close(p->masterfd); 
@@ -418,8 +418,6 @@ void check_clients_and_master(pool *p)
           }
         }
       }
-// err_msg(0, "============%d====after======\n", 22);    
-
     }
   }
 
@@ -432,7 +430,7 @@ int pty_client(pty_exe_opt_t arg) {
   struct sockaddr_un  addr ;
   
   char buf[BUF_SIZE];
-  ssize_t numRead;
+  ssize_t n;
   // struct request req;
   fd_set read_set, ready_set;
 
@@ -441,7 +439,7 @@ int pty_client(pty_exe_opt_t arg) {
   clientfd = socket( AF_UNIX , SOCK_STREAM , 0) ;
   if( clientfd == -1 )
   {
-    err_exit(errno, "*** ERROR : socket failed , errno[%d]\n"  );
+    err_exit(errno, "pty_client socket failed\n"  );
     return -1;
   }
   memset( &addr, 0 , sizeof(struct sockaddr_un) );
@@ -484,22 +482,22 @@ int pty_client(pty_exe_opt_t arg) {
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-      if (( numRead = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
+      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
         
         exit(EXIT_SUCCESS);
       }
         
-      if (rio_writen(clientfd, buf, numRead) !=  numRead)
+      if (rio_writen(clientfd, buf, n) !=  n)
         err_exit(errno, "partial/failed write (masterFd)");
     }
 
     if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
     {
-      if ((numRead = read(clientfd, buf, BUF_SIZE)) <= 0) {
+      if ((n = read(clientfd, buf, BUF_SIZE)) <= 0) {
         exit(EXIT_SUCCESS);
       }
 
-      if (rio_writen(STDOUT_FILENO, buf, numRead) != numRead)
+      if (rio_writen(STDOUT_FILENO, buf, n) != n)
         err_exit(errno, "partial/failed write (STDOUT_FILENO)");
       
     }

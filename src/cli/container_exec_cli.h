@@ -2,7 +2,6 @@
 #define __CONTAINER_EXEC_CLI_H
 
 #include "usg_common.h"
-#include "kucker_config.h"
 
 class ContainerExecCli {
 

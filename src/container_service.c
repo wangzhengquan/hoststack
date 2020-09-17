@@ -25,16 +25,13 @@ static void sigStermHandler(int sig) {
   exit(0);
 }
  
-static void sigHupHandler(int sig) {
-  // std::cout << "sigHupHandler " << std::endl;
- // LoggerFactory::getDebugLogger().debug("pty_exec_util.sigHupHandler logfile=%s", garg.logfile);
-  // redirectStdOut();
-  // ttyReset();
-}
+// static void sigHupHandler(int sig) {
+  
+// }
 
-static void sigQuitHandler(int sig) {
-  std::cout << "sigQuitHandler \n" << std::endl;
-}
+// static void sigQuitHandler(int sig) {
+//   std::cout << "sigQuitHandler \n" << std::endl;
+// }
 
 static int container_run_main(void* arg)
 {
@@ -59,17 +56,11 @@ static int container_run_main(void* arg)
   }
 
 
-  char logfile[1024];
-
   pty_exe_opt_t ptyopt = {};
   ptyopt.synchSem = synchSem;
   ptyopt.containerId = startOpt.containerId;
   ptyopt.cmd = startOpt.cmd;
   ptyopt.detach = startOpt.detach;
-  // stdout 重定向日志文件
-  sprintf(logfile, "%s/containers/%s/stdout.%ld.log", kucker_repo, startOpt.containerId, time(0));
-  ptyopt.logfile = logfile;
-  printf("logfile = %s\n", ptyopt.logfile);
   
   pty_proxy_exec(ptyopt);
  // pty_exec(ptyopt);
@@ -111,8 +102,6 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
   }
   
 }
-
-
 
 void ContainerService::stop(const std::string & name) {
   Container info = ContainerManager::get_container_by_id_or_name(name);

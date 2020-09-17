@@ -6,7 +6,6 @@ struct pty_exe_opt_t
 	const char *containerId;
   char **cmd;
   bool detach;
-  char *logfile;
   int synchSem;
 };
 

@@ -17,6 +17,7 @@
 #include "logger_factory.h"
 #include "socket_io.h"
 #include "sem_util.h"
+#include "path_assembler.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
@@ -77,7 +78,7 @@ int pty_exec(pty_exe_opt_t arg)
   char buf[BUF_SIZE];
   ssize_t numRead;
   pid_t childPid;
-
+  const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   garg = arg;
   /* Retrieve the attributes of terminal on which we are started */
 
@@ -102,9 +103,9 @@ int pty_exec(pty_exe_opt_t arg)
   if (childPid == 0)          /* Child: execute a shell on pty slave */
   {
     /* chroot 隔离目录 */
-    if ( chdir(arg.rootfs) != 0 || chroot("./") != 0 )
+    if ( chdir(rootfs) != 0 || chroot("./") != 0 )
     {
-      err_msg(errno, "chdir/chroot:%s", arg.rootfs);
+      err_msg(errno, "chdir/chroot:%s", rootfs);
     }
 
 
@@ -187,8 +188,8 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   char slaveName[MAX_SNAME];
   int masterFd;
   struct winsize ws;
- 
   pid_t childPid;
+  const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   /* Retrieve the attributes of terminal on which we are started */
 
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
@@ -208,9 +209,9 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   if (childPid == 0)          
   {
     /* chroot 隔离目录 */
-    if ( chdir(arg.rootfs) != 0 || chroot("./") != 0 )
+    if ( chdir(rootfs) != 0 || chroot("./") != 0 )
     {
-      err_msg(errno, "chdir/chroot:%s", arg.rootfs);
+      err_msg(errno, "chdir/chroot:%s", rootfs);
     }
 
 
@@ -229,7 +230,6 @@ int pty_proxy_exec(pty_exe_opt_t arg)
 
   int     listenfd , connfd;
   struct sockaddr_un  listen_addr, clientaddr ;
-  int nret;
   static pool pool;
   socklen_t     clientlen ;
  
@@ -430,7 +430,6 @@ void check_clients_and_master(pool *p)
 int pty_client(pty_exe_opt_t arg) {
   int clientfd;
   struct sockaddr_un  addr ;
-  int logFd;
   
   char buf[BUF_SIZE];
   ssize_t numRead;

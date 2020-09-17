@@ -2,14 +2,11 @@
 #define __CONTAINER_MANAGER_H
 
 #include "usg_common.h"
-#include "kucker_config.h"
 #include "container.h"
 #include <jsoncpp/json.h>
  
 
-struct container_ls_opt_t {
-  bool all;
-};
+
 
 class ContainerManager {
 private:
@@ -29,7 +26,7 @@ public:
 	static Container get_container_by_id_or_name(const std::string& value);
 	static Container get_container_by(const char * name,const std::string& value);
 
-	static std::vector<Container>* list(container_ls_opt_t &opt) ;
+	static std::vector<Container>* list() ;
 
 	static void create_container(const char *container_id);
 

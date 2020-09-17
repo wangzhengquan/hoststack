@@ -16,7 +16,7 @@ class ContainerCli {
 public:
 	static void usage();
 	
-	static void handle_command(int argc, char *argv[]);
+	static void handleCommand(int argc, char *argv[]);
 	// static void handle_run_command (int argc, char *argv[]);
 	// static void handle_ls_command(int argc, char *argv[]);
 };

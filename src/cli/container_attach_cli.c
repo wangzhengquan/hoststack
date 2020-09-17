@@ -14,7 +14,7 @@ void ContainerAttachCli::usage()
 }
 
 
-void ContainerAttachCli::handle_command(int argc, char *argv[]) {
+void ContainerAttachCli::handleCommand(int argc, char *argv[]) {
 
   if (argc < 2) {
     usage();

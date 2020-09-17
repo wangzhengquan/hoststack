@@ -2,20 +2,23 @@
 #include <getopt.h>
 #include <uuid.h>
 #include <sys/syscall.h>
-
 #include "container_manager.h"
 #include "container.h"
 #include "container_ls_cli.h"
 
+struct container_ls_arg_t {
+  bool all;
+};
 void ContainerLsCli::usage()
 {
   printf("usage: param error\n");
 }
 
 
-void ContainerLsCli::handle_command(int argc, char *argv[]) {
+void ContainerLsCli::handleCommand(int argc, char *argv[]) {
 	char c;
-	container_ls_opt_t mopt;
+	container_ls_arg_t mopt = {};
+  mopt.all = false;
   opterr = 0;
   static struct option long_options[] =
   {
@@ -68,14 +71,15 @@ void ContainerLsCli::handle_command(int argc, char *argv[]) {
   }
 
 
-  std::vector<Container>* vector = ContainerManager::list(mopt);
+  std::vector<Container>* vector = ContainerManager::list();
 
   std::cout << "ID\tNAME\tPID\tSTATUS\tCOMMAND\tCREATED" << std::endl;
   if(vector == NULL) {
     return;
   }
   for(Container & info : *vector) {
-   std::cout << info;
+    if(mopt.all || info.status == CONTAINER_RUNNING)
+      std::cout << info;
     // printf("%d\n", i++);
   }
 

@@ -4,12 +4,9 @@
 struct pty_exe_opt_t
 {
 	const char *containerId;
-  char *rootfs;
   char **cmd;
   bool detach;
   char *logfile;
-  char *serverFifo;
-  char *clientFifo;
   int synchSem;
 };
 

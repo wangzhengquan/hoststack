@@ -23,7 +23,7 @@ void ContainerCli::usage()
   fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
 }
 
-void ContainerCli::handle_command(int argc, char *argv[]) {
+void ContainerCli::handleCommand(int argc, char *argv[]) {
 	char *action;
   if (argc < 2)
   {
@@ -37,22 +37,22 @@ void ContainerCli::handle_command(int argc, char *argv[]) {
   
 printf("action=%s\n", action);
 	if (strcmp(action, "run") == 0) {
-    ContainerRunCli::handle_command(argc - 1, argv + 1);
+    ContainerRunCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(action, "ls") == 0) {
-    ContainerLsCli::handle_command(argc - 1, argv + 1);
+    ContainerLsCli::handleCommand(argc - 1, argv + 1);
   } 
   else if (strcmp(action, "stop") == 0) {
-    ContainerStopCli::handle_command(argc - 1, argv + 1);
+    ContainerStopCli::handleCommand(argc - 1, argv + 1);
   }  
   else if (strcmp(action, "start") == 0) {
-    ContainerStartCli::handle_command(argc - 1, argv + 1);
+    ContainerStartCli::handleCommand(argc - 1, argv + 1);
   } 
   else if (strcmp(action, "exec") == 0) {
-    ContainerExecCli::handle_command(argc - 1, argv + 1);
+    ContainerExecCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(action, "attach") == 0) {
-    ContainerAttachCli::handle_command(argc - 1, argv + 1);
+    ContainerAttachCli::handleCommand(argc - 1, argv + 1);
   } 
   else if (strcmp(action, "--help") == 0)
   {

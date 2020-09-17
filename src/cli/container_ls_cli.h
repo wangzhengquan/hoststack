@@ -9,6 +9,6 @@ class ContainerLsCli {
 public:
 	static void usage();
 	
-	static void handle_command (int argc, char *argv[]);
+	static void handleCommand (int argc, char *argv[]);
 };
 #endif

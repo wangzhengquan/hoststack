@@ -33,7 +33,7 @@ void ContainerStartCli::usage()
 
 
 
-void ContainerStartCli::handle_command (int argc, char *argv[])
+void ContainerStartCli::handleCommand (int argc, char *argv[])
 {
   printf("Parent [%5d] - start a container!\n", getpid());
   int c;

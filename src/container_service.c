@@ -6,6 +6,7 @@
 #include "sem_util.h"
 #include "container_manager.h"
 #include "container_service.h"
+#include "path_assembler.h"
 
 int synchSem;
 
@@ -58,14 +59,11 @@ static int container_run_main(void* arg)
   }
 
 
-  char rootfs[1024];
   char logfile[1024];
 
   pty_exe_opt_t ptyopt = {};
   ptyopt.synchSem = synchSem;
   ptyopt.containerId = startOpt.containerId;
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, startOpt.containerId);
-  ptyopt.rootfs = rootfs;
   ptyopt.cmd = startOpt.cmd;
   ptyopt.detach = startOpt.detach;
   // stdout 重定向日志文件

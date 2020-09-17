@@ -29,59 +29,10 @@ void ContainerRunCli::usage()
 {
   printf("usage: param error\n");
 }
-
-static int container_run_main(void* arg)
-{
-  
-  printf("in container...\n ");
- 
  
 
-  container_run_arg_t & mopt = * ((container_run_arg_t *)arg);
- 
-  ContainerManager::mount_container(mopt.container_id);
-// 容器卷
-  if ( mopt.volume != NULL)
-  {
-    ContainerManager::mount_volume(mopt.container_id,  mopt.volume);
-  }
 
-
-  char rootfs[1024];
-  char logfile[1024];
-  
-  pty_exe_opt_t ptyopt = {};
-  ptyopt.containerId = mopt.container_id;
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, mopt.container_id);
-  ptyopt.rootfs = rootfs;
-  ptyopt.cmd = mopt.cmd_arr;
-  ptyopt.detach = mopt.detach;
-  sprintf(logfile, "%s/containers/%s/stdout.%ld.log",kucker_repo,  mopt.container_id, time(0));
-  ptyopt.logfile = logfile;
-  printf("logfile = %s\n", ptyopt.logfile);
-  
-
-  pty_exec(ptyopt);
-
-  //char serverFifo[1024];
-  // sprintf(serverFifo, "%s/containers/%s/server.fifo",kucker_repo,  mopt.container_id);
-  // printf("serverFifo = %s\n", serverFifo);
-  // char clientFifo[1024];
-  // sprintf(clientFifo, "/tmp/client.%s.fifo", time(0));
-  // ptyopt.serverFifo= serverFifo;
-  // ptyopt.clientFifo= clientFifo;
-
-  // pty_proxy_exec(ptyopt);
-  // pty_client(ptyopt);
-  
-
-  return 1;
-}
-
-
-
-
-void ContainerRunCli::handle_command (int argc, char *argv[])
+void ContainerRunCli::handleCommand (int argc, char *argv[])
 {
   int c;
 

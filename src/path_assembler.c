@@ -1,8 +1,25 @@
-#ifndef __PATH_ASSEMBLER_H
-#define __PATH_ASSEMBLER_H
+#include "path_assembler.h"
 
-class PathAssembler {
+#define PATH_LEN 1024
+
+const char * PathAssembler::getUnionFS(char *dir) {
+	static char path[PATH_LEN];
+	sprintf(path, "%s/aufs", kucker_repo);
 	
-};
+	if(dir != NULL) {
+		 return strcpy(dir, path);
+	} else {
+		return path;
+	}
+}
 
-#endif
+const char * PathAssembler::getRootFS(const char * containerId, char *dir) {
+	static char path[PATH_LEN];
+	sprintf(path, "%s/mnt/%s", getUnionFS(NULL), containerId);
+	
+	if(dir != NULL) {
+		 return strcpy(dir, path);
+	} else {
+		return path;
+	}
+}

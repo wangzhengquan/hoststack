@@ -13,7 +13,7 @@ void ContainerStopCli::usage()
 }
 
 
-void ContainerStopCli::handle_command(int argc, char *argv[]) {
+void ContainerStopCli::handleCommand(int argc, char *argv[]) {
 
   if (argc < 2) {
     usage();

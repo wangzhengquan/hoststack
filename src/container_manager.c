@@ -3,6 +3,7 @@
 #include <uuid.h>
 #include <jsoncpp/json.h>
 #include "container_manager.h"
+#include "path_assembler.h"
 #include "container.h"
 
 struct mnt_dir_t {
@@ -149,10 +150,11 @@ Container ContainerManager::get_container_by_id_or_name(const std::string& value
   return {};
 }
 
-std::vector<Container>* ContainerManager::list(container_ls_opt_t &opt) {
-  
+std::vector<Container>* ContainerManager::list() {
+  char line[1024];
   std::vector<Container> * vector = new std::vector<Container>;
   Json::Value root;
+  bool dirty = false;
   
   Json::Reader jsonreader;
   std::ifstream fin(kucker_data_file);
@@ -170,11 +172,27 @@ std::vector<Container>* ContainerManager::list(container_ls_opt_t &opt) {
   }
 
   for(int i = 0; i < size; i++) {
-    if(opt.all)
-      vector->push_back(pack_container_info(root[i]));
-    else if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
-      vector->push_back(pack_container_info(root[i]));
+    if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+      sprintf(line, "/proc/%d", root[i]["pid"].asInt());
+      if(access(line, F_OK) == -1) {
+        root[i]["status"] = CONTAINER_STOPED;
+        root[i]["stop_time"] = (int)time(0);
+        root[i]["pid"] = 0;
+        dirty = true;
+      }
     }
+    vector->push_back(pack_container_info(root[i]));
+  }
+
+  if(dirty) {
+    auto str = root.toStyledString();
+    // printf("=======update===== %s\n", kucker_data_file);
+    std::cout << str << std::endl;
+    // printf("============\n");
+    std::ofstream fout;
+    fout.open(kucker_data_file);
+    fout << str;
+    fout.close();
   }
   return vector;
 }
@@ -211,12 +229,9 @@ Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, co
 
 void ContainerManager::create_container(const char *container_id)
 {
-  char rootfs[1024];
+  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
+  const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[8192];
-
-
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
-
 
   // sethostname("container",10);
   // bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
@@ -227,29 +242,29 @@ void ContainerManager::create_container(const char *container_id)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/aufs/diff || sudo mkdir -p %s/aufs/diff", kucker_repo, kucker_repo);
+  sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
   if (system(line) != 0)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/aufs/layers || sudo mkdir -p %s/aufs/layers", kucker_repo, kucker_repo);
+  sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
   if (system(line) != 0)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/aufs/containers || sudo mkdir -p %s/aufs/containers", kucker_repo, kucker_repo);
+  sprintf(line, "test -d %s/containers || sudo mkdir -p %s/containers", unionfs, unionfs);
   if (system(line) != 0)
   {
     perror(line);
   }
 
-  sprintf(line, "test -d %s/containers/%s || sudo mkdir -p %s/containers/%s", kucker_repo, container_id, kucker_repo, container_id);
+  sprintf(line, "test -d %s/containers/%s || sudo mkdir -p %s/containers/%s", unionfs, container_id, unionfs, container_id);
   printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/aufs/diff/%s || sudo mkdir -p %s/aufs/diff/%s", kucker_repo, container_id, kucker_repo, container_id);
+  sprintf(line, "test -d %s/diff/%s || sudo mkdir -p %s/diff/%s", unionfs, container_id, unionfs, container_id);
   if (system(line) != 0)
   {
     perror(line);
@@ -288,9 +303,8 @@ static  mnt_dir_t mnt_dir_arr[]= {
 
 void ContainerManager::umount_container(const std::string & container_id) {
   Container container = ContainerManager::get_container_by_id_or_name(container_id);
-  char rootfs[1024];
+  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
   char line[4096];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container.id.c_str());
 
   size_t i = 0;
  
@@ -315,8 +329,8 @@ void ContainerManager::umount_container(const std::string & container_id) {
 void ContainerManager::mount_container(const std::string & container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
-  char rootfs[1024];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id.c_str());
+  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
+  const char *unionfs = PathAssembler::getUnionFS( NULL);
   char line[1024];
   char data[1024];
 
@@ -324,14 +338,14 @@ void ContainerManager::mount_container(const std::string & container_id)
   mnt_dir_t *mnt_dir = &mnt_dir_arr[i];
   while( mnt_dir->src != NULL ) {
     if(strcmp(mnt_dir->type, "aufs") == 0) {
-      // sprintf(line, "sudo mount -t aufs -o dirs=%s/aufs/diff/%s=rw:%s=ro none %s/aufs/mnt/%s%s",
-      //     kucker_repo, container_id, mnt_dir->src, kucker_repo, container_id, mnt_dir->target);
+      // sprintf(line, "sudo mount -t aufs -o dirs=%s/diff/%s=rw:%s=ro none %s/mnt/%s%s",
+      //     unionfs, container_id, mnt_dir->src, unionfs, container_id, mnt_dir->target);
       // if (system(line) != 0)
       // {
       //   perror(line);
       // }
-      char *target =  path_join(kucker_repo, "/aufs/mnt", container_id.c_str(), mnt_dir->target, NULL);
-      sprintf(data, "dirs=%s/aufs/diff/%s=rw:%s=ro", kucker_repo, container_id.c_str(), mnt_dir->src);
+      char *target =  path_join(unionfs, "/mnt", container_id.c_str(), mnt_dir->target, NULL);
+      sprintf(data, "dirs=%s/diff/%s=rw:%s=ro", unionfs, container_id.c_str(), mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
         err_msg(errno, "data=%s\n target=%s\n", data, target);
@@ -350,68 +364,6 @@ void ContainerManager::mount_container(const std::string & container_id)
     i++;
   }
 
- 
- 
-
-  // ===================
-
- 
-  // sprintf(line, "%s/dev", rootfs);
-  // if (mount("udev", line, "devtmpfs", 0, NULL) != 0)
-  // {
-  //   perror("dev");
-  // }
-
-  // sprintf(line, "%s/dev/pts", rootfs);
-  // if (mount("devpts", line, "devpts", 0, NULL) != 0)
-  // {
-  //   err_exit(errno, "mount_container dev/pts: %s", line);
-  // }
-  // sprintf(line, "%s/dev/net", rootfs);
-  // if (mount("net", line, "net", 0, NULL)!=0) {
-  //     perror("dev/net");
-  // }
-  // sprintf(line, "%s/dev/shm", rootfs);
-  // if (mount("shm", line, "tmpfs", 0, NULL)!=0) {
-  //     perror("dev/shm");
-  // }
-
-  // sprintf(line, "%s/proc", rootfs);
-  // if (mount("proc", line, "proc", 0, NULL) != 0 )
-  // {
-  //   err_exit(errno, "mount_container proc: %s", line);
-  // }
-
-  // sprintf(line, "%s/tmp", rootfs);
-  // if (mount("none", line, "tmpfs", 0, NULL) != 0)
-  // {
-  //   err_exit(errno, "mount_container tmp: %s", line);
-  // }
-
-  // sprintf(line, "%s/run", rootfs);
-  // if (mount("tmpfs", line, "tmpfs", 0, NULL)!=0) {
-  //     perror("run");
-  // }
-  /*
-   * 模仿Docker的从外向容器里mount相关的配置文件
-   * 你可以查看：/var/lib/docker/containers/<container_id>/目录，
-   * 你会看到docker的这些文件的。
-   */
-  // sprintf(line, "%s/etc/hosts", cwd);
-  // if (mount("etc/hosts", line, "none", MS_BIND, NULL)!=0) {
-  //      perror("etc/hosts");
-  // }
-
-  // sprintf(line, "%s/etc/hostname", cwd);
-  // if (mount("etc/hostname", line, "none", MS_BIND, NULL)!=0) {
-  //      perror("etc/hostname");
-  // }
-
-  // sprintf(line, "%s/etc/resolv.conf", cwd);
-  // if (mount("etc/resolv.conf", line, "none", MS_BIND, NULL)!=0) {
-  //      perror("etc/resolv.conf");
-  // }
-
 }
 
 
@@ -424,33 +376,38 @@ char* ContainerManager::gen_id(char *uuidstr)
 }
 
 
-void ContainerManager::mount_volume (const char *container_id, const char *volume) {
-   char *src = NULL, *dest = NULL;
-    src = strtok(const_cast<char *>(volume), ":");
-    if (src != NULL && strlen(src) > 0)
+void ContainerManager::mount_volume (const char *container_id, const char *_volume) {
+  char *src = NULL, *dest = NULL;
+  char *volume = strdup(_volume);
+  src = strtok(const_cast<char *>(volume), ":");
+  if (src != NULL && strlen(src) > 0)
+  {
+    if (*src != '/')
     {
-      if (*src != '/')
+      free(volume);
+      err_exit(0, "invalid mount path: '%s' mount path must be absolute.", src);
+    }
+    dest = strtok(NULL, ":");
+    if (dest != NULL && strlen(dest) > 0)
+    {
+      if (*dest != '/')
       {
-        err_exit(0, "invalid mount path: '%s' mount path must be absolute.", src);
+        free(volume);
+        err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
       }
-      dest = strtok(NULL, ":");
-      if (dest != NULL && strlen(dest) > 0)
-      {
-        if (*dest != '/')
-        {
-          err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
-        }
-        bind_mount(container_id, src, dest);
-      }
-      else
-      {
-        err_exit(0, "param volume format err.");
-      }
+      bind_mount(container_id, src, dest);
     }
     else
     {
+      free(volume);
       err_exit(0, "param volume format err.");
     }
+  }
+  else
+  {
+    free(volume);
+    err_exit(0, "param volume format err.");
+  }
 }
 
 
@@ -461,9 +418,7 @@ void ContainerManager::umount_volume (const std::string & container_id) {
   }
   char *volume = strdup(_volume.c_str());
   char *src = NULL, *dest = NULL;
-  char rootfs[1024];
-  // char line[4096];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id.c_str());
+  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
 
   src = strtok(volume, ":");
   if (src != NULL && strlen(src) > 0)
@@ -503,9 +458,8 @@ printf("====umount_volume %s\n", target);
 /* 挂在容器volume */
 void ContainerManager::bind_mount(const char *container_id, const char *src, const char *_dest)
 {
-  char rootfs[1024];
   char line[4096];
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container_id);
+  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
 
   sprintf(line, "test -d %s || sudo mkdir -p %s", src, src);
   if (system(line) != 0)

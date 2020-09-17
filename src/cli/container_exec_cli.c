@@ -2,11 +2,11 @@
 #include <getopt.h>
 #include <uuid.h>
 #include <sys/syscall.h>
-
 #include "container_manager.h"
 #include "container.h"
 #include "container_exec_cli.h"
 #include "pty_exec_util.h"
+#include "path_assembler.h"
 
 struct container_exec_option_t {
   bool interactive;
@@ -24,7 +24,7 @@ void ContainerExecCli::usage()
 }
 
 
-void ContainerExecCli::handle_command(int argc, char *argv[]) {
+void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   if (argc < 3) {
     usage();
     return;
@@ -137,11 +137,8 @@ void ContainerExecCli::handle_command(int argc, char *argv[]) {
      i++;
   }
 
-  char rootfs[1024];
   char logfile[1024];
   pty_exe_opt_t ptyopt = {};
-  sprintf(rootfs, "%s/aufs/mnt/%s", kucker_repo, container.id.c_str());
-  ptyopt.rootfs = rootfs;
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
   if(mopt.detach) {

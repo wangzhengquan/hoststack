@@ -34,30 +34,30 @@ int main(int argc, char *argv[])
   }
  
   if (strcmp(target, "container") == 0){
-    ContainerCli::handle_command(argc - 1, argv + 1);
+    ContainerCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(target, "run") == 0)
   {
-    ContainerRunCli::handle_command(argc - 1, argv + 1);
+    ContainerRunCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(target, "stop") == 0)
   {
-    ContainerStopCli::handle_command(argc - 1, argv + 1);
+    ContainerStopCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(target, "start") == 0)
   {
-    ContainerStartCli::handle_command(argc - 1, argv + 1);
+    ContainerStartCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(target, "ps") == 0)
   {
-    ContainerLsCli::handle_command(argc - 1, argv + 1);
+    ContainerLsCli::handleCommand(argc - 1, argv + 1);
   }
   else if (strcmp(target, "attach") == 0) {
-    ContainerAttachCli::handle_command(argc - 1, argv + 1);
+    ContainerAttachCli::handleCommand(argc - 1, argv + 1);
   } 
   else if (strcmp(target, "exec") == 0)
   {
-    ContainerExecCli::handle_command(argc - 1, argv + 1);
+    ContainerExecCli::handleCommand(argc - 1, argv + 1);
   }
   else if ( strcmp(target, "--help") == 0)
   {

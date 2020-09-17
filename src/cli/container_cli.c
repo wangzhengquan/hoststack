@@ -54,6 +54,9 @@ printf("action=%s\n", action);
   else if (strcmp(action, "attach") == 0) {
     ContainerAttachCli::handleCommand(argc - 1, argv + 1);
   } 
+  else if (strcmp(action, "rm") == 0) {
+    ContainerRMCli::handleCommand(argc - 1, argv + 1);
+  } 
   else if (strcmp(action, "--help") == 0)
   {
     usage();

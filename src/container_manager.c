@@ -200,38 +200,13 @@ std::vector<Container>* ContainerManager::list() {
 
 
 
-Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
-  Container info = {};
-  info.id = jsonData["id"].asString();
-  info.name = jsonData["name"].asString();
-  info.pid = jsonData["pid"].asInt();
-  info.command = jsonData["command"].asString();
-  info.volume = jsonData["volume"].asString();
-  info.create_time = (time_t)jsonData["create_time"].asInt();
-  info.status =  (container_status_t)jsonData["status"].asInt();
-  return info;
-}
-
-Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, const Container &info) {
-  jsonData["id"] = info.id;
-  jsonData["name"] = info.name;
-  jsonData["pid"] = info.pid;
-  jsonData["command"] = info.command;
-  jsonData["create_time"] = (int)info.create_time;
-  jsonData["start_time"] = (int)info.start_time;
-  jsonData["stop_time"] = (int)info.stop_time;
-  jsonData["status"] = info.status;
-  jsonData["volume"] = info.volume;
-  return jsonData;
-}
-
 
 
 void ContainerManager::create_container(const char *container_id)
 {
   const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
-  char line[8192];
+  char line[1024];
 
   // sethostname("container",10);
   // bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
@@ -277,6 +252,36 @@ void ContainerManager::create_container(const char *container_id)
     perror(line);
   }
 
+}
+
+
+void ContainerManager::remove_container(const char *containerName) {
+  Container info = ContainerManager::get_container_by_id_or_name(containerName);
+  const char *container_id = info.id.c_str();
+  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
+  const char *unionfs = PathAssembler::getUnionFS(NULL);
+  char line[1024];
+  sprintf(line, "sudo rm  -rf %s/containers/%s", unionfs, container_id);
+  // printf("%s\n", line);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
+
+  sprintf(line, "sudo rm -rf %s/diff/%s", unionfs, container_id);
+  // printf("%s\n", line);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
+
+  sprintf(line, "sudo rm -rf %s", rootfs);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
+  // remove member of json
+  
 }
 
 
@@ -486,4 +491,32 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
 
   free(dest);
 
+}
+
+
+
+
+Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
+  Container info = {};
+  info.id = jsonData["id"].asString();
+  info.name = jsonData["name"].asString();
+  info.pid = jsonData["pid"].asInt();
+  info.command = jsonData["command"].asString();
+  info.volume = jsonData["volume"].asString();
+  info.create_time = (time_t)jsonData["create_time"].asInt();
+  info.status =  (container_status_t)jsonData["status"].asInt();
+  return info;
+}
+
+Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, const Container &info) {
+  jsonData["id"] = info.id;
+  jsonData["name"] = info.name;
+  jsonData["pid"] = info.pid;
+  jsonData["command"] = info.command;
+  jsonData["create_time"] = (int)info.create_time;
+  jsonData["start_time"] = (int)info.start_time;
+  jsonData["stop_time"] = (int)info.stop_time;
+  jsonData["status"] = info.status;
+  jsonData["volume"] = info.volume;
+  return jsonData;
 }

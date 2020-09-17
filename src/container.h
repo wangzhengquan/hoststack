@@ -26,6 +26,8 @@ private:
 	char * formatTime(const time_t time, char *_time_str);
 public:
 	static void showTitle();
+
+	std::string & getName();
 	void show();
 
 	friend std::ostream & operator<<(std::ostream & out, Container & info);

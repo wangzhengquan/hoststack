@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
   {
     ContainerExecCli::handleCommand(argc - 1, argv + 1);
   }
+  else if (strcmp(target, "rm") == 0) {
+    ContainerRMCli::handleCommand(argc - 1, argv + 1);
+  } 
   else if ( strcmp(target, "--help") == 0)
   {
     usage();

@@ -60,3 +60,7 @@ std::string Container::getStatusName() {
 	}
 	return status_name;
 }
+
+std::string & Container::getName() {
+	return name.empty() ? id : name;
+}

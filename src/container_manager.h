@@ -29,6 +29,7 @@ public:
 	static std::vector<Container>* list() ;
 
 	static void create_container(const char *container_id);
+	static void remove_container(const char *containerName);
 
 	static void mount_container(const std::string & container_id);
 

@@ -59,7 +59,6 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
     switch (c)
     {
     case 0:
-      // printf("ffffffff\n");
       /* If this option set a flag, do nothing else now. */
       if (long_options[option_index].flag != 0)
         break;
@@ -70,21 +69,17 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
       break;
 
     case 'i':
-      // puts ("==interactive \n");
       mopt.interactive = true;
       break;
     case 'd':
-      // puts ("==interactive \n");
       mopt.detach = true;
       break;
 
     case 'v':
-      // printf ("==volume with value `%s'\n", optarg);
       mopt.volume = (optarg);
       break;
 
     case 'n':
-       // printf ("==name with value `%s'\n", optarg);
       mopt.name = (optarg);
       break;
 
@@ -129,7 +124,9 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
     return;
   }
   if(mopt.detach) {
-    daemon(0, 1);
+    if(daemon(0, 1) != 0) {
+      err_exit(errno, "conatiner_exec_cli >> daemon");
+    }
   }
   while(namespaces[i] != NULL) {
      sprintf(nspath, "/proc/%d/ns/%s",  container.pid, namespaces[i]);
@@ -148,8 +145,6 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   ptyopt.containerId = container.id.c_str();
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
-
-
 
  
   pty_exec(ptyopt);

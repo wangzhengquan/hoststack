@@ -158,7 +158,7 @@ int pty_exec(pty_exe_opt_t arg)
     FD_SET(masterFd, &ready_set);
 
     if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
-      err_msg(errno, "pty_exec select EINTR");
+      err_msg(errno, "pty_exec select");
       if(errno == EINTR) {
         continue;
       } 
@@ -445,7 +445,6 @@ int pty_client(pty_exe_opt_t arg) {
   addr.sun_family = AF_UNIX ;
   snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
   
-
   if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
     err_exit(errno, "pty_client connect");
   }

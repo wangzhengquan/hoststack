@@ -20,8 +20,8 @@ static void exitHandler(void)
   ContainerManager::change_status_to_stop(containerId);
 }
 
-static void sigStermHandler(int sig) {
-  LoggerFactory::getDebugLogger().debug("sigStermHandler %s", strsignal(sig));
+static void sigTermHandler(int sig) {
+  LoggerFactory::getDebugLogger().debug("sigTermHandler %s", strsignal(sig));
   exit(0);
 }
  
@@ -41,7 +41,7 @@ static int container_run_main(void* arg)
 
   // signal for "kill 容器进程"
   containerId = startOpt.containerId;
-  Signal(SIGTERM, sigStermHandler);
+  Signal(SIGTERM, sigTermHandler);
   // Signal(SIGHUP, sigHupHandler);
   // Signal(SIGQUIT, sigQuitHandler);
 

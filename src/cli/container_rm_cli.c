@@ -114,7 +114,7 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerName
 		if(mopt.force) {
 		 ContainerService::stop(containerName);
 		} else {
-			err_msg(0, "Container %s is running, can't be removed. Use option '-f' to force remove container", info.getName());
+			err_msg(0, "Container %s is running, can't be removed. Use option '-f' to force remove container", info.getName().c_str());
 			return;
 		}
 	}

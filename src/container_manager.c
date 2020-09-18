@@ -186,9 +186,7 @@ std::vector<Container>* ContainerManager::list() {
 
   if(dirty) {
     auto str = root.toStyledString();
-    // printf("=======update===== %s\n", kucker_data_file);
-    std::cout << str << std::endl;
-    // printf("============\n");
+    // std::cout << str << std::endl;
     std::ofstream fout;
     fout.open(kucker_data_file);
     fout << str;
@@ -207,16 +205,19 @@ void ContainerManager::create_container(const char *container_id)
   const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
-
-  // sethostname("container",10);
-  // bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
-
-
-  sprintf(line, "test -d %s || sudo mkdir -p %s", rootfs, rootfs);
+  
+  sprintf(line, "test -d %s/containers || sudo mkdir -p %s/containers", kucker_repo, kucker_repo);
   if (system(line) != 0)
   {
     perror(line);
   }
+
+  sprintf(line, "test -d %s || sudo mkdir -p %s", unionfs, unionfs);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
+
   sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
   if (system(line) != 0)
   {
@@ -227,24 +228,31 @@ void ContainerManager::create_container(const char *container_id)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/containers || sudo mkdir -p %s/containers", unionfs, unionfs);
+
+  //========
+  sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);
   if (system(line) != 0)
   {
     perror(line);
   }
 
-  sprintf(line, "test -d %s/containers/%s || sudo mkdir -p %s/containers/%s", unionfs, container_id, unionfs, container_id);
+  sprintf(line, "sudo mkdir -p %s/containers/%s", unionfs, container_id);
   printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
-  sprintf(line, "test -d %s/diff/%s || sudo mkdir -p %s/diff/%s", unionfs, container_id, unionfs, container_id);
+  sprintf(line, "sudo mkdir -p %s/diff/%s", unionfs, container_id);
   if (system(line) != 0)
   {
     perror(line);
   }
 
+  sprintf(line, "test -d %s || sudo mkdir -p %s", rootfs, rootfs);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
 
   sprintf(line, "cd %s && sudo mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", rootfs);
   if (system(line) != 0)
@@ -261,12 +269,22 @@ void ContainerManager::remove_container(const char *containerName) {
   const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
+
+  sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
+  // printf("%s\n", line);
+  if (system(line) != 0)
+  {
+    perror(line);
+  }
+
   sprintf(line, "sudo rm  -rf %s/containers/%s", unionfs, container_id);
   // printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
+
+
 
   sprintf(line, "sudo rm -rf %s/diff/%s", unionfs, container_id);
   // printf("%s\n", line);
@@ -275,12 +293,45 @@ void ContainerManager::remove_container(const char *containerName) {
     perror(line);
   }
 
+
+
   sprintf(line, "sudo rm -rf %s", rootfs);
   if (system(line) != 0)
   {
     perror(line);
   }
   // remove member of json
+
+  Json::Value oldRoot;
+  Json::Value newRoot;
+  
+  Json::Reader jsonreader;
+  std::ifstream fin(kucker_data_file);
+  if(!fin) {
+    return;
+  }
+
+  if(!jsonreader.parse(fin, oldRoot)) {
+    return;
+  }
+
+  int size = oldRoot.size();
+  if(size == 0) {
+    return;
+  }
+
+  for(int i = 0; (i < size) && (oldRoot[i]["id"].asString() != info.id); i++) {
+    newRoot.append(oldRoot[i]);
+  }
+
+  auto str = newRoot.toStyledString();
+  // printf("=======update===== %s\n", kucker_data_file);
+  std::cout << str << std::endl;
+  // printf("============\n");
+  std::ofstream fout;
+  fout.open(kucker_data_file);
+  fout << str;
+  fout.close();
   
 }
 
@@ -322,7 +373,7 @@ void ContainerManager::umount_container(const std::string & container_id) {
     mnt_dir = &mnt_dir_arr[i];
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
     printf("umount %s\n", line);
-    if(umount(line) == -1) {
+    if(umount2(line, MNT_DETACH) == -1) {
       err_msg(errno, "umount_container umount %s", line);
     }
     
@@ -440,7 +491,7 @@ void ContainerManager::umount_volume (const std::string & container_id) {
         err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
       }
       char *target = path_join(rootfs, dest, NULL );
-printf("====umount_volume %s\n", target);
+// printf("====umount_volume %s\n", target);
       if(umount(target) == -1) {
         err_msg(errno, "umount_volume umount:");
       }

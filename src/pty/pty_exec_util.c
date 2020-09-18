@@ -248,7 +248,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   listenfd = socket( AF_UNIX , SOCK_STREAM , 0 ) ;
   if( listenfd == -1 )
   {
-    err_exit( errno, "*** ERROR : socket failed , errno[%d]\n"  );
+    err_exit( errno, "pty_proxy_exec >> socket"  );
     return -1;
   }
   
@@ -264,13 +264,13 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   }
   if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
   {
-    err_exit(errno, "*** ERROR : bind failed , errno\n"  );
+    err_exit(errno, "pty_proxy_exec >> bind %s", listen_addr.sun_path );
     return -1;
   }
   
-  if( listen( listenfd , 1024 ) == -1 )
+  if( listen(listenfd , 1024 ) == -1 )
   {
-    err_exit(errno, "*** ERROR : listen failed , errno\n"  );
+    err_exit(errno, "pty_proxy_exec >> listen failed");
     return -1;
   }
 

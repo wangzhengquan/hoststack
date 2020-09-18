@@ -237,7 +237,7 @@ void ContainerManager::create_container(const char *container_id)
   }
 
   sprintf(line, "sudo mkdir -p %s/containers/%s", unionfs, container_id);
-  printf("%s\n", line);
+  // printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
@@ -346,7 +346,6 @@ static  mnt_dir_t mnt_dir_arr[]= {
   {"/sbin", "/sbin", "aufs"},
   {"/usr", "/usr", "aufs"}, 
   {"/var", "/var", "aufs"},
-  //{"/dev", "/dev", "aufs"},
   {"proc", "/proc", "proc"}, 
   {"sysfs", "/sys", "sysfs"}, 
   {"udev", "/dev", "devtmpfs"},
@@ -372,9 +371,9 @@ void ContainerManager::umount_container(const std::string & container_id) {
   while ( i-- > 0) {
     mnt_dir = &mnt_dir_arr[i];
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
-    printf("umount %s\n", line);
+// printf("umount %s\n", line);
     if(umount2(line, MNT_DETACH) == -1) {
-      err_msg(errno, "umount_container umount %s", line);
+      err_msg(errno, "umount_container : %s", line);
     }
     
   }

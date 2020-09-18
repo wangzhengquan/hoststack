@@ -37,7 +37,7 @@ static int container_run_main(void* arg)
 {
 
   //printf("in container...\n ");
- 
+
   container_start_option_t startOpt = *((container_start_option_t *)arg);
 
   // signal for "kill 容器进程"
@@ -118,8 +118,9 @@ void ContainerService::stop(const std::string & name) {
     return;
   }
 
-  sleep(5);
+  sleep(3);
   if(kill(info.pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
+  sleep(1);
 }

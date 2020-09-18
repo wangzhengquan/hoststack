@@ -119,6 +119,6 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerName
 		}
 	}
 
-	ContainerManager::umount_container(info.id);
+	//ContainerManager::umount_container(info.id);
 	ContainerManager::remove_container(info.id.c_str());
 }

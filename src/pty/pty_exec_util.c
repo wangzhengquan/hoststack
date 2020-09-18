@@ -95,8 +95,8 @@ int pty_exec(pty_exe_opt_t arg)
   const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   garg = arg;
 
-  if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
-  if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
+  // if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
+  // if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
   /* Retrieve the attributes of terminal on which we are started */
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
     err_msg(errno, "tcgetattr");

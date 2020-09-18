@@ -118,7 +118,7 @@ Container ContainerManager::get_container_by(const char * name,const std::string
   }
 
   for(int i = 0; i < size; i++) {
-    if(root[i][name] == value) {
+    if(root[i][name].asString() == value) {
       if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
         sprintf(line, "/proc/%d", root[i]["pid"].asInt());
         if(access(line, F_OK) == -1) {
@@ -160,7 +160,7 @@ Container ContainerManager::get_container_by_id_or_name(const std::string& value
   }
 
   for(int i = 0; i < size; i++) {
-    if(root[i]["name"] == value || root[i]["id"] == value) {
+    if(root[i]["name"].asString() == value || root[i]["id"].asString() == value) {
       if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
         sprintf(line, "/proc/%d", root[i]["pid"].asInt());
         if(access(line, F_OK) == -1) {
@@ -302,35 +302,29 @@ void ContainerManager::remove_container(const char *containerName) {
   char line[1024];
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
-  // printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", unionfs, container_id);
-  // printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
-
-
 
   sprintf(line, "sudo rm -rf %s/diff/%s", unionfs, container_id);
-  // printf("%s\n", line);
   if (system(line) != 0)
   {
     perror(line);
   }
-
-
 
   sprintf(line, "sudo rm -rf %s", rootfs);
   if (system(line) != 0)
   {
     perror(line);
   }
+
   // remove member of json
 
   Json::Value oldRoot;
@@ -351,14 +345,13 @@ void ContainerManager::remove_container(const char *containerName) {
     return;
   }
 
-  for(int i = 0; (i < size) && (oldRoot[i]["id"].asString() != info.id); i++) {
-    newRoot.append(oldRoot[i]);
+  for(int i = 0; i < size; i++) {
+    if(oldRoot[i]["id"].asString() != info.id)
+      newRoot.append(oldRoot[i]);
   }
 
   auto str = newRoot.toStyledString();
-  // printf("=======update===== %s\n", kucker_data_file);
-  std::cout << str << std::endl;
-  // printf("============\n");
+  // std::cout << str << std::endl;
   std::ofstream fout;
   fout.open(kucker_data_file);
   fout << str;
@@ -390,7 +383,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
 void ContainerManager::umount_container(const std::string & container_id) {
   Container container = ContainerManager::get_container_by_id_or_name(container_id);
   const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
-  char line[4096];
+  char line[1024];
 
   size_t i = 0;
  
@@ -401,8 +394,11 @@ void ContainerManager::umount_container(const std::string & container_id) {
   mnt_dir_t *mnt_dir ;
   while ( i-- > 0) {
     mnt_dir = &mnt_dir_arr[i];
+    // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
+    // if (system(line) != 0) {
+    //   perror(line);
+    // }
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
-// printf("umount %s\n", line);
     if(umount2(line, MNT_DETACH) == -1) {
       err_msg(errno, "umount_container : %s", line);
     }

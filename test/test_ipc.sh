@@ -1,0 +1,2 @@
+ipcmk -Q
+ipcs -q

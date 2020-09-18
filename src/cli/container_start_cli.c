@@ -15,7 +15,7 @@
 
 struct container_start_arg_t
 {
-  bool interactive;
+  bool detach;
   char * containerName; // container identify
   // char **container_arr;
   // int container_arr_len;
@@ -39,7 +39,7 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
   int c;
 
   container_start_arg_t mopt = {};
-  mopt.interactive = false;
+  mopt.detach = false;
 
   char **container_arr;
   int container_arr_len;
@@ -49,7 +49,7 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
   static struct option long_options[] =
   {
     /* These options set a flag. */
-    {"interactive", no_argument,      0, 'i'},
+    {"detach", no_argument,      0, 'd'},
     {0, 0, 0, 0}
   };
   /* getopt_long stores the option index here. */
@@ -58,7 +58,7 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
   {
 
 
-    c = getopt_long (argc, argv, "+i", long_options, &option_index);
+    c = getopt_long (argc, argv, "+d", long_options, &option_index);
 
     /* Detect the end of the options. */
     if (c == -1)
@@ -67,19 +67,16 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
     switch (c)
     {
     case 0:
-      // printf("ffffffff\n");
       /* If this option set a flag, do nothing else now. */
       if (long_options[option_index].flag != 0)
         break;
       printf ("option %s", long_options[option_index].name);
       if (optarg)
         printf (" with arg %s", optarg);
-      printf ("\n");
       break;
 
-    case 'i':
-      // puts ("==interactive \n");
-      mopt.interactive = true;
+    case 'd':
+      mopt.detach = true;
 
       break;
     case '?':
@@ -90,7 +87,6 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
       break;
 
     default:
-      //printf ("==default optopt=%c, %s, `%s'\n",optopt, optarg,  argv[optind]);
       break;
       //abort ();
     }
@@ -132,11 +128,19 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
 
   
   Container info = ContainerManager::get_container_by_id_or_name(containerName);
+  if(info.id.empty()) {
+    fprintf(stderr, "No container named %s \n", containerName);
+    return;
+  }
+  if(info.status == CONTAINER_RUNNING) {
+    fprintf(stderr, "It has been started already\n");
+    return;
+  }
   container_start_option_t startOpt = {};
   startOpt.containerId = info.id.c_str();
   printf("info.command=%s\n", info.command.c_str());
   startOpt.cmd = str_split(info.command.c_str(), BLANK, 0);
-  startOpt.detach = !mopt.interactive;
+  startOpt.detach = mopt.detach;
   if(!info.volume.empty()) {
     startOpt.volume = info.volume.c_str();
   }

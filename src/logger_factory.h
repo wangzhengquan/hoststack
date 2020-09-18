@@ -20,6 +20,11 @@ public:
 		static Logger logger(config);
 		return logger;
 	}
+
+	static void logPgrp(const char *id) {
+		printf("%s: pid=%d, pgrp=%d, foreground process group=%d, getsid=%d, stdin is a terminal=%d\n",
+   		id, getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));
+	}
 };
 
 #endif

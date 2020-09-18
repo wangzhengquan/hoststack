@@ -9,13 +9,9 @@
 #include "path_assembler.h"
 
 struct container_exec_arg_t {
-  bool interactive;
   bool detach;
-  char *volume;
-  char *name;
   char ** cmd_arr;
   int cmd_arr_len;
-  char *container_id;
 } ;
 
 
@@ -23,24 +19,25 @@ void exec_cmd(pty_exe_opt_t arg);
 
 void ContainerExecCli::usage()
 {
-  printf("usage: param error\n");
+  printf("usage: ContainerExecCli param error\n");
 }
 
 
 void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   if (argc < 3) {
+    printf("Miss command argment\n");
     usage();
     return;
   }
   
   char *container_id;
   container_exec_arg_t mopt = {};
+  mopt.detach = false;
   opterr = 0;
 
   static struct option long_options[] =
   {
     /* These options set a flag. */
-    {"interactive", no_argument,      0, 'i'},
     {"detach", no_argument,      0, 'd'},
     {0, 0, 0, 0}
   };
@@ -50,7 +47,7 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   while (1)
   {
     
-    c = getopt_long (argc, argv, "+idv:n:", long_options, &option_index);
+    c = getopt_long (argc, argv, "+d", long_options, &option_index);
 
     /* Detect the end of the options. */
     if (c == -1)
@@ -65,24 +62,10 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
       printf ("option %s", long_options[option_index].name);
       if (optarg)
         printf (" with arg %s", optarg);
-      printf ("\n");
-      break;
-
-    case 'i':
-      mopt.interactive = true;
       break;
     case 'd':
       mopt.detach = true;
       break;
-
-    case 'v':
-      mopt.volume = (optarg);
-      break;
-
-    case 'n':
-      mopt.name = (optarg);
-      break;
-
     case '?':
       usage();
       exit(1);
@@ -111,6 +94,10 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
     // 	optind++;
     // }
      
+  } else {
+     printf("Miss command argment\n");
+     usage();
+     return;
   }
 
 
@@ -139,8 +126,6 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
      close(fd);
      i++;
   }
-
-  
   pty_exe_opt_t ptyopt = {};
   ptyopt.containerId = container.id.c_str();
   ptyopt.cmd = mopt.cmd_arr;

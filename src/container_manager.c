@@ -100,6 +100,7 @@ Container ContainerManager::get_container_by_name(const std::string& value) {
 
 Container ContainerManager::get_container_by(const char * name,const std::string& value) {
   Json::Value root;
+  char line[1024];
   
   Json::Reader jsonreader;
   std::ifstream fin(kucker_data_file);
@@ -118,6 +119,20 @@ Container ContainerManager::get_container_by(const char * name,const std::string
 
   for(int i = 0; i < size; i++) {
     if(root[i][name] == value) {
+      if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+        sprintf(line, "/proc/%d", root[i]["pid"].asInt());
+        if(access(line, F_OK) == -1) {
+          root[i]["status"] = CONTAINER_STOPED;
+          root[i]["stop_time"] = (int)time(0);
+          root[i]["pid"] = 0;
+          auto str = root.toStyledString();
+          // std::cout << str << std::endl;
+          std::ofstream fout;
+          fout.open(kucker_data_file);
+          fout << str;
+          fout.close();
+        }
+      }
       return pack_container_info(root[i]);
     }
   }
@@ -126,6 +141,8 @@ Container ContainerManager::get_container_by(const char * name,const std::string
 
 Container ContainerManager::get_container_by_id_or_name(const std::string& value) {
   Json::Value root;
+  char line[1024];
+  
   
   Json::Reader jsonreader;
   std::ifstream fin(kucker_data_file);
@@ -144,6 +161,20 @@ Container ContainerManager::get_container_by_id_or_name(const std::string& value
 
   for(int i = 0; i < size; i++) {
     if(root[i]["name"] == value || root[i]["id"] == value) {
+      if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+        sprintf(line, "/proc/%d", root[i]["pid"].asInt());
+        if(access(line, F_OK) == -1) {
+          root[i]["status"] = CONTAINER_STOPED;
+          root[i]["stop_time"] = (int)time(0);
+          root[i]["pid"] = 0;
+          auto str = root.toStyledString();
+          // std::cout << str << std::endl;
+          std::ofstream fout;
+          fout.open(kucker_data_file);
+          fout << str;
+          fout.close();
+        }
+      }
       return pack_container_info(root[i]);
     }
   }

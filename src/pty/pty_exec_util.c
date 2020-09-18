@@ -94,8 +94,10 @@ int pty_exec(pty_exe_opt_t arg)
   pid_t childPid;
   const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   garg = arg;
-  /* Retrieve the attributes of terminal on which we are started */
 
+  if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
+  if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
+  /* Retrieve the attributes of terminal on which we are started */
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
     err_msg(errno, "tcgetattr");
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
@@ -278,9 +280,10 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   // 通知client
   SemUtil::set(arg.synchSem, 0);
 
-  // sigset_t selectBlockSet;
-  // sigemptyset(&selectBlockSet);
-  // sigaddset(&selectBlockSet, SIGTERM);
+  // sleep(2);
+  // printf("2 Container pid=%d, pgrp=%d, tcgetpgrp=%d, getsid=%d, isatty=%d\n",
+  //  getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));
+
   while (1) {
     /* Wait for listening/connected descriptor(s) to become ready */
     pool.ready_set = pool.read_set;

@@ -36,7 +36,8 @@ static void sigTermHandler(int sig) {
 static int container_run_main(void* arg)
 {
 
-  printf("in container...\n ");
+  //printf("in container...\n ");
+ 
   container_start_option_t startOpt = *((container_start_option_t *)arg);
 
   // signal for "kill 容器进程"
@@ -74,6 +75,8 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
 
+  printf("Parent pid=%d, pgrp=%d, tcgetpgrp=%d, getsid=%d, isatty=%d\n",
+   getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));
  
   // if (info.id.empty() || info.status == CONTAINER_RUNNING)
   //   continue;

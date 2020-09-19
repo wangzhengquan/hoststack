@@ -95,18 +95,13 @@ int pty_exec(pty_exe_opt_t arg)
   const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
   garg = arg;
 
-  // if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
-  // if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
+  if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
+  if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
   /* Retrieve the attributes of terminal on which we are started */
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
     err_msg(errno, "tcgetattr");
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
     err_msg(errno, "ioctl-TIOCGWINSZ");
-
-  // if (setpgid(0, 0) == -1) {
-  //   err_msg(errno, "pty_exec:setsid");
-  //   LoggerFactory::getDebugLogger().debug("error pty_exec_util.setsid");
-  // }
 
   /* Create a child process, with parent and child connected via a
      pty pair. The child is connected to the pty slave and its terminal
@@ -233,7 +228,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     }
 
     execvp(arg.cmd[0], arg.cmd);
-    err_msg(errno, "execvp: %s\n", arg.cmd[0]);
+    err_msg(errno, "pty_proxy_exec execvp : %s", arg.cmd[0]);
   }
   /*==============exec end==============*/
 

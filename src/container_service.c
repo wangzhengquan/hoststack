@@ -122,5 +122,5 @@ void ContainerService::stop(const std::string & name) {
   if(kill(info.pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
-  sleep(1);
+  //sleep(1);
 }

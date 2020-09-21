@@ -32,14 +32,15 @@ public:
 	static void remove_container(const char *containerName);
 
 	static void mount_container(const std::string & container_id);
-
   static void umount_container(const std::string & container_id);
 
-  static void umount_volume (const std::string & container_id) ;
+  static void umount_volume_list (const char *container_id) ;
+  static void umount_volume (const char * container_id, const char* _volume) ;
 
 	static char* gen_id(char *uuidstr);
 
 	static void mount_volume (const char * container_id, const char *volume) ;
+	static void mount_volume_list (const char *container_id, std::set<std::string> &volume_list);
 	static void bind_mount(const char *container_id, const char *src, const char *_dest);
 
 };

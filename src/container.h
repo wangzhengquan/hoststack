@@ -17,7 +17,7 @@ public:
 	time_t start_time; //启动时间
 	time_t stop_time; //停止时间
 	container_status_t status; //运行状态
-	std::string volume;
+	std::set<std::string> volume_list;
 
 private:
 	static const char * TITLE_FORMAT;

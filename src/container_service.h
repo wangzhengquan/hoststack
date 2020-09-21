@@ -10,7 +10,9 @@ struct container_start_option_t
   const char * containerId;
   char **cmd;
   bool detach;
-  const char *volume;
+  std::set<std::string> *volume_list;
+  // const char **volume_list;
+  // int volume_list_size;
 } ;
 
 class ContainerService {

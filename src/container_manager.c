@@ -356,33 +356,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
   {}
 };
 
-void ContainerManager::umount_container(const std::string & container_id) {
-  Container container = ContainerManager::get_container_by_id_or_name(container_id);
-  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
-  char line[1024];
 
-  size_t i = 0;
- 
-  while( mnt_dir_arr[i].src != NULL ) {
-    i++;
-  }
-
-  mnt_dir_t *mnt_dir ;
-  while ( i-- > 0) {
-    mnt_dir = &mnt_dir_arr[i];
-    // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
-    // if (system(line) != 0) {
-    //   perror(line);
-    // }
-    sprintf(line, "%s%s", rootfs, mnt_dir->target);
-    if(umount2(line, MNT_DETACH) == -1) {
-      LoggerFactory::getRunLogger().error(errno, "umount_container : %s", line);
-    }
-    
-  }
-
-  umount_volume(container_id);
-}
 
 void ContainerManager::mount_container(const std::string & container_id)
 {
@@ -434,6 +408,16 @@ char* ContainerManager::gen_id(char *uuidstr)
 }
 
 
+
+void ContainerManager::mount_volume_list (const char *container_id, std::set<std::string> &volume_list) {
+  if(volume_list.size() == 0) {
+    return;
+  }
+  for(std::string v : volume_list) {
+     mount_volume(container_id, v.c_str());
+  }
+}
+
 void ContainerManager::mount_volume (const char *container_id, const char *_volume) {
   char *src = NULL, *dest = NULL;
   char *volume = strdup(_volume);
@@ -468,29 +452,67 @@ void ContainerManager::mount_volume (const char *container_id, const char *_volu
   }
 }
 
+void ContainerManager::umount_container(const std::string & container_id) {
+  Container container = ContainerManager::get_container_by_id_or_name(container_id);
+  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
+  char line[1024];
 
-void ContainerManager::umount_volume (const std::string & container_id) {
-  std::string _volume = get_container_by_id_or_name(container_id).volume;
-  if(_volume.empty()) {
+  size_t i = 0;
+ 
+  while( mnt_dir_arr[i].src != NULL ) {
+    i++;
+  }
+
+  mnt_dir_t *mnt_dir ;
+  while ( i-- > 0) {
+    mnt_dir = &mnt_dir_arr[i];
+    // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
+    // if (system(line) != 0) {
+    //   perror(line);
+    // }
+    sprintf(line, "%s%s", rootfs, mnt_dir->target);
+    if(umount2(line, MNT_DETACH) == -1) {
+      LoggerFactory::getRunLogger().error(errno, "umount_container : %s", line);
+    }
+    
+  }
+
+  umount_volume_list(container_id.c_str());
+}
+
+
+void ContainerManager::umount_volume_list (const char *container_id) {
+  const std::set<std::string> &volume_list = get_container_by_id_or_name(container_id).volume_list;
+  if(volume_list.size() == 0) {
     return;
   }
-  char *volume = strdup(_volume.c_str());
+  for(std::string v : volume_list) {
+    umount_volume(container_id, v.c_str());
+  }
+}
+
+void ContainerManager::umount_volume (const char * container_id, const char* _volume) {
+ 
+  if(_volume == NULL) {
+    return;
+  }
+  char *volume = strdup(_volume);
   char *src = NULL, *dest = NULL;
-  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
+  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
 
   src = strtok(volume, ":");
   if (src != NULL && strlen(src) > 0)
   {
     if (*src != '/')
     {
-      err_msg(0, "invalid mount path: '%s' mount path must be absolute.", src);
+      err_msg(0, "invalid umount path: '%s' umount path must be absolute.", src);
     }
     dest = strtok(NULL, ":");
     if (dest != NULL && strlen(dest) > 0)
     {
       if (*dest != '/')
       {
-        err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
+        err_exit(0, "invalid umount path: '%s' umount path must be absolute.", dest);
       }
       char *target = path_join(rootfs, dest, NULL );
 // printf("====umount_volume %s\n", target);
@@ -531,7 +553,7 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
   {
     perror(line);
   }
-  printf("src=%s\n dest=%s\n", src, dest);
+  // LoggerFactory::getRunLogger().debug("src=%s\n dest=%s\n", src, dest);
   // sprintf(line, "sudo mount -t aufs -o dirs=%s=rw none %s", src, dest);
   // if (system(line) != 0)
   // {
@@ -550,12 +572,21 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
 
 
 Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
+  int i = 0;
   Container info = {};
   info.id = jsonData["id"].asString();
   info.name = jsonData["name"].asString();
   info.pid = jsonData["pid"].asInt();
   info.command = jsonData["command"].asString();
-  info.volume = jsonData["volume"].asString();
+
+  Json::Value volume = jsonData["volume"];
+  int vsize = volume.size();
+  if(vsize > 0) {
+    for(i = 0; i < vsize; i++) {
+      info.volume_list.insert(volume[i].asString());
+    }
+  }
+  // info.volume = jsonData["volume"].asString();
   info.create_time = (time_t)jsonData["create_time"].asInt();
   info.status =  (container_status_t)jsonData["status"].asInt();
   return info;
@@ -570,6 +601,12 @@ Json::Value & ContainerManager::de_pack_container_info(Json::Value &jsonData, co
   jsonData["start_time"] = (int)info.start_time;
   jsonData["stop_time"] = (int)info.stop_time;
   jsonData["status"] = info.status;
-  jsonData["volume"] = info.volume;
+  Json::Value volume;
+  if(info.volume_list.size() > 0) {
+    for(std::string v: info.volume_list) {
+      volume.append(v);
+    }
+  }
+  jsonData["volume"] = volume;
   return jsonData;
 }

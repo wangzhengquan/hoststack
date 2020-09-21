@@ -149,9 +149,10 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
   printf("info.command=%s\n", info.command.c_str());
   startOpt.cmd = str_split(info.command.c_str(), BLANK, 0);
   startOpt.detach = mopt.detach;
-  if(!info.volume.empty()) {
-    startOpt.volume = info.volume.c_str();
-  }
+  startOpt.volume_list = &info.volume_list;
+  // if(!info.volume.empty()) {
+    
+  // }
   
   ContainerService::start(startOpt, [&](int pid){
     info.pid = pid;

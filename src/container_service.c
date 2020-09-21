@@ -51,9 +51,10 @@ static int container_run_main(void* arg)
 
   ContainerManager::mount_container(startOpt.containerId);
   // 容器卷
-  if (startOpt.volume != NULL )
+
+  if (startOpt.volume_list != NULL )
   {
-    ContainerManager::mount_volume(startOpt.containerId,  startOpt.volume );
+     ContainerManager::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
   }
 
 
@@ -89,7 +90,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &startOpt);
 
    
-  LoggerFactory::getRunLogger().info("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), containerPid);
+  LoggerFactory::getRunLogger().info("Container pid[%d]!\n", containerPid);
 
   startSuccess(containerPid);
   // ------save end---------
@@ -108,7 +109,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 void ContainerService::stop(const std::string & name) {
   Container info = ContainerManager::get_container_by_id_or_name(name);
   if(info.id.empty() || info.status != CONTAINER_RUNNING) {
-    err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
+    printf( "No container identify by %s, or it's not a container in running.", name.c_str());
     return;
   }
   LoggerFactory::getRunLogger().info("Stopping container=%s, pid=%d\n",  name.c_str(), info.pid);

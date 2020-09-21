@@ -12,7 +12,9 @@
 
 struct container_run_arg_t {
   bool detach;
-  char *volume;
+  std::set<std::string> volume_list;
+  // char *volume_list[16];
+  // int volume_list_size;
   char *name;
   char ** cmd_arr;
   int cmd_arr_len;
@@ -62,6 +64,7 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   mopt.detach = false;
   mopt.cmd_arr = default_cmd_arr;
   mopt.cmd_arr_len = 2;
+  // mopt.volume_list_size = 0;
 
   opterr = 0;
 
@@ -103,8 +106,7 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
       break;
 
     case 'v':
-      // printf ("==volume with value `%s'\n", optarg);
-      mopt.volume = (optarg);
+      mopt.volume_list.insert(optarg);
       break;
 
     case 'n':
@@ -122,7 +124,6 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
     default:
       //printf ("==default optopt=%c, %s, `%s'\n",optopt, optarg,  argv[optind]);
       break;
-      //abort ();
     }
   }
 
@@ -163,9 +164,11 @@ static void startContainer(container_run_arg_t mopt) {
   startOpt.containerId =  mopt.container_id;
   startOpt.cmd = mopt.cmd_arr;
   startOpt.detach = mopt.detach;
-  if(mopt.volume != NULL) {
-    startOpt.volume = mopt.volume;
-  }
+  startOpt.volume_list = &mopt.volume_list;
+  // if(mopt.volume_list != NULL) {
+    
+  //   // startOpt.volume_list_size = mopt.volume_list_size;
+  // }
   
   ContainerService::start(startOpt, [&](int pid){
     // -------save container info to json file
@@ -178,15 +181,14 @@ static void startContainer(container_run_arg_t mopt) {
     
     char *cmd_str = array_join(mopt.cmd_arr, " ");
     info.command = cmd_str;
-    // std::cout << "info.command ===" << info.command << std::endl;
     free(cmd_str);
 
     info.create_time = time(0);
     info.start_time = time(0);
-   
-    if (mopt.volume != NULL) {
-       info.volume = mopt.volume;
-    }
+    info.volume_list = mopt.volume_list;
+    // if (mopt.volume != NULL) {
+       
+    // }
     info.status = CONTAINER_RUNNING;
     ContainerManager::insert(info);
     // ------save end---------

@@ -11,14 +11,15 @@ public:
 		return logger;
 	}
 
-
-	static Logger& getDebugLogger() {
+	static Logger getContainerLogger(const char * id) {
 //ERROR ALL DEBUG INFO WARN
-		static LoggerConfig config;
+		char logFile[1024];
+		sprintf(logFile, "/data/kucker/container/%s/container.log", id);
+		LoggerConfig config;
 		config.level = Logger::DEBUG;
-		config.logFile = "debug.log";
+		config.logFile = logFile;
 		config.console = 1;
-		static Logger logger(config);
+		Logger logger(config);
 		return logger;
 	}
 
@@ -27,7 +28,7 @@ public:
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
 		config.logFile = "/data/kucker/run.log";
-		config.console = 0;
+		config.console = 1;
 		static Logger logger(config);
 		return logger;
 	}

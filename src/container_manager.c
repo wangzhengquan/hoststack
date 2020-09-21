@@ -5,6 +5,7 @@
 #include "container_manager.h"
 #include "path_assembler.h"
 #include "container.h"
+#include "logger_factory.h"
 
 struct mnt_dir_t {
   const char *src;
@@ -375,7 +376,7 @@ void ContainerManager::umount_container(const std::string & container_id) {
     // }
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
     if(umount2(line, MNT_DETACH) == -1) {
-      err_msg(errno, "umount_container : %s", line);
+      LoggerFactory::getRunLogger().error(errno, "umount_container : %s", line);
     }
     
   }
@@ -405,7 +406,7 @@ void ContainerManager::mount_container(const std::string & container_id)
       sprintf(data, "dirs=%s/diff/%s=rw:%s=ro", unionfs, container_id.c_str(), mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
-        err_msg(errno, "data=%s\n target=%s\n", data, target);
+        LoggerFactory::getRunLogger().error(errno, "data=%s\n target=%s\n", data, target);
       }
       free(target);
 
@@ -414,7 +415,7 @@ void ContainerManager::mount_container(const std::string & container_id)
       //printf("mount_container: %s\n", line);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
-        err_msg(errno, "mount_container: %s", line);
+        LoggerFactory::getRunLogger().error(errno, "mount_container: %s", line);
       }
     }
     mnt_dir = &mnt_dir_arr[i];

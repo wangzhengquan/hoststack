@@ -14,9 +14,20 @@ public:
 
 	static Logger& getDebugLogger() {
 //ERROR ALL DEBUG INFO WARN
-		LoggerConfig config;
+		static LoggerConfig config;
 		config.level = Logger::DEBUG;
 		config.logFile = "debug.log";
+		config.console = 1;
+		static Logger logger(config);
+		return logger;
+	}
+
+	static Logger& getRunLogger() {
+//ERROR ALL DEBUG INFO WARN
+		LoggerConfig config;
+		config.level = Logger::DEBUG;
+		config.logFile = "/data/kucker/run.log";
+		config.console = 0;
 		static Logger logger(config);
 		return logger;
 	}

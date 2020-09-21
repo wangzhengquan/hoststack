@@ -75,8 +75,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
 
-  printf("Parent pid=%d, pgrp=%d, tcgetpgrp=%d, getsid=%d, isatty=%d\n",
-   getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));
+   
  
   // if (info.id.empty() || info.status == CONTAINER_RUNNING)
   //   continue;
@@ -90,7 +89,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &startOpt);
 
    
-  printf("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), containerPid);
+  LoggerFactory::getRunLogger().info("Parent pid [%5d] - Container pid[%5d]!\n", getpid(), containerPid);
 
   startSuccess(containerPid);
   // ------save end---------
@@ -101,7 +100,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
     execOpt.containerId = startOpt.containerId;
     pty_client( execOpt) ;
   } else {
-    printf("containerName=%s\n", startOpt.containerId);
+    printf("%s\n", startOpt.containerId);
   }
   
 }
@@ -112,7 +111,7 @@ void ContainerService::stop(const std::string & name) {
     err_msg(0, "No container identify by %s, or it's not a container in running.", name.c_str());
     return;
   }
-  printf("Stopping container=%s, pid=%d\n",  name.c_str(), info.pid);
+  LoggerFactory::getRunLogger().info("Stopping container=%s, pid=%d\n",  name.c_str(), info.pid);
   if(kill(info.pid, SIGTERM) != 0) {
     err_msg(errno, "SIGTERM Stop container %s failed.pid = %d", name.c_str(), info.pid);
     return;

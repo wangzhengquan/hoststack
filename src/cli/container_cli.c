@@ -12,13 +12,17 @@
 // static char container_stack[STACK_SIZE];
 void ContainerCli::usage()
 {
-  fprintf(stderr, "Usage: docker container COMMAND\n\n");
+  fprintf(stderr, "Usage: kucker container COMMAND\n\n");
   fprintf(stderr, "Manage containers.\n\n");
   fprintf(stderr, "Commands:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);
   fpe("run         Run a command in a new container\n");
   fpe("stop        Stop one or more running containers\n");
   fpe("ls          List containers\n");
+  fpe("attach      Attach local standard input, output, and error streams to a running container\n");
+  fpe("start       Start one or more stopped containers\n");
+  fpe("exec        Run a command in a running container\n");
+  fpe("rm          Remove one or more containers\n");
   fpe("\n");
   fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
 }
@@ -35,7 +39,6 @@ void ContainerCli::handleCommand(int argc, char *argv[]) {
     action = argv[1];
   }
   
-printf("action=%s\n", action);
 	if (strcmp(action, "run") == 0) {
     ContainerRunCli::handleCommand(argc - 1, argv + 1);
   }

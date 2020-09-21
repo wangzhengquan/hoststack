@@ -11,7 +11,6 @@
  
 
 struct container_run_arg_t {
-  bool interactive;
   bool detach;
   char *volume;
   char *name;
@@ -27,14 +26,25 @@ static void startContainer(container_run_arg_t mopt);
 
 void ContainerRunCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage: kucker container run [OPTIONS] [COMMAND] [ARG...]\n\n");
+  fprintf(stderr, "Run a command in a new container\n\n");
+  fprintf(stderr, "Options:\n\n");
+  #define fpe(str) fprintf(stderr, "  %s", str);
+  fpe("-d, --detach                         Run container in background and print container ID\n");
+  fpe("-v, --volume list                    Bind mount a volume\n");
+  fpe("-n, --name string                    Assign a name to the container\n");
+  fpe("\n");
 }
- 
 
 
 void ContainerRunCli::handleCommand (int argc, char *argv[])
 {
   int c;
+
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
+    usage();
+    return;
+  }
 
   char *shell = getenv("SHELL");
   if (shell == NULL || *shell == '\0')
@@ -58,7 +68,6 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   static struct option long_options[] =
   {
     /* These options set a flag. */
-    {"interactive", no_argument,      0, 'i'},
     {"detach", no_argument,      0, 'd'},
     {"volume",  required_argument, 0, 'v'},
     {"name",  required_argument, 0, 'n'},
@@ -70,7 +79,7 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   {
     
 
-    c = getopt_long (argc, argv, "+idv:n:", long_options, &option_index);
+    c = getopt_long (argc, argv, "+dv:n:", long_options, &option_index);
 
     /* Detect the end of the options. */
     if (c == -1)
@@ -88,13 +97,8 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
         printf (" with arg %s", optarg);
       printf ("\n");
       break;
-
-    case 'i':
-      // puts ("==interactive \n");
-      mopt.interactive = true;
-      break;
+     
     case 'd':
-      // puts ("==interactive \n");
       mopt.detach = true;
       break;
 

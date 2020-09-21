@@ -230,37 +230,12 @@ std::vector<Container>* ContainerManager::list() {
 
 
 
-
 void ContainerManager::create_container(const char *container_id)
 {
   const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
-  
-  sprintf(line, "test -d %s/containers || sudo mkdir -p %s/containers", kucker_repo, kucker_repo);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "test -d %s || sudo mkdir -p %s", unionfs, unionfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-  sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  //========
+  //======================
   sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);
   if (system(line) != 0)
   {

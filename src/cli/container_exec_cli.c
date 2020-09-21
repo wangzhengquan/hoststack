@@ -19,18 +19,30 @@ void exec_cmd(pty_exe_opt_t arg);
 
 void ContainerExecCli::usage()
 {
-  printf("usage: ContainerExecCli param error\n");
+  fprintf(stderr, "Usage: kucker exec [OPTIONS] CONTAINER COMMAND [ARG...]\n\n");
+  fprintf(stderr, "Run a command in a running container.\n\n");
+  fprintf(stderr, "Options:\n\n");
+  #define fpe(str) fprintf(stderr, "  %s", str);
+  fpe("-d, --detach               Detached mode: run command in the background\n");
+  fpe("\n");
+  
 }
 
 
 void ContainerExecCli::handleCommand(int argc, char *argv[]) {
+  char *container_id;
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
+    usage();
+    return;
+  }
+
   if (argc < 3) {
     printf("Miss command argment\n");
     usage();
     return;
   }
+
   
-  char *container_id;
   container_exec_arg_t mopt = {};
   mopt.detach = false;
   opterr = 0;

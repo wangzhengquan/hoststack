@@ -9,13 +9,23 @@
 
 void ContainerStopCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage:	docker container stop  CONTAINER [CONTAINER...]\n\n");
+  fprintf(stderr, "Stop one or more running containers\n\n");
+  // fprintf(stderr, "Options:\n\n");
+  // #define fpe(str) fprintf(stderr, "  %s", str);
+  // fpe("-d, --detach                         Start container in background and print container ID\n");
+  // fpe("\n");
 }
 
 
 void ContainerStopCli::handleCommand(int argc, char *argv[]) {
 
   if (argc < 2) {
+    usage();
+    return;
+  }
+
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
     usage();
     return;
   }

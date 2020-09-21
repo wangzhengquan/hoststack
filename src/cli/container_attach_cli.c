@@ -10,7 +10,15 @@
 
 void ContainerAttachCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage: kucker container attach CONTAINER\n\n");
+  fprintf(stderr, "Attach local standard input, output, and error streams to a running container.\n\n");
+  // fprintf(stderr, "Commands:\n\n");
+  // #define fpe(str) fprintf(stderr, "  %s", str);
+  // fpe("run         Run a command in a new container\n");
+  // fpe("stop        Stop one or more running containers\n");
+  // fpe("ls          List containers\n");
+  // fpe("\n");
+  // fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
 }
 
 
@@ -20,6 +28,12 @@ void ContainerAttachCli::handleCommand(int argc, char *argv[]) {
     usage();
     return;
   }
+
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
+    usage();
+    return;
+  }
+
 
   char *containerName = argv[1];
   Container info = ContainerManager::get_container_by_id_or_name(containerName);

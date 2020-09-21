@@ -11,12 +11,21 @@ struct container_ls_arg_t {
 };
 void ContainerLsCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage: kucker container ls [OPTIONS]\n\n");
+  fprintf(stderr, "List containers\n\n");
+  fprintf(stderr, "Options:\n\n");
+  #define fpe(str) fprintf(stderr, "  %s", str);
+  fpe("-a, --all             Show all containers (default shows just running)\n");
+  fpe("\n");
 }
 
 
 void ContainerLsCli::handleCommand(int argc, char *argv[]) {
 	char c;
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
+    usage();
+    return;
+  }
 	container_ls_arg_t mopt = {};
   mopt.all = false;
   opterr = 0;

@@ -22,7 +22,8 @@ DEPENDENCES = $(patsubst %, %.d, $(PROGS))
 build:	 $(PROGS)
 	#cp -a $(ROOT)/etc $(DEST) 
 	sudo chown root:root $(DEST)/kucker
-	sudo chmod 766 $(DEST)/kucker
+	# sudo chmod 766 $(DEST)/kucker
+	sudo chmod u+s $(DEST)/kucker
 	
 
 # class

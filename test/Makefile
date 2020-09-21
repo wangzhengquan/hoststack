@@ -7,19 +7,20 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 #LDDIR += -L${ROOT}/lib
 
 # 开源工具包
-LDLIBS += -lusgcommon -luuid
+LDLIBS += -lusgcommon -luuid -llog4cpp
 
-INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid
+INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid -I$(ROOT)/include/log4cpp
 
 
-PROGS =	${DEST}/test_pgrp ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test \
+PROGS =	${DEST}/test_log4cpp ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test \
 	${DEST}/string_find
 
 DEPENDENCES = $(patsubst %, %.d, $(PROGS)) 
 
 #LIBCOMMON=${ROOT}/lib/libusgcommon.a
 
-all:	 $(PROGS)
+build:	 $(PROGS)
+	mv *.properties ${DEST}
 
 # class
 #$(DEST)/kucker : kucker.c

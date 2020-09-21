@@ -27,16 +27,24 @@ static void startContainer(container_start_arg_t & mopt, char * containerName);
 
 void ContainerStartCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage: kucker container start [OPTIONS] CONTAINER\n\n");
+  fprintf(stderr, "Start a stopped container\n\n");
+  fprintf(stderr, "Options:\n\n");
+  #define fpe(str) fprintf(stderr, "  %s", str);
+  fpe("-d, --detach                         Start container in background and print container ID\n");
+  fpe("\n");
 }
-
-
 
 
 void ContainerStartCli::handleCommand (int argc, char *argv[])
 {
-  printf("Parent [%5d] - start a container!\n", getpid());
+  //LoggerFactory::getRunLogger().debug("Parent [%5d] - start a container!\n", getpid());
   int c;
+
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
+    usage();
+    return;
+  }
 
   container_start_arg_t mopt = {};
   mopt.detach = false;

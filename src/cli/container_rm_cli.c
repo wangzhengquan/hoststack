@@ -18,7 +18,12 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerId) 
 
 void ContainerRMCli::usage()
 {
-  printf("usage: param error\n");
+  fprintf(stderr, "Usage:	kucker container rm [OPTIONS] CONTAINER [CONTAINER...]\n\n");
+  fprintf(stderr, "Remove one or more containers\n\n");
+  fprintf(stderr, "Options:\n\n");
+  #define fpe(str) fprintf(stderr, "  %s", str);
+  fpe("-f, --force     Force the removal of a running container (uses SIGKILL)\n");
+  fpe("\n");
 }
 
 
@@ -26,6 +31,11 @@ void ContainerRMCli::handleCommand(int argc, char *argv[]) {
 	char **container_arr;
   int container_arr_len;
   if (argc < 2) {
+    usage();
+    return;
+  }
+
+  if(argc == 2 && strcmp(argv[1], "--help") == 0) {
     usage();
     return;
   }

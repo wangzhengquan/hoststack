@@ -15,13 +15,13 @@ static const char *containerId;
 
 static void exitHandler(void)
 {
-  LoggerFactory::getRunLogger().error("exitHandler containerId=%s", containerId); 
+  // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
   ContainerManager::umount_container(containerId);
   ContainerManager::change_status_to_stop(containerId);
 }
 
 static void sigTermHandler(int sig) {
-  LoggerFactory::getRunLogger().error("sigTermHandler %s", strsignal(sig));
+  // LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
   exit(0);
 }
  

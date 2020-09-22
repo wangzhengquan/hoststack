@@ -7,7 +7,7 @@ include $(ROOT)/Make.defines.$(PLATFORM)
 #LDDIR += -L${ROOT}/lib
 
 # 开源工具包
-LDLIBS += -lusgcommon -luuid -llog4cpp
+LDLIBS += -lusgcommon -luuid
 
 INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid -I$(ROOT)/include/log4cpp
 

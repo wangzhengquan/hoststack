@@ -395,7 +395,6 @@ void ContainerManager::mount_container(const std::string & container_id)
     mnt_dir = &mnt_dir_arr[i];
     i++;
   }
-
 }
 
 

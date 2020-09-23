@@ -1,29 +1,37 @@
-image_base_dir="/data/kucker"
-test -d ${image_base_dir} || mkdir ${image_base_dir}
-test -d ${image_base_dir}/aufs || mkdir  ${image_base_dir}/aufs
-test -d ${image_base_dir}/containers || mkdir ${image_base_dir}/containers
+kucker_repo="/data/kucker"
+test -d ${kucker_repo} || mkdir -p ${kucker_repo}
+test -d ${kucker_repo}/aufs || mkdir  ${kucker_repo}/aufs
+test -d ${kucker_repo}/aufs/mnt || mkdir  ${kucker_repo}/aufs/mnt
+test -d ${kucker_repo}/aufs/diff || mkdir  ${kucker_repo}/aufs/diff
+test -d ${kucker_repo}/aufs/layers || mkdir  ${kucker_repo}/aufs/layers
+test -d ${kucker_repo}/containers || mkdir ${kucker_repo}/containers
 
-image_id="1"
+container_id="2"
 
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/var=ro none ${image_base_dir}/aufs/${image_id}/mnt/var
 exit 0
 
-test -d ${image_base_dir}/containers/${image_id} || mkdir ${image_base_dir}/containers/${image_id}
-test -d ${image_base_dir}/aufs/${image_id} || mkdir  ${image_base_dir}/aufs/${image_id}
+test -d ${kucker_repo}/containers/${container_id} || mkdir ${kucker_repo}/containers/${container_id}
+test -d ${kucker_repo}/aufs/diff/${container_id} || mkdir  ${kucker_repo}/aufs/diff/${container_id}
+test -d ${kucker_repo}/aufs/mnt/${container_id} || mkdir  ${kucker_repo}/aufs/mnt/${container_id}
 
-test -d ${image_base_dir}/aufs/${image_id}/diff || mkdir  ${image_base_dir}/aufs/${image_id}/diff
-test -d ${image_base_dir}/aufs/${image_id}/mnt || mkdir  ${image_base_dir}/aufs/${image_id}/mnt
+cd ${kucker_repo}/aufs/mnt/${container_id} && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var
 
-cd ${image_base_dir}/aufs/${image_id}/mnt && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/bin=ro none ${kucker_repo}/aufs/mnt/${container_id}/bin
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${kucker_repo}/aufs/mnt/${container_id}/etc
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/lib=ro none ${kucker_repo}/aufs/mnt/${container_id}/lib
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/lib64=ro none ${kucker_repo}/aufs/mnt/${container_id}/lib64
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/sbin=ro none ${kucker_repo}/aufs/mnt/${container_id}/sbin
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/usr=ro none ${kucker_repo}/aufs/mnt/${container_id}/usr
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/var=ro none ${kucker_repo}/aufs/mnt/${container_id}/var
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${kucker_repo}/aufs/mnt/${container_id}/etc
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/run=ro none ${kucker_repo}/aufs/mnt/${container_id}/run
+sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/opt=ro none ${kucker_repo}/aufs/mnt/${container_id}/opt
 
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/bin=ro none ${image_base_dir}/aufs/${image_id}/mnt/bin
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/etc=ro none ${image_base_dir}/aufs/${image_id}/mnt/etc
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/lib=ro none ${image_base_dir}/aufs/${image_id}/mnt/lib
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/lib64=ro none ${image_base_dir}/aufs/${image_id}/mnt/lib64
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/sbin=ro none ${image_base_dir}/aufs/${image_id}/mnt/sbin
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/usr=ro none ${image_base_dir}/aufs/${image_id}/mnt/usr
-sudo mount -t aufs -o dirs=${image_base_dir}/aufs/${image_id}/diff=rw:/var=ro none ${image_base_dir}/aufs/${image_id}/mnt/var
+
 exit 0
+
+
+
 
 # sudo mount -t aufs -o dirs=./diff2=rw none ./rootfs2
 sudo mount -t aufs -o dirs=/bin=ro none ./rootfs2/bin

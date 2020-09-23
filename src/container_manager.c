@@ -233,38 +233,39 @@ std::vector<Container>* ContainerManager::list() {
 
 void ContainerManager::create_container(const char *container_id)
 {
-  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
   //======================
   sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "sudo mkdir -p %s/containers/%s", unionfs, container_id);
-  // printf("%s\n", line);
+  
+  sprintf(line, "sudo mkdir -p %s", PathAssembler::getDiffDir(container_id, 0));
   if (system(line) != 0)
   {
-    perror(line);
-  }
-  sprintf(line, "sudo mkdir -p %s/diff/%s", unionfs, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "test -d %s || sudo mkdir -p %s", rootfs, rootfs);
+  sprintf(line, "sudo mkdir -p %s", PathAssembler::getWorkDir(container_id, 0));
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "cd %s && sudo mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", rootfs);
+  sprintf(line, "sudo mkdir -p %s", PathAssembler::getMergedDir(container_id, NULL));
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
+  }
+
+  sprintf(line, "cd %s && sudo mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", 
+    PathAssembler::getMergedDir(container_id, NULL));
+  if (system(line) != 0)
+  {
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
 }
@@ -273,34 +274,24 @@ void ContainerManager::create_container(const char *container_id)
 void ContainerManager::remove_container(const char *containerName) {
   Container info = ContainerManager::get_container_by_id_or_name(containerName);
   const char *container_id = info.id.c_str();
-  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "sudo rm  -rf %s/containers/%s", unionfs, container_id);
+  
+
+  sprintf(line, "sudo rm -rf %s", PathAssembler::getLayerDir(container_id, 0));
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
-
-  sprintf(line, "sudo rm -rf %s/diff/%s", unionfs, container_id);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
-  sprintf(line, "sudo rm -rf %s", rootfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-
+ 
   // remove member of json
 
   Json::Value oldRoot;
@@ -337,15 +328,15 @@ void ContainerManager::remove_container(const char *containerName) {
 
 
 static  mnt_dir_t mnt_dir_arr[]= { 
-  {"/bin", "/bin", "aufs"}, 
-  {"/etc", "/etc", "aufs"},
-  {"/lib", "/lib", "aufs"}, 
-  {"/lib64", "/lib64", "aufs"},  
-  {"/opt","/opt", "aufs"}, 
-  {"/run", "/run", "aufs"}, 
-  {"/sbin", "/sbin", "aufs"},
-  {"/usr", "/usr", "aufs"}, 
-  {"/var", "/var", "aufs"},
+  {"/bin", "/bin", "overlay2"}, 
+  {"/etc", "/etc", "overlay2"},
+  {"/lib", "/lib", "overlay2"}, 
+  {"/lib64", "/lib64", "overlay2"},  
+  {"/opt","/opt", "overlay2"}, 
+  {"/run", "/run", "overlay2"}, 
+  {"/sbin", "/sbin", "overlay2"},
+  {"/usr", "/usr", "overlay2"}, 
+  {"/var", "/var", "overlay2"},
   {"proc", "/proc", "proc"}, 
   {"sysfs", "/sys", "sysfs"}, 
   {"udev", "/dev", "devtmpfs"},
@@ -361,7 +352,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
 void ContainerManager::mount_container(const std::string & container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
-  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id.c_str(), NULL);
   const char *unionfs = PathAssembler::getUnionFS( NULL);
   char line[1024];
   char data[1024];
@@ -374,9 +365,9 @@ void ContainerManager::mount_container(const std::string & container_id)
       //     unionfs, container_id, mnt_dir->src, unionfs, container_id, mnt_dir->target);
       // if (system(line) != 0)
       // {
-      //   perror(line);
+      //   LoggerFactory::getRunLogger().error(errno, line);
       // }
-      char *target =  path_join(unionfs, "/mnt", container_id.c_str(), mnt_dir->target, NULL);
+      char *target =  path_join(rootfs, mnt_dir->target, NULL);
       sprintf(data, "dirs=%s/diff/%s=rw:%s=ro", unionfs, container_id.c_str(), mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
@@ -384,7 +375,19 @@ void ContainerManager::mount_container(const std::string & container_id)
       }
       free(target);
 
-    } else {
+    } else if(strcmp(mnt_dir->type, "overlay2") == 0) {
+      sprintf(line, "sudo mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s%s",
+          mnt_dir->src, 
+          PathAssembler::getDiffDir(container_id.c_str(), NULL), 
+          PathAssembler::getWorkDir(container_id.c_str(), NULL), 
+          rootfs, mnt_dir->target 
+      );
+      if (system(line) != 0)
+      {
+        LoggerFactory::getRunLogger().error(errno, line);
+      }
+    }
+    else {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
       //printf("mount_container: %s\n", line);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
@@ -453,7 +456,7 @@ void ContainerManager::mount_volume (const char *container_id, const char *_volu
 
 void ContainerManager::umount_container(const std::string & container_id) {
   Container container = ContainerManager::get_container_by_id_or_name(container_id);
-  const char *rootfs = PathAssembler::getRootFS(container_id.c_str(), NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id.c_str(), NULL);
   char line[1024];
 
   size_t i = 0;
@@ -467,7 +470,7 @@ void ContainerManager::umount_container(const std::string & container_id) {
     mnt_dir = &mnt_dir_arr[i];
     // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
     // if (system(line) != 0) {
-    //   perror(line);
+    //   LoggerFactory::getRunLogger().error(errno, line);
     // }
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
     if(umount2(line, MNT_DETACH) == -1) {
@@ -497,7 +500,7 @@ void ContainerManager::umount_volume (const char * container_id, const char* _vo
   }
   char *volume = strdup(_volume);
   char *src = NULL, *dest = NULL;
-  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
 
   src = strtok(volume, ":");
   if (src != NULL && strlen(src) > 0)
@@ -538,25 +541,25 @@ void ContainerManager::umount_volume (const char * container_id, const char* _vo
 void ContainerManager::bind_mount(const char *container_id, const char *src, const char *_dest)
 {
   char line[4096];
-  const char *rootfs = PathAssembler::getRootFS(container_id, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
 
   sprintf(line, "test -d %s || sudo mkdir -p %s", src, src);
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
 
   char *dest = path_join(rootfs, _dest, NULL);
   sprintf(line, "test -d %s || sudo mkdir -p %s", dest, dest);
   if (system(line) != 0)
   {
-    perror(line);
+    LoggerFactory::getRunLogger().error(errno, line);
   }
   // LoggerFactory::getRunLogger().debug("src=%s\n dest=%s\n", src, dest);
   // sprintf(line, "sudo mount -t aufs -o dirs=%s=rw none %s", src, dest);
   // if (system(line) != 0)
   // {
-  //   perror(line);
+  //   LoggerFactory::getRunLogger().error(errno, line);
   // }
 
   if (mount(src, dest, "none", MS_BIND, NULL)!=0) {
@@ -566,9 +569,6 @@ void ContainerManager::bind_mount(const char *container_id, const char *src, con
   free(dest);
 
 }
-
-
-
 
 Container ContainerManager::pack_container_info(const Json::Value &jsonData) {
   int i = 0;

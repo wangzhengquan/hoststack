@@ -92,7 +92,7 @@ int pty_exec(pty_exe_opt_t arg)
   char buf[BUF_SIZE];
   ssize_t n;
   pid_t childPid;
-  const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
   garg = arg;
 
   if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
@@ -196,7 +196,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
   int masterFd;
   struct winsize ws;
   pid_t childPid;
-  const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
   /* Retrieve the attributes of terminal on which we are started */
 
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)

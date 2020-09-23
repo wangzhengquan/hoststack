@@ -7,10 +7,16 @@
 #define kucker_data_file "/data/kucker/data.json"
 
 class PathAssembler {
+private:
+	const char * getAufs(char *dist);
 public:
 	static const char * getUnionFS(char *dir);
 
-	static const char * getRootFS(const char * containerId, char *dir);
+	static const char * getLayerDir(const char * containerId, char *dist);
+	static const char * getMergedDir(const char * containerId, char *dist);
+	static const char * getWorkDir(const char * containerId, char *dist) ;
+	static const char * getDiffDir(const char * containerId, char *dist);
+
 };
 
 #endif

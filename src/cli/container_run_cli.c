@@ -157,9 +157,6 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
 }
 
 static void startContainer(container_run_arg_t mopt) {
-
-
-   
   container_start_option_t startOpt = {};
   startOpt.containerId =  mopt.container_id;
   startOpt.cmd = mopt.cmd_arr;

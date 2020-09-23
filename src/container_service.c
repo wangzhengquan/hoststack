@@ -57,7 +57,6 @@ static int container_run_main(void* arg)
      ContainerManager::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
   }
 
-
   pty_exe_opt_t ptyopt = {};
   ptyopt.synchSem = synchSem;
   ptyopt.containerId = startOpt.containerId;
@@ -75,9 +74,6 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 {
 
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
-
-   
- 
   // if (info.id.empty() || info.status == CONTAINER_RUNNING)
   //   continue;
   /* Create the child in new namespace(s) */

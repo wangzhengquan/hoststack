@@ -39,16 +39,16 @@ static void initContainerDir() {
     perror(line);
   }
 
-  sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
-  sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
-  if (system(line) != 0)
-  {
-    perror(line);
-  }
+  // sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
+  // if (system(line) != 0)
+  // {
+  //   perror(line);
+  // }
+  // sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
+  // if (system(line) != 0)
+  // {
+  //   perror(line);
+  // }
 
 }
 

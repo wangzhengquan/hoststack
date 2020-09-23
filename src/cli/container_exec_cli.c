@@ -150,7 +150,7 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
 
 
 void exec_cmd(pty_exe_opt_t arg) {
-  const char *rootfs = PathAssembler::getRootFS(arg.containerId, NULL);
+  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
   /* chroot 隔离目录 */
   if ( chdir(rootfs) != 0 || chroot("./") != 0 )
   {

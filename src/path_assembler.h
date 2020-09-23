@@ -1,9 +1,8 @@
 #ifndef __PATH_ASSEMBLER_H
 #define __PATH_ASSEMBLER_H
 #include "usg_common.h"
-
-#define FS_TYPE "aufs"
-// #define FS_TYPE "overlay2"
+// aufs overlay2
+#define FS_TYPE "overlay2"
 
 #define kucker_repo  "/data/kucker"
 

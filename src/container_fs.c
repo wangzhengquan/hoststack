@@ -135,7 +135,6 @@ void ContainerFs::mount_container(const char * container_id)
         LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
       }
 
-
       sprintf(line, "test -d %s || mkdir -p %s", subwork, subwork);
       if (system(line) != 0)
       {
@@ -150,7 +149,7 @@ void ContainerFs::mount_container(const char * container_id)
         target
       );
 
-      printf("%s \n \n", line);
+      // printf("%s \n \n", line);
       if (system(line) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "mount_container mount overlay2: %s", line);

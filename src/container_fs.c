@@ -2,6 +2,13 @@
 #include "container_dao.h"
 #include <sys/mount.h>
 
+
+struct mnt_dir_t {
+  const char *src;
+  const char *target;
+  const char *type;
+};
+
 static  mnt_dir_t mnt_dir_arr[]= { 
   {"/bin", "/bin", FS_TYPE}, 
   {"/etc", "/etc", FS_TYPE},
@@ -24,7 +31,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
 
 void ContainerFs::create_container(const char *container_id)
 {
-  const char *unionfs = PathAssembler::getUnionFS(NULL);
+  // const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
   //======================
   sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);

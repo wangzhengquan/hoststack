@@ -6,11 +6,6 @@
 #include "path_assembler.h"
 #include "logger_factory.h"
 
-struct mnt_dir_t {
-  const char *src;
-  const char *target;
-  const char *type;
-};
 
 class ContainerFs {
  

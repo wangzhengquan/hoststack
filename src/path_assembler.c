@@ -3,14 +3,7 @@
 #define PATH_LEN 1024
 
 const char * PathAssembler::getUnionFS(char *dist) {
-	static char path[PATH_LEN];
-	sprintf(path, "%s/overlay2", kucker_repo);
-	
-	if(dist != NULL) {
-		 return strcpy(dist, path);
-	} else {
-		return path;
-	}
+	return getAufs(dist);
 }
 
 const char * PathAssembler::getLayerDir(const char * containerId, char *dist) {
@@ -62,6 +55,17 @@ const char * PathAssembler::getDiffDir(const char * containerId, char *dist) {
 const char * PathAssembler::getAufs(char *dist) {
 	static char path[PATH_LEN];
 	sprintf(path, "%s/aufs", kucker_repo);
+	
+	if(dist != NULL) {
+		 return strcpy(dist, path);
+	} else {
+		return path;
+	}
+}
+
+const char * PathAssembler::getOverlay2FS(char *dist) {
+	static char path[PATH_LEN];
+	sprintf(path, "%s/overlay2", kucker_repo);
 	
 	if(dist != NULL) {
 		 return strcpy(dist, path);

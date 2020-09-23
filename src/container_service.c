@@ -4,7 +4,8 @@
 #include "pty_exec_util.h"
 #include "logger_factory.h"
 #include "sem_util.h"
-#include "container_manager.h"
+#include "container_dao.h"
+#include "container_fs.h"
 #include "container_service.h"
 #include "path_assembler.h"
 
@@ -16,8 +17,8 @@ static const char *containerId;
 static void exitHandler(void)
 {
   // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
-  ContainerManager::umount_container(containerId);
-  ContainerManager::change_status_to_stop(containerId);
+  ContainerFs::umount_container(containerId);
+  ContainerDao::change_status_to_stop(containerId);
 }
 
 static void sigTermHandler(int sig) {
@@ -49,12 +50,12 @@ static int container_run_main(void* arg)
   if (atexit(exitHandler) != 0)
     err_msg(errno, "container_run_main >> atexit");
 
-  ContainerManager::mount_container(startOpt.containerId);
+  ContainerFs::mount_container(startOpt.containerId);
   // 容器卷
 
   if (startOpt.volume_list != NULL )
   {
-     ContainerManager::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
+     ContainerFs::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
   }
 
   pty_exe_opt_t ptyopt = {};
@@ -103,7 +104,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 }
 
 void ContainerService::stop(const std::string & name) {
-  Container info = ContainerManager::get_container_by_id_or_name(name);
+  Container info = ContainerDao::get_container_by_id_or_name(name);
   if(info.id.empty() || info.status != CONTAINER_RUNNING) {
     printf( "No container identify by %s, or it's not a container in running.", name.c_str());
     return;

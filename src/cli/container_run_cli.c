@@ -3,7 +3,8 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 
-#include "container_manager.h"
+#include "container_dao.h"
+#include "container_fs.h"
 #include "container.h"
 #include "container_run_cli.h"
 #include "pty_exec_util.h"
@@ -142,17 +143,17 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   // check arguments
   // name 去重
   if( mopt.name != NULL) {
-  	 if(!ContainerManager::get_container_by_name(mopt.name).id.empty()) {
+  	 if(!ContainerDao::get_container_by_name(mopt.name).id.empty()) {
   	 		err_exit(0, "duplicate name %s", mopt.name);
   	 }
   }
  
 
   char container_id[37];
-  ContainerManager::gen_id(container_id);
+  ContainerDao::gen_id(container_id);
   mopt.container_id = container_id;
 
-  ContainerManager::create_container(container_id);
+  ContainerFs::create_container(container_id);
   startContainer(mopt);
 }
 
@@ -187,7 +188,7 @@ static void startContainer(container_run_arg_t mopt) {
        
     // }
     info.status = CONTAINER_RUNNING;
-    ContainerManager::insert(info);
+    ContainerDao::insert(info);
     // ------save end---------
   });
 

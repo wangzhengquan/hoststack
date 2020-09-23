@@ -2,7 +2,7 @@
 #include <getopt.h>
 #include <uuid.h>
 #include <sys/syscall.h>
-#include "container_manager.h"
+#include "container_dao.h"
 #include "container.h"
 #include "container_exec_cli.h"
 #include "pty_exec_util.h"
@@ -117,7 +117,7 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
   char *namespaces[] = {"pid", "mnt", NULL};
   int i = 0, fd;
 
-  Container container = ContainerManager::get_container_by_id_or_name(container_id);
+  Container container = ContainerDao::get_container_by_id_or_name(container_id);
   if(container.id.empty() || container.status != CONTAINER_RUNNING) {
     err_msg(0, "ContainerExecCli >> No container identify by %s, or it's not a container in running.", container_id);
     return;

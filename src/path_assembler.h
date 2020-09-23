@@ -2,6 +2,8 @@
 #define __PATH_ASSEMBLER_H
 #include "usg_common.h"
 
+#define FS_TYPE "aufs"
+
 #define kucker_repo  "/data/kucker"
 
 #define kucker_data_file "/data/kucker/data.json"

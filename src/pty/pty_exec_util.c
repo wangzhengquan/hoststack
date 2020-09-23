@@ -222,7 +222,7 @@ int pty_proxy_exec(pty_exe_opt_t arg)
     }
 
 
-    if (system("touch /usr/lib/tmp") != 0)
+    if (system("sudo touch /usr/lib/tmp") != 0)
     {
       err_msg(errno, "touch /usr/lib/tmp");
     }

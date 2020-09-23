@@ -3,7 +3,7 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 
-#include "container_manager.h"
+#include "container_dao.h"
 #include "container.h"
 #include "container_attach_cli.h"
 #include "pty_exec_util.h"
@@ -36,7 +36,7 @@ void ContainerAttachCli::handleCommand(int argc, char *argv[]) {
 
 
   char *containerName = argv[1];
-  Container info = ContainerManager::get_container_by_id_or_name(containerName);
+  Container info = ContainerDao::get_container_by_id_or_name(containerName);
 
   pty_exe_opt_t execOpt = {};
   execOpt.detach = false;

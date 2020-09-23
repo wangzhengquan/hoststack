@@ -25,12 +25,11 @@ private:
     info = localtime(&tv.tv_sec);
     strftime(buf, MAXBUF - 1, "%Y-%d-%m %H:%M:%S", info);
     snprintf(buf + strlen(buf), MAXBUF - strlen(buf) - 1, ",%ld [%s] ",  tv.tv_usec, strlevel(level));
+    vsnprintf(buf + strlen(buf), MAXBUF - strlen(buf) - 1, fmt, ap);
 
     if (err != 0) {
       snprintf(buf + strlen(buf), MAXBUF - strlen(buf) - 1, ": %s", strerror(err));
     }
-
-    vsnprintf(buf + strlen(buf), MAXBUF - strlen(buf) - 1, fmt, ap);
     strcat(buf, "\n");
     fflush(stdout); /* in case stdout and stderr are the same */
     

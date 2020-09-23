@@ -121,6 +121,7 @@ void ContainerFs::mount_container(const char * container_id)
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
         LoggerFactory::getRunLogger().error(errno, "data=%s\n target=%s\n", data, target);
+        exit(1);
       }
 
     } else if(strcmp(mnt_dir->type, "overlay2") == 0) {
@@ -141,18 +142,24 @@ void ContainerFs::mount_container(const char * container_id)
         LoggerFactory::getRunLogger().error(errno, "create subwork : %s", line);
       }
 
-      sprintf(line, "sudo mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s",
-        mnt_dir->src, 
-        //PathAssembler::getDiffDir(container_id, NULL),
-        subdiff,
-        subwork,
-        target
-      );
+      // sprintf(line, "sudo mount -t  overlay -o lowerdir=%s,upperdir=%s,workdir=%s overlay %s",
+      //   mnt_dir->src, 
+      //   subdiff,
+      //   subwork,
+      //   target
+      // );
 
-      // printf("%s \n \n", line);
-      if (system(line) != 0)
-      {
-        LoggerFactory::getRunLogger().error(errno, "mount_container mount overlay2: %s", line);
+// printf("%s \n\n", line);
+      // if (system(line) != 0)
+      // {
+      //   LoggerFactory::getRunLogger().error(errno, "mount_container mount overlay2: %s", line);
+      //   exit(1);
+      // }
+
+      sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
+      if(mount("overlay", target, "overlay", 0, data) != 0) {
+        LoggerFactory::getRunLogger().error(errno, "overlay mount : data=%s . target=%s\n", data, target);
+        exit(1);
       }
     }
     else {

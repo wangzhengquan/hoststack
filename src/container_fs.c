@@ -37,21 +37,10 @@ void ContainerFs::create_repo() {
     LoggerFactory::getRunLogger().error(errno, line);
   }
 
-   if (mkdir_r(PathAssembler::getUnionFS(NULL), DIR_MODE) != 0)
+  if (mkdir_r(PathAssembler::getUnionFS(NULL), DIR_MODE) != 0)
   {
-     LoggerFactory::getRunLogger().error(errno, "initRepoDir >> create unionfs");
+    LoggerFactory::getRunLogger().error(errno, "initRepoDir >> create unionfs");
   }
-
-  // sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
-  // if (system(line) != 0)
-  // {
-  //   perror(line);
-  // }
-  // sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
-  // if (system(line) != 0)
-  // {
-  //   perror(line);
-  // }
 
 }
 

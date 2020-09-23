@@ -102,8 +102,13 @@ char * str_join( const char *seperator, const char *first...);
 char ** str_split(const char *str, const char *delim, int *arr_len);
 char * array_join(char * const arr[], const char *seperator);
 char * path_join(const char *path, ...);
+// 反向查询
 char *strstr_r(char *str,  char * needle);
+// 递归创建文件夹
 int mkdir_r(const char *pathname, mode_t mode);
+
+int mkdiratfd_r(int dirfd, const char *pathname, mode_t mode);
+int mkdirat_r(const char * dir, const char *pathname, mode_t mode);
 
 
 static inline int 

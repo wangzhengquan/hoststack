@@ -33,7 +33,6 @@ void ContainerFs::create_container(const char *container_id)
 {
   // const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
-  //======================
   sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);
   if (system(line) != 0)
   {
@@ -71,7 +70,6 @@ void ContainerFs::create_container(const char *container_id)
 void ContainerFs::remove_container(const char *container_id) {
  
   const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
-  const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
@@ -96,10 +94,11 @@ void ContainerFs::mount_container(const char * container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
   const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
-  const char *unionfs = PathAssembler::getUnionFS( NULL);
   char line[1024];
   char data[1024];
   char subdiff[1024];
+  char subwork[1024];
+  char target[1024];
 
   size_t i = 0;
   mnt_dir_t *mnt_dir = &mnt_dir_arr[i];
@@ -111,38 +110,50 @@ void ContainerFs::mount_container(const char * container_id)
       // {
       //   LoggerFactory::getRunLogger().error(errno, line);
       // }
-      char *target =  path_join(rootfs, mnt_dir->target, NULL);
-      sprintf(data, "dirs=%s=rw:%s=ro", 
-        PathAssembler::getDiffDir(container_id, NULL),
-        mnt_dir->src);
+      sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
+      sprintf(target, "%s%s", rootfs, mnt_dir->target);
+      sprintf(line, "test -d %s || mkdir -p %s", subdiff, subdiff );
+      if (system(line) != 0)
+      {
+        LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
+      }
+      sprintf(data, "dirs=%s=rw:%s=ro", subdiff, mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
         LoggerFactory::getRunLogger().error(errno, "data=%s\n target=%s\n", data, target);
       }
-      free(target);
 
     } else if(strcmp(mnt_dir->type, "overlay2") == 0) {
 
-      // sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id.c_str(), NULL), mnt_dir->target);
+      sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
+      sprintf(subwork, "%s%s", PathAssembler::getWorkDir(container_id, NULL), mnt_dir->target);
+      sprintf(target, "%s%s", rootfs, mnt_dir->target);
 
-      // sprintf(line, "test -d %s || sudo mkdir -p %s", subdiff, subdiff);
-      // if (system(line) != 0)
-      // {
-      //   LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
-      // }
+      sprintf(line, "test -d %s || mkdir -p %s", subdiff, subdiff );
+      if (system(line) != 0)
+      {
+        LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
+      }
 
-      sprintf(line, "sudo mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s%s",
-          mnt_dir->src, 
-          PathAssembler::getDiffDir(container_id, NULL),
-          //subdiff,
-          PathAssembler::getWorkDir(container_id, NULL), 
-          rootfs, mnt_dir->target
+
+      sprintf(line, "test -d %s || mkdir -p %s", subwork, subwork);
+      if (system(line) != 0)
+      {
+        LoggerFactory::getRunLogger().error(errno, "create subwork : %s", line);
+      }
+
+      sprintf(line, "sudo mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s",
+        mnt_dir->src, 
+        //PathAssembler::getDiffDir(container_id, NULL),
+        subdiff,
+        subwork,
+        target
       );
 
       printf("%s \n \n", line);
       if (system(line) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, line);
+        LoggerFactory::getRunLogger().error(errno, "mount_container mount overlay2: %s", line);
       }
     }
     else {
@@ -157,11 +168,6 @@ void ContainerFs::mount_container(const char * container_id)
     i++;
   }
 }
-
-
-
-
-
 
 void ContainerFs::mount_volume_list (const char *container_id, std::set<std::string> &volume_list) {
   if(volume_list.size() == 0) {
@@ -181,7 +187,7 @@ void ContainerFs::mount_volume (const char *container_id, const char *_volume) {
     if (*src != '/')
     {
       free(volume);
-      err_exit(0, "invalid mount path: '%s' mount path must be absolute.", src);
+      LoggerFactory::getRunLogger().error(0, "invalid mount path: '%s' mount path must be absolute.", src);
     }
     dest = strtok(NULL, ":");
     if (dest != NULL && strlen(dest) > 0)
@@ -189,20 +195,20 @@ void ContainerFs::mount_volume (const char *container_id, const char *_volume) {
       if (*dest != '/')
       {
         free(volume);
-        err_exit(0, "invalid mount path: '%s' mount path must be absolute.", dest);
+        LoggerFactory::getRunLogger().error(0, "invalid mount path: '%s' mount path must be absolute.", dest);
       }
       bind_mount(container_id, src, dest);
     }
     else
     {
       free(volume);
-      err_exit(0, "param volume format err.");
+      LoggerFactory::getRunLogger().error(0, "param volume format err.");
     }
   }
   else
   {
     free(volume);
-    err_exit(0, "param volume format err.");
+    LoggerFactory::getRunLogger().error(0, "param volume format err.");
   }
 }
 
@@ -265,7 +271,7 @@ void ContainerFs::umount_volume (const char * container_id, const char* _volume)
     {
       if (*dest != '/')
       {
-        err_exit(0, "invalid umount path: '%s' umount path must be absolute.", dest);
+        LoggerFactory::getRunLogger().error(0, "invalid umount path: '%s' umount path must be absolute.", dest);
       }
       char *target = path_join(rootfs, dest, NULL );
 // printf("====umount_volume %s\n", target);
@@ -314,7 +320,8 @@ void ContainerFs::bind_mount(const char *container_id, const char *src, const ch
   // }
 
   if (mount(src, dest, "none", MS_BIND, NULL)!=0) {
-      err_exit(errno, "mount_volume");
+    LoggerFactory::getRunLogger().error(errno, "mount_volume");
+    exit(1);
   }
 
   free(dest);

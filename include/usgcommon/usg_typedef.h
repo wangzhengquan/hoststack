@@ -21,6 +21,11 @@ union semun {                   /* Used in calls to semctl() */
 
 #endif
 
+#ifdef _WIN32
+#define PATH_SEPERATOR   "\\"
+#else
+#define PATH_SEPERATOR   "/"
+#endif
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 #define DEF_MODE   S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH

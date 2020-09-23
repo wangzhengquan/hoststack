@@ -102,7 +102,8 @@ char * str_join( const char *seperator, const char *first...);
 char ** str_split(const char *str, const char *delim, int *arr_len);
 char * array_join(char * const arr[], const char *seperator);
 char * path_join(const char *path, ...);
-
+char *strstr_r(char *str,  char * needle);
+int mkdir_r(const char *pathname, mode_t mode);
 
 
 static inline int 

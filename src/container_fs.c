@@ -28,32 +28,55 @@ static  mnt_dir_t mnt_dir_arr[]= {
   {}
 };
 
+void ContainerFs::create_repo() {
+  char line[1024];
+  
+  sprintf(line, "%s/containers", kucker_repo);
+  if (mkdir_r(line, DIR_MODE) != 0)
+  {
+    LoggerFactory::getRunLogger().error(errno, line);
+  }
+
+   if (mkdir_r(PathAssembler::getUnionFS(NULL), DIR_MODE) != 0)
+  {
+     LoggerFactory::getRunLogger().error(errno, "initRepoDir >> create unionfs");
+  }
+
+  // sprintf(line, "test -d %s/diff || sudo mkdir -p %s/diff", unionfs, unionfs);
+  // if (system(line) != 0)
+  // {
+  //   perror(line);
+  // }
+  // sprintf(line, "test -d %s/layers || sudo mkdir -p %s/layers", unionfs, unionfs);
+  // if (system(line) != 0)
+  // {
+  //   perror(line);
+  // }
+
+}
 
 void ContainerFs::create_container(const char *container_id)
 {
   // const char *unionfs = PathAssembler::getUnionFS(NULL);
   char line[1024];
-  sprintf(line, "sudo mkdir -p %s/containers/%s", kucker_repo, container_id);
-  if (system(line) != 0)
+  sprintf(line, "%s/containers/%s", kucker_repo, container_id);
+  if (mkdir_r(line, DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);
   }
 
   
-  sprintf(line, "sudo mkdir -p %s", PathAssembler::getDiffDir(container_id, 0));
-  if (system(line) != 0)
+  if (mkdir_r(PathAssembler::getDiffDir(container_id, 0), DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "sudo mkdir -p %s", PathAssembler::getWorkDir(container_id, 0));
-  if (system(line) != 0)
+  if (mkdir_r(PathAssembler::getWorkDir(container_id, 0), DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);
   }
 
-  sprintf(line, "sudo mkdir -p %s", PathAssembler::getMergedDir(container_id, NULL));
-  if (system(line) != 0)
+  if (mkdir_r(PathAssembler::getMergedDir(container_id, NULL), DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);
   }
@@ -69,7 +92,6 @@ void ContainerFs::create_container(const char *container_id)
 
 void ContainerFs::remove_container(const char *container_id) {
  
-  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
   char line[1024];
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
@@ -112,8 +134,7 @@ void ContainerFs::mount_container(const char * container_id)
       // }
       sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
       sprintf(target, "%s%s", rootfs, mnt_dir->target);
-      sprintf(line, "test -d %s || mkdir -p %s", subdiff, subdiff );
-      if (system(line) != 0)
+      if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
       }
@@ -130,14 +151,12 @@ void ContainerFs::mount_container(const char * container_id)
       sprintf(subwork, "%s%s", PathAssembler::getWorkDir(container_id, NULL), mnt_dir->target);
       sprintf(target, "%s%s", rootfs, mnt_dir->target);
 
-      sprintf(line, "test -d %s || mkdir -p %s", subdiff, subdiff );
-      if (system(line) != 0)
+      if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
       }
 
-      sprintf(line, "test -d %s || mkdir -p %s", subwork, subwork);
-      if (system(line) != 0)
+      if (mkdir_r(subwork, DIR_MODE) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "create subwork : %s", line);
       }

@@ -1,17 +1,12 @@
-#include <sys/mount.h>
+
 #include <getopt.h>
 #include <uuid.h>
 #include <jsoncpp/json.h>
-#include "container_manager.h"
+#include "container_dao.h"
 #include "path_assembler.h"
 #include "container.h"
 #include "logger_factory.h"
 
-struct mnt_dir_t {
-  const char *src;
-  const char *target;
-  const char *type;
-};
 
 
 void ContainerDao::insert(const Container &info) {

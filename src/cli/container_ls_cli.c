@@ -2,7 +2,7 @@
 #include <getopt.h>
 #include <uuid.h>
 #include <sys/syscall.h>
-#include "container_manager.h"
+#include "container_dao.h"
 #include "container.h"
 #include "container_ls_cli.h"
 
@@ -80,7 +80,7 @@ void ContainerLsCli::handleCommand(int argc, char *argv[]) {
   }
 
 
-  std::vector<Container>* vector = ContainerManager::list();
+  std::vector<Container>* vector = ContainerDao::list();
 
   Container::showTitle();
   if(vector == NULL) {

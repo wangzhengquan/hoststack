@@ -4,7 +4,6 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 
-#include "container_manager.h"
 #include "container.h"
 #include "container_cli.h"
 #include "container_attach_cli.h"

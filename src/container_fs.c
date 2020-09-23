@@ -1,4 +1,6 @@
 #include "container_fs.h"
+#include "container_dao.h"
+#include <sys/mount.h>
 
 static  mnt_dir_t mnt_dir_arr[]= { 
   {"/bin", "/bin", FS_TYPE}, 
@@ -83,10 +85,10 @@ void ContainerFs::remove_container(const char *container_id) {
 
 
 
-void ContainerFs::mount_container(const std::string & container_id)
+void ContainerFs::mount_container(const char * container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
-  const char *rootfs = PathAssembler::getMergedDir(container_id.c_str(), NULL);
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
   const char *unionfs = PathAssembler::getUnionFS( NULL);
   char line[1024];
   char data[1024];
@@ -104,7 +106,7 @@ void ContainerFs::mount_container(const std::string & container_id)
       // }
       char *target =  path_join(rootfs, mnt_dir->target, NULL);
       sprintf(data, "dirs=%s=rw:%s=ro", 
-        PathAssembler::getDiffDir(container_id.c_str(), NULL),
+        PathAssembler::getDiffDir(container_id, NULL),
         mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
@@ -124,9 +126,9 @@ void ContainerFs::mount_container(const std::string & container_id)
 
       sprintf(line, "sudo mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s%s",
           mnt_dir->src, 
-          PathAssembler::getDiffDir(container_id.c_str(), NULL),
+          PathAssembler::getDiffDir(container_id, NULL),
           //subdiff,
-          PathAssembler::getWorkDir(container_id.c_str(), NULL), 
+          PathAssembler::getWorkDir(container_id, NULL), 
           rootfs, mnt_dir->target
       );
 
@@ -197,9 +199,8 @@ void ContainerFs::mount_volume (const char *container_id, const char *_volume) {
   }
 }
 
-void ContainerFs::umount_container(const std::string & container_id) {
-  Container container = ContainerFs::get_container_by_id_or_name(container_id);
-  const char *rootfs = PathAssembler::getMergedDir(container_id.c_str(), NULL);
+void ContainerFs::umount_container(const char * container_id) {
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
   char line[1024];
 
   size_t i = 0;
@@ -222,12 +223,12 @@ void ContainerFs::umount_container(const std::string & container_id) {
     
   }
 
-  umount_volume_list(container_id.c_str());
+  umount_volume_list(container_id);
 }
 
 
 void ContainerFs::umount_volume_list (const char *container_id) {
-  const std::set<std::string> &volume_list = get_container_by_id_or_name(container_id).volume_list;
+  const std::set<std::string> &volume_list = ContainerDao::get_container_by_id_or_name(container_id).volume_list;
   if(volume_list.size() == 0) {
     return;
   }

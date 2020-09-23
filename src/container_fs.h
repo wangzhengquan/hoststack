@@ -4,6 +4,13 @@
 #include "usg_common.h"
 #include "container.h"
 #include "path_assembler.h"
+#include "logger_factory.h"
+
+struct mnt_dir_t {
+  const char *src;
+  const char *target;
+  const char *type;
+};
 
 class ContainerFs {
  
@@ -11,8 +18,8 @@ public:
 	static void create_container(const char *container_id);
 	static void remove_container(const char *container_id);
 
-	static void mount_container(const std::string & container_id);
-  static void umount_container(const std::string & container_id);
+	static void mount_container(const char * container_id);
+  static void umount_container(const char * container_id);
 
   static void umount_volume_list (const char *container_id) ;
   static void umount_volume (const char * container_id, const char* _volume) ;

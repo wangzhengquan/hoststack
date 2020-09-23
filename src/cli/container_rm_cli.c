@@ -3,7 +3,8 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 
-#include "container_manager.h"
+#include "container_fs.h"
+#include "container_dao.h"
 #include "container_service.h"
 #include "container.h"
 #include "container_rm_cli.h"
@@ -115,7 +116,7 @@ void ContainerRMCli::handleCommand(int argc, char *argv[]) {
 }
 
 static void removeContainer(container_rm_arg_t &mopt, const char * containerName) {
-	Container info = ContainerManager::get_container_by_id_or_name(containerName);
+	Container info = ContainerDao::get_container_by_id_or_name(containerName);
 	if(info.id.empty()) {
 		err_msg(0, "No container named %s", containerName);
 		return;
@@ -130,5 +131,6 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerName
 	}
 
 	//ContainerManager::umount_container(info.id);
-	ContainerManager::remove_container(info.id.c_str());
+	ContainerFs::remove_container(info.id.c_str());
+  ContainerDao::delete_by_id(info.id.c_str());
 }

@@ -12,7 +12,6 @@
 #include "tty_functions.h"      /* Declaration of ttySetRaw() */
 #include "usg_common.h"
 #include "pty_exec_util.h"
-#include "container_manager.h"
 #include "logger_factory.h"
 #include "socket_io.h"
 #include "sem_util.h"

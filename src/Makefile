@@ -22,9 +22,11 @@ DEPENDENCES = $(patsubst %, %.d, $(PROGS))
 build:	 $(PROGS)
 	#cp -a $(ROOT)/etc $(DEST) 
 	sudo chown root:root $(DEST)/kucker
-	# sudo chmod 766 $(DEST)/kucker
-	sudo chmod u+s $(DEST)/kucker
-	
+	#sudo chmod u+s $(DEST)/kucker
+	sudo chmod 766 $(DEST)/kucker
+	sudo mv $(DEST)/kucker $(DEST)/backer
+	md5sum $(DEST)/backer > $(DEST)/backer.md5
+	md5sum -c $(DEST)/backer.md5
 
 # class
 $(DEST)/kucker : $(SOURCES)

@@ -9,7 +9,7 @@ kucker的运行环境是基于本地的环境，没有镜像的概念。kucker�
 ### 文件隔离
 实现文件隔离与进程隔离一样是很简单的事情，都是内核支持的。只需要在调用clone方法的时候加入文件隔离的标识，然后chroot改变根文件目录。容器中会用到一种特殊的文件系统叫UnionFilesystem，它的实现有很多比如overlay aufs等。这种文件系统本身与文件隔离没有任何关系，但是它是实现一个容器必不可少的驱动。为什么需要这种文件系统呢？先看一下overlay的基本原理。下图是docker官网给出的一张overlay的示意图。
  ![](./overlay_constructs.jpg)
-这个示意图有两层，第一层是Image layer，第二层是Container layer. 这两层通过mount命令mount到container mount，这一层就是我们正常能看到的那一层. 第一层Image layer是只读的，可以看到它有三个文件file1 file2 file3.假如我现在修改file2.overlay会拷贝file2 到container layer 然后在这个copy上进行修改。假如我新增一个文件file4，overlay发现Image layer没有这个文件，就直接在Container layer上新增这个文件。可以看到修改文件对原始的第一层不会有任何改动（这种行为有一个术语叫copy on write.）原始的第一层iamge layer 加第二层container layer里记录的差异（diff)组成了最终给用户看到的第三层container mount.overlay2可以有很多这样的层，这里面的每一层就好像git里的提交点，在docker里这每一层打成一个包就叫镜像（这里是我的理解，没有任何资料里明确的这样说过，不一定完全正确，但是大意不会错）。docker用这种文件系统是为了节约空间，因为每一从都可以共用。我们的kucker第一也是为了节约空间，第二是为了修改容器里的文件不会对本机文件有影响。
+这个示意图有两层，第一层是Image layer，第二层是Container layer. 这两层通过mount命令mount到container mount，这一层就是我们正常能看到的那一层. 第一层Image layer是只读的，可以看到它有三个文件file1 file2 file3.假如我现在修改file2.overlay会拷贝file2 到container layer 然后在这个copy上进行修改。假如我新增一个文件file4，overlay发现Image layer没有这个文件，就直接在Container layer上新增这个文件。可以看到修改文件对原始的第一层不会有任何改动（这种行为有一个术语叫copy on write.）原始的第一层iamge layer 加第二层container layer里记录的差异（diff)组成了最终给用户看到的第三层container mount.overlay2可以有很多这样的层，这里面的每一层就好像git里的提交点，在docker里这每一层打成一个包就叫镜像。docker用这种文件系统是为了节约空间，因为每一层都可以共用。我们的kucker第一也是为了节约空间，第二是为了修改容器里的文件不会对本机文件有影响。
 
 ### 其他技术
 容器本身是一个大杂烩，要让它跑起来可用需要许多其他技术的支持。例如实现后台运行和attach功能，需要虚拟终端技术。容器的关闭需要对信号的处理。这些东西的资料比较多，也相对容易理解，这个文档就不解释了。

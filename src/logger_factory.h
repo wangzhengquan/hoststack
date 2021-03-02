@@ -1,6 +1,7 @@
 #ifndef __LOGGER_FACTORY_H__
 #define __LOGGER_FACTORY_H__
 #include "logger.h"
+#include "path_assembler.h"
 
 class LoggerFactory {
 public:
@@ -14,7 +15,7 @@ public:
 	static Logger getContainerLogger(const char * id) {
 //ERROR ALL DEBUG INFO WARN
 		char logFile[1024];
-		sprintf(logFile, "/data/kucker/container/%s/container.log", id);
+		sprintf(logFile, "%s/container/%s/container.log", kucker_repo, id);
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
 		config.logFile = logFile;
@@ -27,7 +28,9 @@ public:
 //ERROR ALL DEBUG INFO WARN
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
-		config.logFile = "/data/kucker/run.log";
+		char logFile[1024];
+		sprintf(logFile, "%s/run.log", kucker_repo);
+		config.logFile = logFile;
 		config.console = 1;
 		static Logger logger(config);
 		return logger;

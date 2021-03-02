@@ -51,30 +51,30 @@ void ContainerFs::create_container(const char *container_id)
   sprintf(line, "%s/containers/%s", kucker_repo, container_id);
   if (mkdir_r(line, DIR_MODE) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
   
   if (mkdir_r(PathAssembler::getDiffDir(container_id, 0), DIR_MODE) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
   if (mkdir_r(PathAssembler::getWorkDir(container_id, 0), DIR_MODE) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
   if (mkdir_r(PathAssembler::getMergedDir(container_id, NULL), DIR_MODE) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
   sprintf(line, "cd %s && sudo mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", 
     PathAssembler::getMergedDir(container_id, NULL));
   if (system(line) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
 }
@@ -166,7 +166,7 @@ void ContainerFs::mount_container(const char * container_id)
 
       sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
       if(mount("overlay", target, "overlay", 0, data) != 0) {
-        LoggerFactory::getRunLogger().error(errno, "overlay mount : data=%s . target=%s\n", data, target);
+        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
         exit(1);
       }
     }

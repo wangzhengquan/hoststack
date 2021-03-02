@@ -13,7 +13,7 @@ INCLUDES += -I$(ROOT)/include/usgcommon -I$(ROOT)/include/uuid -I$(ROOT)/include
 
 
 PROGS = ${DEST}/clone_user ${DEST}/getopt_long ${DEST}/test_uuid ${DEST}/test_strtok ${DEST}/test \
-	${DEST}/string_find
+	${DEST}/string_find ${DEST}/test_pid
 
 DEPENDENCES = $(patsubst %, %.d, $(PROGS)) 
 

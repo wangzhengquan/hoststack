@@ -142,12 +142,12 @@ void ContainerFs::mount_container(const char * container_id)
 
       if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: create subdiff : %s", line);
       }
 
       if (mkdir_r(subwork, DIR_MODE) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "create subwork : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: create subwork : %s", line);
       }
 
       // sprintf(line, "sudo mount -t  overlay -o lowerdir=%s,upperdir=%s,workdir=%s overlay %s",
@@ -157,18 +157,23 @@ void ContainerFs::mount_container(const char * container_id)
       //   target
       // );
 
-// printf("%s \n\n", line);
       // if (system(line) != 0)
       // {
       //   LoggerFactory::getRunLogger().error(errno, "mount_container mount overlay2: %s", line);
       //   exit(1);
       // }
 
-      sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
-      if(mount("overlay", target, "overlay", 0, data) != 0) {
-        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
-        exit(1);
+
+      //sudo mount -t  overlay -o lowerdir={src},upperdir={diff},workdir={work} overlay {mount}
+      // 如果镜像文件存在
+      if(access(mnt_dir->src, F_OK) == 0) {
+        sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
+        if(mount("overlay", target, "overlay", 0, data) != 0) {
+          LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
+          exit(1);
+        }
       }
+     
     }
     else {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
@@ -245,7 +250,7 @@ void ContainerFs::umount_container(const char * container_id) {
     // }
     sprintf(line, "%s%s", rootfs, mnt_dir->target);
     if(umount2(line, MNT_DETACH) == -1) {
-      LoggerFactory::getRunLogger().error(errno, "umount_container : %s", line);
+      LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
     }
     
   }

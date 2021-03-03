@@ -29,6 +29,13 @@ static void usage()
 int main(int argc, char *argv[])
 {
   char *target;
+
+  // printf("euid = %d\n", geteuid());
+  if(geteuid() != 0) {
+    printf("Only root user can use %s\n", argv[0]);
+    exit(1);
+  }
+
   if (argc < 2)
   {
     usage();
@@ -38,6 +45,8 @@ int main(int argc, char *argv[])
   {
     target = argv[1];
   }
+
+
   
   ContainerFs::create_repo();
  

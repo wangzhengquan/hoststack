@@ -3,7 +3,7 @@
 #include <uuid.h>
 #include <sys/syscall.h>
 #include "container_dao.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_ls_cli.h"
 
 struct container_ls_arg_t {
@@ -80,13 +80,13 @@ void ContainerLsCli::handleCommand(int argc, char *argv[]) {
   }
 
 
-  std::vector<Container>* vector = ContainerDao::list();
+  std::vector<ContainerInfo>* vector = ContainerDao::list();
 
-  Container::showTitle();
+  ContainerInfo::showTitle();
   if(vector == NULL) {
     return;
   }
-  for(Container & info : *vector) {
+  for(ContainerInfo & info : *vector) {
     if(mopt.all || info.status == CONTAINER_RUNNING)
       info.show();
     // printf("%d\n", i++);

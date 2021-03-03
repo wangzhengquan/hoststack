@@ -3,7 +3,7 @@
 #include "logger_factory.h"
 
 #include "container_dao.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_start_cli.h"
 #include "container_service.h"
 
@@ -135,7 +135,7 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
 {
 
   
-  Container info = ContainerDao::get_container_by_id_or_name(containerName);
+  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
   if(info.id.empty()) {
     fprintf(stderr, "No container named %s \n", containerName);
     return;
@@ -158,6 +158,7 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
     info.pid = pid;
     info.start_time = time(0);
     info.status = CONTAINER_RUNNING;
+    info.abnormal_stoped = 1;
     ContainerDao::update(info);
   });
 }

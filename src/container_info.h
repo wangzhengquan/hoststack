@@ -1,5 +1,5 @@
-#ifndef __CONTAINER_H
-#define __CONTAINER_H
+#ifndef __CONTAINER_INFO_H
+#define __CONTAINER_INFO_H
 
 #include "usg_common.h"
 enum container_status_t {
@@ -7,7 +7,7 @@ enum container_status_t {
 	CONTAINER_STOPED	 
 };
 
-class Container {
+class ContainerInfo {
 public:
 	pid_t pid; // 容器在宿主机里的进程ID 
 	std::string id; // 容器ID
@@ -17,6 +17,7 @@ public:
 	time_t start_time; //启动时间
 	time_t stop_time; //停止时间
 	container_status_t status; //运行状态
+	int abnormal_stoped; // 异常退出
 	std::set<std::string> volume_list;
 
 private:
@@ -30,7 +31,7 @@ public:
 	std::string & getName();
 	void show();
 
-	friend std::ostream & operator<<(std::ostream & out, Container & info);
+	friend std::ostream & operator<<(std::ostream & out, ContainerInfo & info);
 
 } ;
 

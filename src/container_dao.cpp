@@ -4,12 +4,12 @@
 #include <jsoncpp/json.h>
 #include "container_dao.h"
 #include "path_assembler.h"
-#include "container.h"
+#include "container_info.h"
 #include "logger_factory.h"
 
 
 
-void ContainerDao::insert(const Container &info) {
+void ContainerDao::insert(const ContainerInfo &info) {
 	Json::Value root;
   
   Json::Reader jsonreader;
@@ -22,7 +22,6 @@ void ContainerDao::insert(const Container &info) {
   Json::Value infojson;
   de_pack_container_info(infojson, info);
 	 
-
   root.append(infojson);
 
   auto str = root.toStyledString();
@@ -38,7 +37,7 @@ void ContainerDao::insert(const Container &info) {
 
 
 void ContainerDao::delete_by_id(const char *containerName) {
-  Container info = ContainerDao::get_container_by_id_or_name(containerName);
+  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
  
 
   Json::Value oldRoot;
@@ -74,7 +73,7 @@ void ContainerDao::delete_by_id(const char *containerName) {
 }
 
 
-void ContainerDao::update(const Container &info) {
+void ContainerDao::update(const ContainerInfo &info) {
   Json::Value root;
   
   Json::Reader jsonreader;
@@ -114,8 +113,9 @@ void ContainerDao::update(const Container &info) {
  
 void ContainerDao::change_status_to_stop( const std::string & name) {
  
-  Container info = ContainerDao::get_container_by_id_or_name(name);
+  ContainerInfo info = ContainerDao::get_container_by_id_or_name(name);
   info.status = CONTAINER_STOPED;
+  info.abnormal_stoped = 0;
   info.stop_time = time(0);
   info.pid = 0;
   ContainerDao::update(info);
@@ -125,15 +125,15 @@ void ContainerDao::change_status_to_stop( const std::string & name) {
 
 
 
-Container ContainerDao::get_container_by_id(const std::string& value) {
+ContainerInfo ContainerDao::get_container_by_id(const std::string& value) {
   return get_container_by("id", value);
 }
 
-Container ContainerDao::get_container_by_name(const std::string& value) {
+ContainerInfo ContainerDao::get_container_by_name(const std::string& value) {
   return get_container_by("name", value);
 }
 
-Container ContainerDao::get_container_by(const char * name,const std::string& value) {
+ContainerInfo ContainerDao::get_container_by(const char * name,const std::string& value) {
   Json::Value root;
   char line[1024];
   
@@ -154,27 +154,27 @@ Container ContainerDao::get_container_by(const char * name,const std::string& va
 
   for(int i = 0; i < size; i++) {
     if(root[i][name].asString() == value) {
-      if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
-        sprintf(line, "/proc/%d", root[i]["pid"].asInt());
-        if(access(line, F_OK) == -1) {
-          root[i]["status"] = CONTAINER_STOPED;
-          root[i]["stop_time"] = (int)time(0);
-          root[i]["pid"] = 0;
-          auto str = root.toStyledString();
-          // std::cout << str << std::endl;
-          std::ofstream fout;
-          fout.open(kucker_data_file);
-          fout << str;
-          fout.close();
-        }
-      }
+      // if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+      //   sprintf(line, "/proc/%d", root[i]["pid"].asInt());
+      //   if(access(line, F_OK) == -1) {
+      //     root[i]["status"] = CONTAINER_STOPED;
+      //     root[i]["stop_time"] = (int)time(0);
+      //     root[i]["pid"] = 0;
+      //     auto str = root.toStyledString();
+      //     // std::cout << str << std::endl;
+      //     std::ofstream fout;
+      //     fout.open(kucker_data_file);
+      //     fout << str;
+      //     fout.close();
+      //   }
+      // }
       return pack_container_info(root[i]);
     }
   }
   return {};
 }
 
-Container ContainerDao::get_container_by_id_or_name(const std::string& value) {
+ContainerInfo ContainerDao::get_container_by_id_or_name(const std::string& value) {
   Json::Value root;
   char line[1024];
   
@@ -216,9 +216,9 @@ Container ContainerDao::get_container_by_id_or_name(const std::string& value) {
   return {};
 }
 
-std::vector<Container>* ContainerDao::list() {
+std::vector<ContainerInfo>* ContainerDao::list() {
   char line[1024];
-  std::vector<Container> * vector = new std::vector<Container>;
+  std::vector<ContainerInfo> * vector = new std::vector<ContainerInfo>;
   Json::Value root;
   bool dirty = false;
   
@@ -238,15 +238,15 @@ std::vector<Container>* ContainerDao::list() {
   }
 
   for(int i = 0; i < size; i++) {
-    if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
-      sprintf(line, "/proc/%d", root[i]["pid"].asInt());
-      if(access(line, F_OK) == -1) {
-        root[i]["status"] = CONTAINER_STOPED;
-        root[i]["stop_time"] = (int)time(0);
-        root[i]["pid"] = 0;
-        dirty = true;
-      }
-    }
+    // if(root[i]["status"].asInt() == CONTAINER_RUNNING) {
+    //   sprintf(line, "/proc/%d", root[i]["pid"].asInt());
+    //   if(access(line, F_OK) == -1) {
+    //     root[i]["status"] = CONTAINER_STOPED;
+    //     root[i]["stop_time"] = (int)time(0);
+    //     root[i]["pid"] = 0;
+    //     dirty = true;
+    //   }
+    // }
     vector->push_back(pack_container_info(root[i]));
   }
 
@@ -275,13 +275,14 @@ char* ContainerDao::gen_id(char *uuidstr)
 
 
 
-Container ContainerDao::pack_container_info(const Json::Value &jsonData) {
+ContainerInfo ContainerDao::pack_container_info(const Json::Value &jsonData) {
   int i = 0;
-  Container info = {};
+  ContainerInfo info = {};
   info.id = jsonData["id"].asString();
   info.name = jsonData["name"].asString();
   info.pid = jsonData["pid"].asInt();
   info.command = jsonData["command"].asString();
+
 
   Json::Value volume = jsonData["volume"];
   int vsize = volume.size();
@@ -293,10 +294,11 @@ Container ContainerDao::pack_container_info(const Json::Value &jsonData) {
   // info.volume = jsonData["volume"].asString();
   info.create_time = (time_t)jsonData["create_time"].asInt();
   info.status =  (container_status_t)jsonData["status"].asInt();
+  info.abnormal_stoped = jsonData["abnormal_stoped"].asInt();
   return info;
 }
 
-Json::Value & ContainerDao::de_pack_container_info(Json::Value &jsonData, const Container &info) {
+Json::Value & ContainerDao::de_pack_container_info(Json::Value &jsonData, const ContainerInfo &info) {
   jsonData["id"] = info.id;
   jsonData["name"] = info.name;
   jsonData["pid"] = info.pid;
@@ -305,6 +307,7 @@ Json::Value & ContainerDao::de_pack_container_info(Json::Value &jsonData, const 
   jsonData["start_time"] = (int)info.start_time;
   jsonData["stop_time"] = (int)info.stop_time;
   jsonData["status"] = info.status;
+  jsonData["abnormal_stoped"] = info.abnormal_stoped;
   Json::Value volume;
   if(info.volume_list.size() > 0) {
     for(std::string v: info.volume_list) {

@@ -5,7 +5,7 @@
 
 #include "container_dao.h"
 #include "container_fs.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_run_cli.h"
 #include "pty_exec_util.h"
 #include "container_service.h"
@@ -163,14 +163,11 @@ static void startContainer(container_run_arg_t mopt) {
   startOpt.cmd = mopt.cmd_arr;
   startOpt.detach = mopt.detach;
   startOpt.volume_list = &mopt.volume_list;
-  // if(mopt.volume_list != NULL) {
-    
-  //   // startOpt.volume_list_size = mopt.volume_list_size;
-  // }
+ 
   
   ContainerService::start(startOpt, [&](int pid){
     // -------save container info to json file
-    Container info = {};
+    ContainerInfo info = {};
     info.id = mopt.container_id;
     info.pid = pid;
     if(mopt.name != NULL) {
@@ -184,10 +181,8 @@ static void startContainer(container_run_arg_t mopt) {
     info.create_time = time(0);
     info.start_time = time(0);
     info.volume_list = mopt.volume_list;
-    // if (mopt.volume != NULL) {
-       
-    // }
     info.status = CONTAINER_RUNNING;
+    info.abnormal_stoped = 1;
     ContainerDao::insert(info);
     // ------save end---------
   });

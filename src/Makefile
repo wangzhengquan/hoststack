@@ -24,7 +24,7 @@ SOURCES := ./container_fs.c \
 					./cli/container_ls_cli.c \
 					./cli/container_rm_cli.c \
 					./cli/container_stop_cli.c \
-					./container.c \
+					./container_info.c \
 					./pty/pty_server.c \
 					./pty/pty_fork.c \
 					./pty/pty_exec_util.c \
@@ -33,7 +33,7 @@ SOURCES := ./container_fs.c \
 					./container_dao.c \
 
 
-PROGS =	$(DEST)/kucker
+PROGS =	$(DEST)/kucker $(DEST)/kucker_daemon
 
 DEPENDENCES = $(patsubst %, %.d, $(PROGS)) 
 
@@ -50,6 +50,7 @@ build:	 $(PROGS)
 
 # class
 $(DEST)/kucker : $(SOURCES)
+$(DEST)/kucker_daemon : $(SOURCES)
 
 
 clean:

@@ -1,7 +1,7 @@
-#include "container.h"
+#include "container_info.h"
 
 //重载输出运算符
-std::ostream & operator<<(std::ostream & out, Container & info){
+std::ostream & operator<<(std::ostream & out, ContainerInfo & info){
 	//ID NAME PID STATUS COMMAND CREATED 
 	char create_time_str[100];   
 	strftime(create_time_str, 100, "%Y-%m-%d %H:%M:%S", localtime(&info.create_time));
@@ -16,10 +16,10 @@ std::ostream & operator<<(std::ostream & out, Container & info){
   return out;
 }
 
-const char *Container::TITLE_FORMAT = "%-40s %-40s %-10d %-10s %-30s %-20s \n";
-const char *Container::INFO_FORMAT  = "%-40s %-40s %-10s %-10s %-30s %-20s \n";
+const char *ContainerInfo::INFO_FORMAT = "%-40s %-40s %-10d %-10s %-30s %-20s %-10d\n";
+const char *ContainerInfo::TITLE_FORMAT   = "%-40s %-40s %-10s %-10s %-30s %-20s \n";
 
-char *  Container::formatTime(const time_t time, char *_time_str) {
+char *  ContainerInfo::formatTime(const time_t time, char *_time_str) {
 	static char time_str[100];
 	char *tmp;
 	if(_time_str != NULL) {
@@ -31,22 +31,33 @@ char *  Container::formatTime(const time_t time, char *_time_str) {
 	return tmp;
 }
 
-void Container::show() {
-	printf(TITLE_FORMAT, 
+void ContainerInfo::show() {
+	char line[128];
+	// if(status == CONTAINER_RUNNING) {
+ //    sprintf(line, "/proc/%d", pid);
+ //    if(access(line, F_OK) == -1) {
+ //      status = CONTAINER_STOPED;
+ //      stop_time = (int)time(0);
+ //      pid = 0;
+ //    }
+ //  }
+	printf(INFO_FORMAT, 
 		id.c_str(), 
 		name.empty() ? id.c_str() : name.c_str(),
 		pid,
 		getStatusName().c_str(),
 		command.c_str(),
-		formatTime(create_time, 0)
+		formatTime(create_time, 0),
+		abnormal_stoped
 	);
 }
 
-void Container::showTitle() {
-	printf(INFO_FORMAT, "ID", "NAME", "PID",  "STATUS",  "COMMAND", "CREATED TIME");
+void ContainerInfo::showTitle() {
+	printf(TITLE_FORMAT, "ID", "NAME", "PID",  "STATUS",  "COMMAND", "CREATED TIME");
 }
 
-std::string Container::getStatusName() {
+std::string ContainerInfo::getStatusName() {
+
 	std::string status_name = "---";
 	switch (status) {
 		case CONTAINER_RUNNING:
@@ -61,6 +72,6 @@ std::string Container::getStatusName() {
 	return status_name;
 }
 
-std::string & Container::getName() {
+std::string & ContainerInfo::getName() {
 	return name.empty() ? id : name;
 }

@@ -6,7 +6,7 @@
 #include "container_fs.h"
 #include "container_dao.h"
 #include "container_service.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_rm_cli.h"
 
 struct container_rm_arg_t
@@ -116,7 +116,7 @@ void ContainerRMCli::handleCommand(int argc, char *argv[]) {
 }
 
 static void removeContainer(container_rm_arg_t &mopt, const char * containerName) {
-	Container info = ContainerDao::get_container_by_id_or_name(containerName);
+	ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
 	if(info.id.empty()) {
 		err_msg(0, "No container named %s", containerName);
 		return;

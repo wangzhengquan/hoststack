@@ -2,7 +2,7 @@
 #define __CONTAINER_FS_H
 
 #include "usg_common.h"
-#include "container.h"
+#include "container_info.h"
 #include "path_assembler.h"
 #include "logger_factory.h"
 

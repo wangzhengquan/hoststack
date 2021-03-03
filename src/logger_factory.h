@@ -36,6 +36,18 @@ public:
 		return logger;
 	}
 
+	static Logger& getKuckerDaemonLogger() {
+//ERROR ALL DEBUG INFO WARN
+		LoggerConfig config;
+		config.level = Logger::DEBUG;
+		char logFile[1024];
+		sprintf(logFile, "%s/kucker_daemon.log", kucker_repo);
+		config.logFile = logFile;
+		config.console = 1;
+		static Logger logger(config);
+		return logger;
+	}
+
 	static void logPgrp(const char *id) {
 		printf("%s: pid=%d, pgrp=%d, foreground process group=%d, getsid=%d, stdin is a terminal=%d\n",
    		id, getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));

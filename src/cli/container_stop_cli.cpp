@@ -4,7 +4,7 @@
 #include <sys/syscall.h>
 
 #include "container_service.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_stop_cli.h"
 
 void ContainerStopCli::usage()

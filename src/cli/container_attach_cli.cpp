@@ -4,7 +4,7 @@
 #include <sys/syscall.h>
 
 #include "container_dao.h"
-#include "container.h"
+#include "container_info.h"
 #include "container_attach_cli.h"
 #include "pty_exec_util.h"
 
@@ -36,7 +36,11 @@ void ContainerAttachCli::handleCommand(int argc, char *argv[]) {
 
 
   char *containerName = argv[1];
-  Container info = ContainerDao::get_container_by_id_or_name(containerName);
+  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
+  if(info.status == CONTAINER_STOPED) {
+    printf("Conatiner %s is not in running status!\n", info.name.c_str());
+    return ;
+  }
 
   pty_exe_opt_t execOpt = {};
   execOpt.detach = false;

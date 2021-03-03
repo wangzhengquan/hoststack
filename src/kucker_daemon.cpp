@@ -17,6 +17,7 @@ void usage(const char *name) {
 	printf("Usage: %s {kucker-path}");
 }
 
+
 void recheck(std::string &id) {
 	sleep(3);
 	char line[526];
@@ -32,6 +33,10 @@ void recheck(std::string &id) {
     	logger.info("start %s\n\n\n\n", info.name.c_str());
     }
   }
+}
+
+void *run_restart(void *sockt) {
+  pthread_detach(pthread_self());
 }
 
 int main(int argc, char *argv[])
@@ -62,6 +67,7 @@ int main(int argc, char *argv[])
 		    sprintf(line, "/proc/%d", info.pid);
 		    if(access(line, F_OK) == -1) {
 		     	recheck(info.id);
+		     	 // pthread_create(&tid, NULL, proxy_server_handler, serverSocket);
 		    }
 		  }
 	    // if(info.status == CONTAINER_STOPED && info.abnormal_stoped == 1) {

@@ -7,12 +7,6 @@
 #include "container_start_cli.h"
 #include "container_service.h"
 
-
-
-// static int containerPid;
-// static char * containerId;
-
-
 struct container_start_arg_t
 {
   bool detach;
@@ -147,7 +141,7 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
   container_start_option_t startOpt = {};
   startOpt.containerId = info.id.c_str();
   printf("info.command=%s\n", info.command.c_str());
-  startOpt.cmd = str_split(info.command.c_str(), BLANK, 0);
+  str_split(info.command.c_str(), BLANK, &(startOpt.cmd) );
   startOpt.detach = mopt.detach;
   startOpt.volume_list = &info.volume_list;
   // if(!info.volume.empty()) {

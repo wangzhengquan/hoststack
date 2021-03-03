@@ -1,3 +1,6 @@
+#ifndef __SOCKET_IO_H__
+#define __SOCKET_IO_H__
+
 #include "usg_common.h"
 
 /* Simplifies calls to bind(), connect(), and accept() */
@@ -17,22 +20,24 @@ typedef struct {
 } rio_t;
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);
-ssize_t rio_writen(int fd, void *usrbuf, size_t n);
+ssize_t rio_writen(int fd, const void *usrbuf, size_t n);
 void rio_readinitb(rio_t *rp, int fd); 
 ssize_t	rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t	rio_readlineb(rio_t *rp, char *usrbuf, size_t maxlen);
 
 /* Wrappers for Rio package */
 ssize_t Rio_readn(int fd, void *usrbuf, size_t n);
-void Rio_writen(int fd, void *usrbuf, size_t n);
+void Rio_writen(int fd, const void *usrbuf, size_t n);
 void Rio_readinitb(rio_t *rp, int fd); 
 ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t Rio_readlineb(rio_t *rp, char *usrbuf, size_t maxlen);
 
 /* Reentrant protocol-independent client/server helpers */
-int open_clientfd(char *hostname, char *port);
-int open_listenfd(char *port);
+int open_clientfd(const char *hostname, const char *port);
+int open_listenfd(const char *port);
 
 /* Wrappers for reentrant protocol-independent client/server helpers */
-int Open_clientfd(char *hostname, char *port);
-int Open_listenfd(char *port);
+int Open_clientfd(const char *hostname, const char *port);
+int Open_listenfd(const char *port);
+void Close(int fd);
+#endif

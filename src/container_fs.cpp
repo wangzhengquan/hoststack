@@ -47,7 +47,12 @@ void ContainerFs::create_repo() {
 void ContainerFs::create_container(const char *container_id)
 {
   // const char *unionfs = PathAssembler::getUnionFS(NULL);
+  int i=0;
   char line[1024];
+  char *fslist[] = {"bin",  "dev/pts", "dev/shm", "etc",  "home", 
+            "lib",  "lib64",  "mnt",  "opt",  "proc",  "root",  "run", 
+            "sbin",  "sys",  "tmp",  "usr",  "var", NULL};
+
   sprintf(line, "%s/containers/%s", kucker_repo, container_id);
   if (mkdir_r(line, DIR_MODE) != 0)
   {
@@ -70,11 +75,13 @@ void ContainerFs::create_container(const char *container_id)
     LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
   }
 
-  sprintf(line, "cd %s && sudo mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var", 
-    PathAssembler::getMergedDir(container_id, NULL));
-  if (system(line) != 0)
-  {
-    LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
+  for(i = 0; fslist[i] != NULL; i++) {
+    sprintf(line, "%s/%s", PathAssembler::getMergedDir(container_id, NULL),  fslist[i]);
+
+    if (mkdir_r(line, DIR_MODE) != 0)
+    {
+      LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
+    }
   }
 
 }
@@ -188,6 +195,34 @@ void ContainerFs::mount_container(const char * container_id)
   }
 }
 
+void ContainerFs::umount_container(const char * container_id) {
+  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
+  char line[1024];
+
+  size_t i = 0;
+ 
+  while( mnt_dir_arr[i].src != NULL ) {
+    i++;
+  }
+
+  mnt_dir_t *mnt_dir ;
+  while ( i-- > 0) {
+    mnt_dir = &mnt_dir_arr[i];
+
+    if(access(mnt_dir->src, F_OK) == 0) {
+      // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
+      // if (system(line) != 0) {
+      //   LoggerFactory::getRunLogger().error(errno, line);
+      // }
+      sprintf(line, "%s%s", rootfs, mnt_dir->target);
+      if(umount2(line, MNT_DETACH) == -1) {
+        LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
+      }
+    }
+  }
+
+  umount_volume_list(container_id);
+}
 void ContainerFs::mount_volume_list (const char *container_id, std::set<std::string> &volume_list) {
   if(volume_list.size() == 0) {
     return;
@@ -231,32 +266,6 @@ void ContainerFs::mount_volume (const char *container_id, const char *_volume) {
   }
 }
 
-void ContainerFs::umount_container(const char * container_id) {
-  const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
-  char line[1024];
-
-  size_t i = 0;
- 
-  while( mnt_dir_arr[i].src != NULL ) {
-    i++;
-  }
-
-  mnt_dir_t *mnt_dir ;
-  while ( i-- > 0) {
-    mnt_dir = &mnt_dir_arr[i];
-    // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
-    // if (system(line) != 0) {
-    //   LoggerFactory::getRunLogger().error(errno, line);
-    // }
-    sprintf(line, "%s%s", rootfs, mnt_dir->target);
-    if(umount2(line, MNT_DETACH) == -1) {
-      LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
-    }
-    
-  }
-
-  umount_volume_list(container_id);
-}
 
 
 void ContainerFs::umount_volume_list (const char *container_id) {

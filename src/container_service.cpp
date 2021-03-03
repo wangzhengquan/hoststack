@@ -20,9 +20,9 @@ static void exitHandler(void)
   if(containerId != NULL) {
     ContainerFs::umount_container(containerId);
     ContainerDao::change_status_to_stop(containerId);
-    LoggerFactory::getRunLogger().info("exitHandler containerId=%s", containerId); 
+    LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
   } else {
-    LoggerFactory::getRunLogger().info("exitHandler containerId=NULL"); 
+    LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
   }
  
 }

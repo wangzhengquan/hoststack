@@ -29,7 +29,7 @@ void recheck(std::string &id) {
     	sprintf(line, "sudo %s start -d %s", kucker, info.name.c_str());
     	system(line);
     	printf("2 start %s\n", info.name.c_str());
-    	logger.info("start %s", info.name.c_str());
+    	logger.info("start %s\n\n\n\n", info.name.c_str());
     }
   }
 }
@@ -38,7 +38,11 @@ int main(int argc, char *argv[])
 {
 
 	char line[526];
-	
+
+	if(geteuid() != 0) {
+    printf("权限不够, 请查看您是否正以 root 用户运行\n");
+    exit(1);
+  }
 	// char *kuckerPath = NULL;
 	if(argc == 2 ) {
 		// kuckerPath = argv[0];

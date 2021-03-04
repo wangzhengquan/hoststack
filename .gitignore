@@ -33,7 +33,9 @@
 
 .vscode/
 .idea
-build/
 *.tmp
 *.log
 core
+
+cmake-build-debug/
+build/

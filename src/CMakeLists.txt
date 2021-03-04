@@ -47,13 +47,13 @@ add_custom_command(
   )
 add_custom_target("genmd5" ALL DEPENDS ${PROJECT_BINARY_DIR}/bin/backer.md5)
 
-#backer_daemon
-add_executable(backer_daemon  kucker_daemon.cpp ${_SOURCES_})
-target_include_directories(backer_daemon PUBLIC  ${_INCLUDES_} ${EXTRA_INCLUDES} )
-target_link_libraries(backer_daemon PUBLIC  ${EXTRA_LIBS} ) 
+#backer_supervisor
+add_executable(backer_supervisor  kucker_supervisor.cpp ${_SOURCES_})
+target_include_directories(backer_supervisor PUBLIC  ${_INCLUDES_} ${EXTRA_INCLUDES} )
+target_link_libraries(backer_supervisor PUBLIC  ${EXTRA_LIBS} ) 
 
 # install rules
-install(TARGETS backer backer_daemon  DESTINATION bin)
+install(TARGETS backer backer_supervisor  DESTINATION bin)
 
 # setup installer
 include(InstallRequiredSystemLibraries)

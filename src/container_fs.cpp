@@ -49,7 +49,7 @@ void ContainerFs::create_container(const char *container_id)
   // const char *unionfs = PathAssembler::getUnionFS(NULL);
   int i=0;
   char line[1024];
-  char *fslist[] = {"bin",  "dev/pts", "dev/shm", "etc",  "home", 
+  const char *fslist[] = {"bin",  "dev/pts", "dev/shm", "etc",  "home", 
             "lib",  "lib64",  "mnt",  "opt",  "proc",  "root",  "run", 
             "sbin",  "sys",  "tmp",  "usr",  "var", NULL};
 

@@ -80,6 +80,8 @@ static void redirectStdOut() {
   }
 }
 
+
+// 在已建立的容器里执行命令， 并通过虚拟终端与其交互
 int pty_exec(pty_exe_opt_t arg)
 {
 
@@ -188,7 +190,7 @@ int pty_exec(pty_exe_opt_t arg)
   }
 }
 
-
+// 容器虚拟终端服务端
 int pty_proxy_exec(pty_exe_opt_t arg)
 {
   char slaveName[MAX_SNAME];
@@ -309,6 +311,89 @@ int pty_proxy_exec(pty_exe_opt_t arg)
 }
 
 
+// 容器虚拟终端客户端
+int pty_client(pty_exe_opt_t arg) {
+  int clientfd;
+  struct sockaddr_un  addr ;
+  
+  char buf[BUF_SIZE];
+  ssize_t n;
+  // struct request req;
+  fd_set read_set, ready_set;
+
+ 
+
+  clientfd = socket( AF_UNIX , SOCK_STREAM , 0) ;
+  if( clientfd == -1 )
+  {
+    err_exit(errno, "pty_client socket failed\n"  );
+    return -1;
+  }
+  memset( &addr, 0 , sizeof(struct sockaddr_un) );
+  addr.sun_family = AF_UNIX ;
+  snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+  
+  if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
+    err_exit(errno, "pty_client connect");
+  }
+  
+  
+ /* Place terminal in raw mode so that we can pass all terminal
+  input to the pseudoterminal master untouched */
+  tcgetattr(STDIN_FILENO , &ttyOrig );
+  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
+  cfmakeraw( &g_termios_raw );
+  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
+
+  if (atexit(ttyReset) != 0)
+    err_msg(errno, "pty_client >> atexit");
+
+  FD_ZERO(&read_set);
+  FD_SET(STDIN_FILENO, &read_set);
+  FD_SET(clientfd, &read_set);
+
+  snprintf(buf, BUF_SIZE, "\n");
+  if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
+    err_msg(errno, "partial/failed write (masterFd)");
+  /* Loop monitoring terminal and pty master for input. If the
+     terminal is ready for input, then read some bytes and write
+     them to the pty master. If the pty master is ready for input,
+     then read some bytes and write them to the terminal. */
+  while(1)
+  {
+    ready_set = read_set;
+    if (select(clientfd + 1, &ready_set, NULL, NULL, NULL) == -1)
+      err_msg(errno, "select");
+
+    
+    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
+    {
+      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
+        
+        exit(EXIT_SUCCESS);
+      }
+        
+      if (rio_writen(clientfd, buf, n) !=  n)
+        err_exit(errno, "partial/failed write (masterFd)");
+    }
+
+    if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
+    {
+      if ((n = read(clientfd, buf, BUF_SIZE)) <= 0) {
+        exit(EXIT_SUCCESS);
+      }
+
+      if (rio_writen(STDOUT_FILENO, buf, n) != n)
+        err_exit(errno, "partial/failed write (STDOUT_FILENO)");
+      
+    }
+  }
+
+}
+
+
+
+
 /* $begin init_pool */
 void init_pool(int listenfd, int masterfd, pool *p)
 {
@@ -414,87 +499,6 @@ void check_clients_and_master(pool *p)
           }
         }
       }
-    }
-  }
-
-}
-
-
-
-int pty_client(pty_exe_opt_t arg) {
-  int clientfd;
-  struct sockaddr_un  addr ;
-  
-  char buf[BUF_SIZE];
-  ssize_t n;
-  // struct request req;
-  fd_set read_set, ready_set;
-
- 
-
-  clientfd = socket( AF_UNIX , SOCK_STREAM , 0) ;
-  if( clientfd == -1 )
-  {
-    err_exit(errno, "pty_client socket failed\n"  );
-    return -1;
-  }
-  memset( &addr, 0 , sizeof(struct sockaddr_un) );
-  addr.sun_family = AF_UNIX ;
-  snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
-  
-  if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
-    err_exit(errno, "pty_client connect");
-  }
-  
-  
- /* Place terminal in raw mode so that we can pass all terminal
-  input to the pseudoterminal master untouched */
-  tcgetattr(STDIN_FILENO , &ttyOrig );
-  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
-  cfmakeraw( &g_termios_raw );
-  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
-
-  if (atexit(ttyReset) != 0)
-    err_msg(errno, "pty_client >> atexit");
-
-  FD_ZERO(&read_set);
-  FD_SET(STDIN_FILENO, &read_set);
-  FD_SET(clientfd, &read_set);
-
-  snprintf(buf, BUF_SIZE, "\n");
-  if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
-    err_msg(errno, "partial/failed write (masterFd)");
-  /* Loop monitoring terminal and pty master for input. If the
-     terminal is ready for input, then read some bytes and write
-     them to the pty master. If the pty master is ready for input,
-     then read some bytes and write them to the terminal. */
-  while(1)
-  {
-    ready_set = read_set;
-    if (select(clientfd + 1, &ready_set, NULL, NULL, NULL) == -1)
-      err_msg(errno, "select");
-
-    
-    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
-    {
-      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
-        
-        exit(EXIT_SUCCESS);
-      }
-        
-      if (rio_writen(clientfd, buf, n) !=  n)
-        err_exit(errno, "partial/failed write (masterFd)");
-    }
-
-    if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
-    {
-      if ((n = read(clientfd, buf, BUF_SIZE)) <= 0) {
-        exit(EXIT_SUCCESS);
-      }
-
-      if (rio_writen(STDOUT_FILENO, buf, n) != n)
-        err_exit(errno, "partial/failed write (STDOUT_FILENO)");
-      
     }
   }
 

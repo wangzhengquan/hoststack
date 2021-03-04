@@ -7,17 +7,6 @@
 #include "container_start_cli.h"
 #include "container_service.h"
 
-struct container_start_arg_t
-{
-  bool detach;
-  char * containerName; // container identify
-  // char **container_arr;
-  // int container_arr_len;
-} ;
-
-
-static void startContainer(container_start_arg_t & mopt, char * containerName);
- 
 
 void ContainerStartCli::usage()
 {
@@ -117,21 +106,29 @@ void ContainerStartCli::handleCommand (int argc, char *argv[])
   //   startContainer(mopt.container_arr[i]);
   // }
 
-  // mopt.containerName = ;
-  startContainer(mopt, container_arr[0]);
+  mopt.containerName = container_arr[0];
+
+
+  /* Retrieve the attributes of terminal on which we are started */
+  struct termios ttyOrig;
+  struct winsize ws;
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
+  startContainer(mopt,  &ttyOrig, &ws);
 
 
 }
 
 
 
-static void startContainer(container_start_arg_t & mopt, char * containerName)
+void ContainerStartCli::startContainer(container_start_arg_t & mopt, struct termios *ttyAttr,  struct winsize *ttyWs)
 {
-
-  
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
+  ContainerInfo info = ContainerDao::get_container_by_id_or_name(mopt.containerName);
   if(info.id.empty()) {
-    fprintf(stderr, "No container named %s \n", containerName);
+    fprintf(stderr, "No container named %s \n", mopt.containerName);
     return;
   }
   if(info.status == CONTAINER_RUNNING) {
@@ -144,9 +141,9 @@ static void startContainer(container_start_arg_t & mopt, char * containerName)
   str_split(info.command.c_str(), BLANK, &(startOpt.cmd) );
   startOpt.detach = mopt.detach;
   startOpt.volume_list = &info.volume_list;
-  // if(!info.volume.empty()) {
-    
-  // }
+  startOpt.ttyAttr = ttyAttr;
+  startOpt.ttyWs = ttyWs;
+
   
   ContainerService::start(startOpt, [&](int pid){
     info.pid = pid;

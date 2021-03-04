@@ -184,10 +184,9 @@ void ContainerFs::mount_container(const char * container_id)
     }
     else {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
-      //printf("mount_container: %s\n", line);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "mount_container: %s", line);
+        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: %s", line);
       }
     }
     mnt_dir = &mnt_dir_arr[i];

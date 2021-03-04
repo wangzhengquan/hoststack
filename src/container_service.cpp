@@ -20,9 +20,9 @@ static void exitHandler(void)
   if(containerId != NULL) {
     ContainerFs::umount_container(containerId);
     ContainerDao::change_status_to_stop(containerId);
-    LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
+    // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
   } else {
-    LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
+    // LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
   }
  
 }
@@ -70,6 +70,8 @@ static int container_run_main(void* arg)
   ptyopt.containerId = startOpt.containerId;
   ptyopt.cmd = startOpt.cmd;
   ptyopt.detach = startOpt.detach;
+  ptyopt.ttyAttr = startOpt.ttyAttr;
+  ptyopt.ttyWs = startOpt.ttyWs;
   
   pty_proxy_exec(ptyopt);
  // pty_exec(ptyopt);

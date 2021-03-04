@@ -11,8 +11,10 @@ struct container_start_option_t
   char **cmd;
   bool detach;
   std::set<std::string> *volume_list;
-  // const char **volume_list;
-  // int volume_list_size;
+  
+  struct winsize *ttyWs;
+  struct termios *ttyAttr;
+  
 } ;
 
 class ContainerService {

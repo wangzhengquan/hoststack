@@ -8,13 +8,22 @@
 #include "container_fs.h"
 #include "logger_factory.h"
 #include "container_dao.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 
 static Logger& logger = LoggerFactory::getKuckerDaemonLogger();
 
-static char kucker[256];
+// static char kucker[256];
+
+static struct termios ttyOrig = {};
+static struct winsize ws= {};
 
 void usage(const char *name) {
-	printf("Usage: %s {kucker-path}");
+	printf("Usage: %s", name);
 }
 
 
@@ -37,7 +46,7 @@ void usage(const char *name) {
 
 void *run_checkandrestart(void *ptr) {
   pthread_detach(pthread_self());
-  
+  container_start_arg_t mopt = {};
 	char line[526];
 	std::string *id = (std::string *)ptr;
 	sleep(3);
@@ -47,9 +56,13 @@ void *run_checkandrestart(void *ptr) {
     sprintf(line, "/proc/%d", info.pid);
     if(access(line, F_OK) == -1) {
     	ContainerDao::change_status_to_stop(info.id);
-    	printf("1 start %s\n", info.name.c_str());
-    	sprintf(line, "sudo %s start -d %s", kucker, info.name.c_str());
-    	system(line);
+    	// printf("1 start %s\n", info.name.c_str());
+    	// sprintf(line, "sudo %s start -d %s", kucker, info.name.c_str());
+    	// system(line);
+    	mopt.detach = true;
+    	mopt.containerName = info.id.c_str();
+    	ContainerStartCli::startContainer(mopt,  &ttyOrig, &ws);
+
     	printf("2 start %s\n", info.name.c_str());
     	logger.info("start %s\n\n\n\n", info.name.c_str());
     }
@@ -68,12 +81,21 @@ int main(int argc, char *argv[])
     exit(1);
   }
 	// char *kuckerPath = NULL;
-	if(argc == 2 ) {
-		// kuckerPath = argv[0];
-		sprintf(kucker, "%s/backer",  argv[1]);
-	} else {
-		sprintf(kucker, "backer" );
-	}
+	// if(argc == 2 ) {
+	// 	// kuckerPath = argv[0];
+	// 	sprintf(kucker, "%s/backer",  argv[1]);
+	// } else {
+	// 	sprintf(kucker, "backer" );
+	// }
+
+	
+
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
+  
 
 	if(daemon(1, 1) != 0) {
     logger.error(errno, "kucker_supervisor daemon");

@@ -11,21 +11,8 @@
 #include "container_service.h"
  
 
-struct container_run_arg_t {
-  bool detach;
-  std::set<std::string> volume_list;
-  // char *volume_list[16];
-  // int volume_list_size;
-  char *name;
-  char ** cmd_arr;
-  int cmd_arr_len;
-  char *container_id;
-} ;
 
- 
 
-static void startContainer(container_run_arg_t mopt);
-  
 
 void ContainerRunCli::usage()
 {
@@ -154,15 +141,27 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   mopt.container_id = container_id;
 
   ContainerFs::create_container(container_id);
-  startContainer(mopt);
+
+  struct termios ttyOrig;
+  struct winsize ws;
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
+  
+
+  startContainer(mopt, &ttyOrig, &ws);
 }
 
-static void startContainer(container_run_arg_t mopt) {
+void ContainerRunCli::startContainer( container_run_arg_t &mopt, struct termios *ttyAttr,  struct winsize *ttyWs) {
   container_start_option_t startOpt = {};
   startOpt.containerId =  mopt.container_id;
   startOpt.cmd = mopt.cmd_arr;
   startOpt.detach = mopt.detach;
   startOpt.volume_list = &mopt.volume_list;
+  startOpt.ttyAttr = ttyAttr;
+  startOpt.ttyWs = ttyWs;
  
   
   ContainerService::start(startOpt, [&](int pid){

@@ -3,10 +3,12 @@
 
 struct pty_exe_opt_t
 {
-	const char *containerId;
-  char **cmd;
-  bool detach;
-  int synchSem;
+	const char *containerId; // 容器id
+  char **cmd;    // 运行容器的命令
+  bool detach;   // 容器是否后台运行
+  int synchSem;  // 通知用的信号量id
+  struct winsize *ttyWs; //终端窗口大小
+  struct termios *ttyAttr; //终端属性
 };
 
 int pty_exec(pty_exe_opt_t arg);

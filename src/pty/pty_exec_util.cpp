@@ -81,7 +81,7 @@ static void redirectStdOut() {
 }
 
 
-// 在已建立的容器里执行命令， 并通过虚拟终端与其交互
+// 在正在运行的容器里执行命令， 并通过虚拟终端与其交互
 int pty_exec(pty_exe_opt_t arg)
 {
 
@@ -190,26 +190,27 @@ int pty_exec(pty_exe_opt_t arg)
   }
 }
 
+/* Retrieve the attributes of terminal on which we are started */
+//  struct termios ttyOrig;
+ // struct winsize ws;
+ // if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+ //    err_msg(errno, "tcgetattr");
+ //  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+ //    err_msg(errno, "ioctl-TIOCGWINSZ");
+
 // 容器虚拟终端服务端
 int pty_proxy_exec(pty_exe_opt_t arg)
 {
   char slaveName[MAX_SNAME];
   int masterFd;
-  struct winsize ws;
+ 
   pid_t childPid;
   const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
-  /* Retrieve the attributes of terminal on which we are started */
-
-  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
-    err_msg(errno, "tcgetattr");
-  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
-    err_msg(errno, "ioctl-TIOCGWINSZ");
-
+  
   /* Create a child process, with parent and child connected via a
      pty pair. The child is connected to the pty slave and its terminal
      attributes are set to be the same as those retrieved above. */
-
-  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
+  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
   if (childPid == -1)
     err_msg(errno, "ptyFork");
 

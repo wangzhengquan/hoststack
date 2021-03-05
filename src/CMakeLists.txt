@@ -53,11 +53,8 @@ target_include_directories(backer_supervisor PUBLIC  ${_INCLUDES_} ${EXTRA_INCLU
 target_link_libraries(backer_supervisor PUBLIC  ${EXTRA_LIBS} ) 
 
 # install rules
+# include(GNUInstallDirs)
 install(TARGETS backer backer_supervisor  DESTINATION bin)
 
-# setup installer
-include(InstallRequiredSystemLibraries)
-set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/License.txt")
-set(CPACK_PACKAGE_VERSION_MAJOR "${KUCKER_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${KUCKER_VERSION_MINOR}")
-include(CPack)
+
+

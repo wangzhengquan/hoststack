@@ -51,10 +51,14 @@ cd build
 # -DBUILD_SHARED_LIBS=ON
 # -DCMAKE_INSTALL_PREFIX=$(pwd/../dest)
 # -DQCA_MAN_INSTALL_DIR:PATH=/usr/share/man 
-cmake -DCMAKE_INSTALL_PREFIX="$(pwd)/../dest" -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} \
-  -DBUILD_DOC=${BUILD_DOC} -DSUPPORT_RDMA=OFF ..
+cmake -DCMAKE_INSTALL_PREFIX="$(pwd)/../dest" \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} \
+  -DBUILD_DOC=${BUILD_DOC} ..
 
 cmake --build .
+
+cpack
 
 # cmake --build . --target install
  

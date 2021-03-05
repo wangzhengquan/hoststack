@@ -38,5 +38,17 @@ if (BUILD_DOC)
     add_subdirectory(${PROJECT_SOURCE_DIR}/doc)
 else()
 	add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+	add_subdirectory(${PROJECT_SOURCE_DIR}/etc)
 	 
 endif()
+
+
+# setup installer
+include(InstallRequiredSystemLibraries)
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/License.txt")
+set(CPACK_PACKAGE_VERSION_MAJOR "${KUCKER_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${KUCKER_VERSION_MINOR}")
+include(CPack)
+
+configure_file(install.sh.in install.sh @ONLY)
+

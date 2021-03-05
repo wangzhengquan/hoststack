@@ -61,7 +61,7 @@ void *run_checkandrestart(void *ptr) {
     	// system(line);
     	mopt.detach = true;
     	mopt.containerName = info.id.c_str();
-    	ContainerStartCli::startContainer(mopt,  &ttyOrig, &ws);
+    	ContainerStartCli::startContainer(mopt,  NULL, &ws);
 
     	printf("2 start %s\n", info.name.c_str());
     	logger.info("start %s\n\n\n\n", info.name.c_str());
@@ -90,12 +90,14 @@ int main(int argc, char *argv[])
 
 	
 
-  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
-    err_msg(errno, "tcgetattr");
-  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
-    err_msg(errno, "ioctl-TIOCGWINSZ");
+  // if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+  //   err_msg(errno, "tcgetattr");
+  // if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+  //   err_msg(errno, "ioctl-TIOCGWINSZ");
 
-  
+  ws.ws_row = 67;
+	ws.ws_col = 204;
+
 
 	if(daemon(1, 1) != 0) {
     logger.error(errno, "kucker_supervisor daemon");

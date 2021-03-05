@@ -39,7 +39,7 @@ if (BUILD_DOC)
 else()
 	add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/etc)
-	 
+	add_subdirectory(${PROJECT_SOURCE_DIR}/test) 
 endif()
 
 

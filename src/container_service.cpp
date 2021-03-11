@@ -57,18 +57,19 @@ static int container_run_main(void* arg)
   if (atexit(exitHandler) != 0)
     err_msg(errno, "container_run_main >> atexit");
 
-  ContainerFs::mount_container(startOpt.containerId);
-  // 容器卷
-  if (startOpt.volume_list != NULL )
-  {
-     ContainerFs::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
-  }
+  // ContainerFs::mount_container(startOpt.containerId);
+  // // 容器卷
+  // if (startOpt.volume_list != NULL )
+  // {
+  //    ContainerFs::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
+  // }
 
   pty_exe_opt_t ptyopt = {};
   ptyopt.synchSem = synchSem;
   ptyopt.containerId = startOpt.containerId;
   ptyopt.cmd = startOpt.cmd;
   ptyopt.detach = startOpt.detach;
+  ptyopt.volume_list = startOpt.volume_list;
   ptyopt.ttyAttr = startOpt.ttyAttr;
   ptyopt.ttyWs = startOpt.ttyWs;
   
@@ -99,14 +100,14 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
   if (childPid == -1)                 /* fork() failed */
   {
     err_exit(errno, "fork");
-    return -1;
+    return;
   }
 
-  if (childPid == 0)                  /* Parent */
+  if (childPid == 0)                  
   {
-    container_run_main(&startOpt);/* Only parent gets master fd */
-    startSuccess(childPid);
-    return ;                /* Like parent of fork() */
+    container_run_main(&startOpt); 
+    startSuccess(getpid());
+    return ;                
   }
 
   

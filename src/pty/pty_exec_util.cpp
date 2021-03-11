@@ -16,6 +16,7 @@
 #include "socket_io.h"
 #include "sem_util.h"
 #include "path_assembler.h"
+#include "container_fs.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
@@ -201,7 +202,6 @@ int pty_exec(pty_exe_opt_t arg)
 
 int pty_run_container(pty_exe_opt_t arg)
 {
-  // char slaveName[MAX_SNAME];
   int masterFd;
  
   pid_t childPid;
@@ -211,7 +211,13 @@ int pty_run_container(pty_exe_opt_t arg)
      pty pair. The child is connected to the pty slave and its terminal
      attributes are set to be the same as those retrieved above. */
   // childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
-  childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *arg){
+  childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *__arg){
+    ContainerFs::mount_container(arg.containerId);
+    // 容器卷
+    if (arg.volume_list != NULL )
+    {
+      ContainerFs::mount_volume_list(arg.containerId,  *arg.volume_list);
+    }
      /* chroot 隔离目录 */
     if ( chdir(rootfs) != 0 || chroot("./") != 0 )
     {
@@ -226,6 +232,7 @@ int pty_run_container(pty_exe_opt_t arg)
 
     execvp(arg.cmd[0], arg.cmd);
     err_msg(errno, "pty_proxy_exec execvp : %s", arg.cmd[0]);
+    return 1;
   });
 
   if (childPid == -1)

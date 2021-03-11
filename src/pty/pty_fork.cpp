@@ -120,7 +120,7 @@ struct PtyRunArg
   char * slname;
   const struct termios *slaveTermios;
   const struct winsize *slaveWS;
-  int (*fn)(void *);
+  std::function<int(void *)> fn;
   void *fnArg;
 };
 
@@ -216,7 +216,7 @@ int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, 
   if (stack == MAP_FAILED)
     err_exit(0, "handle_run_command mmap:");
 
-  int childPid = clone(_ptyCloneRun, (char *)stack + STACK_SIZE,
+  childPid = clone(_ptyCloneRun, (char *)stack + STACK_SIZE,
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &ptyRunArg);
  
   // childPid = clone(_ptyCloneRun, child_stack, flags, &ptyRunArg);

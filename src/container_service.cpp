@@ -59,7 +59,6 @@ static int container_run_main(void* arg)
 
   ContainerFs::mount_container(startOpt.containerId);
   // 容器卷
-
   if (startOpt.volume_list != NULL )
   {
      ContainerFs::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);

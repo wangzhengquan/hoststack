@@ -222,6 +222,7 @@ void ContainerFs::umount_container(const char * container_id) {
 
   umount_volume_list(container_id);
 }
+
 void ContainerFs::mount_volume_list (const char *container_id, std::set<std::string> &volume_list) {
   if(volume_list.size() == 0) {
     return;

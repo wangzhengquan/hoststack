@@ -198,8 +198,123 @@ int pty_exec(pty_exe_opt_t arg)
  //  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
  //    err_msg(errno, "ioctl-TIOCGWINSZ");
 
+
+int pty_run_container(pty_exe_opt_t arg)
+{
+  // char slaveName[MAX_SNAME];
+  int masterFd;
+ 
+  pid_t childPid;
+  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
+  
+  /* Create a child process, with parent and child connected via a
+     pty pair. The child is connected to the pty slave and its terminal
+     attributes are set to be the same as those retrieved above. */
+  // childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
+  childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *arg){
+     /* chroot 隔离目录 */
+    if ( chdir(rootfs) != 0 || chroot("./") != 0 )
+    {
+      err_msg(errno, "chdir/chroot:%s", rootfs);
+    }
+
+
+    if (system("sudo touch /usr/lib/tmp") != 0)
+    {
+      err_msg(errno, "touch /usr/lib/tmp");
+    }
+
+    execvp(arg.cmd[0], arg.cmd);
+    err_msg(errno, "pty_proxy_exec execvp : %s", arg.cmd[0]);
+  });
+
+  if (childPid == -1)
+    err_exit(errno, "ptyClone");
+ 
+  /*==============exec end==============*/
+
+ 
+  if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
+
+  int     listenfd , connfd;
+  struct sockaddr_un  listen_addr, clientaddr ;
+  static pool pool;
+  socklen_t     clientlen ;
+ 
+
+  /* Create well-known FIFO, and open it for reading */
+  listenfd = socket( AF_UNIX , SOCK_STREAM , 0 ) ;
+  if( listenfd == -1 )
+  {
+    err_exit( errno, "pty_proxy_exec >> socket"  );
+    return -1;
+  }
+  
+  memset( &listen_addr , 0 , sizeof(struct sockaddr_un) );
+  listen_addr.sun_family = AF_UNIX ;
+  snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
+    "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+
+
+  if( access( listen_addr.sun_path , F_OK ) == 0 )
+  {
+    unlink( listen_addr.sun_path );
+  }
+  if( bind( listenfd , (struct sockaddr *) &listen_addr , sizeof(struct sockaddr_un) ) == -1 )
+  {
+    err_exit(errno, "pty_proxy_exec >> bind %s", listen_addr.sun_path );
+    return -1;
+  }
+  
+  if( listen(listenfd , 1024 ) == -1 )
+  {
+    err_exit(errno, "pty_proxy_exec >> listen failed");
+    return -1;
+  }
+
+  init_pool(listenfd, masterFd, &pool); 
+  // 通知client
+  SemUtil::set(arg.synchSem, 0);
+
+  // sleep(2);
+  // printf("2 Container pid=%d, pgrp=%d, tcgetpgrp=%d, getsid=%d, isatty=%d\n",
+  //  getpid(), getpgrp(), tcgetpgrp(STDIN_FILENO), getsid(0), isatty(STDIN_FILENO));
+
+  while (1) {
+    /* Wait for listening/connected descriptor(s) to become ready */
+    pool.ready_set = pool.read_set;
+    if( (pool.nready = select(pool.maxfd + 1, &pool.ready_set, NULL, NULL, NULL)) == -1) {
+      err_msg(errno, "server_proxy select");
+      if(errno == EINTR) {
+        continue;
+      }
+    }
+
+    /* If listening descriptor ready, add new client to pool */
+    if (FD_ISSET(listenfd, &pool.ready_set))   //line:conc:echoservers:listenfdready
+    {
+      clientlen = sizeof(struct sockaddr_un);
+
+      if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
+        add_client(connfd, &pool);
+      }
+      
+    }
+
+
+    /* Echo a text line from each ready connected descriptor */
+    check_clients_and_master(&pool); 
+  }
+
+  err_msg(0, "===========server exit================\n");
+
+}
+
+int pty_proxy_exec(pty_exe_opt_t arg) {
+  return pty_run_container(arg);
+}
 // 容器虚拟终端服务端
-int pty_proxy_exec(pty_exe_opt_t arg)
+int _pty_proxy_exec(pty_exe_opt_t arg)
 {
   char slaveName[MAX_SNAME];
   int masterFd;

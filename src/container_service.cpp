@@ -79,27 +79,40 @@ static int container_run_main(void* arg)
 }
 
 
-void ContainerService::start(container_start_option_t & startOpt,  std::function<void(int)>  startSuccess)
+void ContainerService::start(container_start_option_t & startOpt,  std::function<void(int)> startSuccess)
 {
-
+  pid_t childPid;
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
   // if (info.id.empty() || info.status == CONTAINER_RUNNING)
   //   continue;
   /* Create the child in new namespace(s) */
-  void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-  if (stack == MAP_FAILED)
-    err_exit(0, "handle_run_command mmap:");
+  // void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+  //                    MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+  // if (stack == MAP_FAILED)
+  //   err_exit(0, "handle_run_command mmap:");
 
-  int containerPid = clone(container_run_main, (char *)stack + STACK_SIZE,
-                            CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &startOpt);
+  // int containerPid = clone(container_run_main, (char *)stack + STACK_SIZE,
+  //                           CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &startOpt);
 
-   
-  LoggerFactory::getRunLogger().info("Container pid[%d]!\n", containerPid);
+  childPid = fork();
 
-  startSuccess(containerPid);
-  // ------save end---------
+  if (childPid == -1)                 /* fork() failed */
+  {
+    err_exit(errno, "fork");
+    return -1;
+  }
+
+  if (childPid == 0)                  /* Parent */
+  {
+    container_run_main(&startOpt);/* Only parent gets master fd */
+    startSuccess(childPid);
+    return ;                /* Like parent of fork() */
+  }
+
   
+  // LoggerFactory::getRunLogger().info("Container pid[%d]!\n", containerPid);
+
+ 
   SemUtil::zero(synchSem);
   if( !startOpt.detach ) {
     pty_exe_opt_t execOpt = {};

@@ -29,6 +29,9 @@
 
 #define MAX_SNAME 1000                  /* Maximum size for pty slave name */
 
+/* 定义一个给 clone 用的栈，栈大小1M */
+#define STACK_SIZE (1024 * 1024)
+
 pid_t
 ptyFork(int *masterFd, char *slaveName, size_t snLen,
         const struct termios *slaveTermios, const struct winsize *slaveWS)
@@ -181,13 +184,12 @@ int _ptyCloneRun(void *_arg)
   if (slaveFd > STDERR_FILENO)        /* Safety check */
     close(slaveFd);                 /* No longer need this fd */
 
-  return arg.fn(arg.fnArg);
+  return arg.fn(NULL);
 }
 
 
 
-int ptyClone(int (*fn)(void *), void *child_stack, int flags, void *arg, 
-  int *mfd, const struct termios *slaveTermios, const struct winsize *slaveWS)
+int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, int *mfd, std::function<int(void *)>  fn)
 {
   int masterFd, savedErrno;
   int childPid;
@@ -207,9 +209,17 @@ int ptyClone(int (*fn)(void *), void *child_stack, int flags, void *arg,
   ptyRunArg.slaveTermios =  slaveTermios;
   ptyRunArg.slaveWS = slaveWS;
   ptyRunArg.fn = fn;
-  ptyRunArg.fnArg = arg;
+  // ptyRunArg.fnArg = arg;
 
-  childPid = clone(_ptyCloneRun, child_stack, flags, &ptyRunArg);
+  void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+  if (stack == MAP_FAILED)
+    err_exit(0, "handle_run_command mmap:");
+
+  int childPid = clone(_ptyCloneRun, (char *)stack + STACK_SIZE,
+                            CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &ptyRunArg);
+ 
+  // childPid = clone(_ptyCloneRun, child_stack, flags, &ptyRunArg);
  
 
   

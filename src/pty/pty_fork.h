@@ -8,7 +8,6 @@
 pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen,
         const struct termios *slaveTermios, const struct winsize *slaveWS);
 
-int ptyClone(int (*fn)(void *), void *child_stack, int flags, void *arg, 
-  int *mfd, const struct termios *slaveTermios, const struct winsize *slaveWS);
+int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, int *mfd, std::function<int(void *)>  fn);
 
 #endif

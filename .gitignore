@@ -30,6 +30,7 @@
 *.app
 *.tar
 *.tar.gz
+*.tar.xz
 
 .vscode/
 .idea
@@ -39,3 +40,4 @@ core
 
 cmake-build-debug/
 build/
+package/

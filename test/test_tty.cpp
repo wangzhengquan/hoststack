@@ -44,22 +44,22 @@ int main() {
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
     err_msg(errno, "ioctl-TIOCGWINSZ");
 
-  printf("ws_row = %hd\n", ws.ws_row);
-  printf("ws_col = %hd\n", ws.ws_col);
+  printf("ws_row = %hu\n", ws.ws_row);
+  printf("ws_col = %hu\n", ws.ws_col);
 
   printf("=============\n");
-  printf("c_iflag=%hd\n", ttyOrig.c_iflag);
-  printf("c_oflag=%hd\n", ttyOrig.c_oflag);
-  printf("c_cflag=%hd\n", ttyOrig.c_cflag);
-  printf("c_lflag=%hd\n", ttyOrig.c_lflag);
+  printf("c_iflag=%hu\n", ttyOrig.c_iflag);
+  printf("c_oflag=%hu\n", ttyOrig.c_oflag);
+  printf("c_cflag=%hu\n", ttyOrig.c_cflag);
+  printf("c_lflag=%hu\n", ttyOrig.c_lflag);
   printf("c_line=%c\n", ttyOrig.c_line);
   // printf("c_cc=%s\n", ttyOrig.c_cc);
 
   printf("=============\n");
-  printf("c_iflag=%hd\n", tty_std_termios.c_iflag);
-  printf("c_oflag=%hd\n", tty_std_termios.c_oflag);
-  printf("c_cflag=%hd\n", tty_std_termios.c_cflag);
-  printf("c_lflag=%hd\n", tty_std_termios.c_lflag);
+  printf("c_iflag=%hu\n", tty_std_termios.c_iflag);
+  printf("c_oflag=%hu\n", tty_std_termios.c_oflag);
+  printf("c_cflag=%hu\n", tty_std_termios.c_cflag);
+  printf("c_lflag=%hu\n", tty_std_termios.c_lflag);
   printf("c_line=%c\n", tty_std_termios.c_line);
   // printf("c_cc=%s\n", tty_std_termios.c_cc);
 }

@@ -191,16 +191,13 @@ int pty_exec(pty_exe_opt_t arg)
   }
 }
 
-/* Retrieve the attributes of terminal on which we are started */
-//  struct termios ttyOrig;
- // struct winsize ws;
- // if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
- //    err_msg(errno, "tcgetattr");
- //  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
- //    err_msg(errno, "ioctl-TIOCGWINSZ");
+static void sigTermHandler(int sig) {
+  LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
+  exit(0);
+}
 
 
-int pty_run_container(pty_exe_opt_t arg)
+int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
   int masterFd;
  
@@ -212,6 +209,7 @@ int pty_run_container(pty_exe_opt_t arg)
      attributes are set to be the same as those retrieved above. */
   // childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
   childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *__arg){
+    Signal(SIGTERM, sigTermHandler);
     ContainerFs::mount_container(arg.containerId);
     // 容器卷
     if (arg.volume_list != NULL )
@@ -238,6 +236,7 @@ int pty_run_container(pty_exe_opt_t arg)
   if (childPid == -1)
     err_exit(errno, "ptyClone");
  
+  callback(childPid);
   /*==============exec end==============*/
 
  
@@ -317,9 +316,7 @@ int pty_run_container(pty_exe_opt_t arg)
 
 }
 
-int pty_proxy_exec(pty_exe_opt_t arg) {
-  return pty_run_container(arg);
-}
+
 // 容器虚拟终端服务端
 int _pty_proxy_exec(pty_exe_opt_t arg)
 {

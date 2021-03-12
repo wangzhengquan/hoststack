@@ -27,10 +27,10 @@ static void exitHandler(void)
  
 }
 
-static void sigTermHandler(int sig) {
-  LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
-  exit(0);
-}
+// static void sigTermHandler(int sig) {
+//   LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
+//   exit(0);
+// }
  
 static void sigHupHandler(int sig) {
    std::cout << "sigHupHandler \n" << std::endl;
@@ -41,72 +41,92 @@ static void sigQuitHandler(int sig) {
   std::cout << "sigQuitHandler \n" << std::endl;
 }
 
-static int container_run_main(void* arg)
+
+
+/*
+ * sigchld_handler - The kernel sends a SIGCHLD to the shell whenever
+ *     a child job terminates (becomes a zombie), or stops because it
+ *     received a SIGSTOP or SIGTSTP signal. The handler reaps all
+ *     available zombie children, but doesn't wait for any other
+ *     currently running children to terminate.
+ */
+static void sigchld_handler(int sig)
 {
+  printf("%ld interrupt by SIGCHLD(%d)\n", time(NULL), sig);
 
-  //printf("in container...\n ");
+  int olderrno = errno;
+  pid_t pid;
+  int status;
+  while ( (pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED)) > 0)
+  {
+    if (WIFEXITED(status))
+    {
+      printf("(%d) normally exit by signal %d\n", pid, WEXITSTATUS(status));
+      ContainerFs::umount_container(containerId);
+      ContainerDao::change_status_to_stop(containerId);
+      exit(0);
+    }
+    else if (WIFSIGNALED(status))
+    {
+      printf(" (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+    }
+    else if (WIFSTOPPED(status))
+    {
+      printf(" (%d) stopted by signal %d\n",  pid, WSTOPSIG(status));
+    }
+    else if (WIFCONTINUED(status))
+    {
+    }
+  }
 
-  container_start_option_t startOpt = *((container_start_option_t *)arg);
-
-  // signal for "kill 容器进程"
-  containerId = startOpt.containerId;
-  Signal(SIGTERM, sigTermHandler);
-  // Signal(SIGHUP, sigHupHandler);
-  // Signal(SIGQUIT, sigQuitHandler);
-
-  if (atexit(exitHandler) != 0)
-    err_msg(errno, "container_run_main >> atexit");
-
-  // ContainerFs::mount_container(startOpt.containerId);
-  // // 容器卷
-  // if (startOpt.volume_list != NULL )
-  // {
-  //    ContainerFs::mount_volume_list(startOpt.containerId,  *startOpt.volume_list);
-  // }
-
-  pty_exe_opt_t ptyopt = {};
-  ptyopt.synchSem = synchSem;
-  ptyopt.containerId = startOpt.containerId;
-  ptyopt.cmd = startOpt.cmd;
-  ptyopt.detach = startOpt.detach;
-  ptyopt.volume_list = startOpt.volume_list;
-  ptyopt.ttyAttr = startOpt.ttyAttr;
-  ptyopt.ttyWs = startOpt.ttyWs;
-  
-  pty_proxy_exec(ptyopt);
- // pty_exec(ptyopt);
-
-  return 1;
+  if (pid == -1 && errno != ECHILD)
+  {
+    err_msg(errno, "sigchld_handler error");
+  }
+  errno = olderrno;
 }
+ 
 
 
 void ContainerService::start(container_start_option_t & startOpt,  std::function<void(int)> startSuccess)
 {
   pid_t childPid;
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
-  // if (info.id.empty() || info.status == CONTAINER_RUNNING)
-  //   continue;
-  /* Create the child in new namespace(s) */
-  // void *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-  //                    MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-  // if (stack == MAP_FAILED)
-  //   err_exit(0, "handle_run_command mmap:");
-
-  // int containerPid = clone(container_run_main, (char *)stack + STACK_SIZE,
-  //                           CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &startOpt);
 
   childPid = fork();
 
   if (childPid == -1)                 /* fork() failed */
   {
-    err_exit(errno, "fork");
+    err_exit(errno, "ContainerService::start fork");
     return;
   }
 
   if (childPid == 0)                  
   {
-    container_run_main(&startOpt); 
-    startSuccess(getpid());
+    // signal for "kill 容器进程"
+    containerId = startOpt.containerId;
+    // Signal(SIGTERM, sigTermHandler);
+    // Signal(SIGHUP, sigHupHandler);
+    // Signal(SIGQUIT, sigQuitHandler);
+
+    // if (atexit(exitHandler) != 0)
+    //   err_msg(errno, "container_run_main >> atexit");
+
+    Signal(SIGCHLD, sigchld_handler);
+
+    pty_exe_opt_t ptyopt = {};
+    ptyopt.synchSem = synchSem;
+    ptyopt.containerId = startOpt.containerId;
+    ptyopt.cmd = startOpt.cmd;
+    ptyopt.detach = startOpt.detach;
+    ptyopt.volume_list = startOpt.volume_list;
+    ptyopt.ttyAttr = startOpt.ttyAttr;
+    ptyopt.ttyWs = startOpt.ttyWs;
+    
+    pty_run_container(ptyopt, [&](pid_t cpid) {
+      startSuccess(cpid);
+    });
+    
     return ;                
   }
 

@@ -52,7 +52,7 @@ static void sigQuitHandler(int sig) {
  */
 static void sigchld_handler(int sig)
 {
-  printf("%ld interrupt by SIGCHLD(%d)\n", time(NULL), sig);
+  // printf("%ld interrupt by SIGCHLD(%d)\n", time(NULL), sig);
 
   int olderrno = errno;
   pid_t pid;
@@ -68,11 +68,11 @@ static void sigchld_handler(int sig)
     }
     else if (WIFSIGNALED(status))
     {
-      printf(" (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+      // printf(" (%d) terminated by signal %d\n", pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status))
     {
-      printf(" (%d) stopted by signal %d\n",  pid, WSTOPSIG(status));
+      // printf(" (%d) stopted by signal %d\n",  pid, WSTOPSIG(status));
     }
     else if (WIFCONTINUED(status))
     {

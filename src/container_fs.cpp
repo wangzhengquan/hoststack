@@ -322,7 +322,7 @@ void ContainerFs::umount_volume (const char * container_id, const char* _volume)
   }
 }
 
-/* 挂在容器volume */
+/* 挂载容器volume */
 void ContainerFs::bind_mount(const char *container_id, const char *src, const char *_dest)
 {
   char line[4096];

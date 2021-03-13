@@ -129,8 +129,8 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerName
 			return;
 		}
 	}
-
-	ContainerFs::umount_container(info.id.c_str());
+  // stop的时候会umount ,所以这句不需要了
+	// ContainerFs::umount_container(info.id.c_str());
 	ContainerFs::remove_container(info.id.c_str());
   ContainerDao::delete_by_id(info.id.c_str());
 }

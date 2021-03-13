@@ -14,18 +14,18 @@ int synchSem;
 static const char *containerId = NULL;
 
 
-static void exitHandler(void)
-{
+// static void exitHandler(void)
+// {
  
-  if(containerId != NULL) {
-    ContainerFs::umount_container(containerId);
-    ContainerDao::change_status_to_stop(containerId);
-    // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
-  } else {
-    // LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
-  }
+//   if(containerId != NULL) {
+//     ContainerFs::umount_container(containerId);
+//     ContainerDao::change_status_to_stop(containerId);
+//     // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
+//   } else {
+//     // LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
+//   }
  
-}
+// }
 
 // static void sigTermHandler(int sig) {
 //   LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));

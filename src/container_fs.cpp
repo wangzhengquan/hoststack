@@ -25,7 +25,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
   {"devpts", "/dev/pts", "devpts"},
   {"shm", "/dev/shm", "tmpfs"},
   {"none", "/tmp", "tmpfs"}, 
-  {}
+  {0}
 };
 
 void ContainerFs::create_repo() {
@@ -173,7 +173,7 @@ void ContainerFs::mount_container(const char * container_id)
 
       //sudo mount -t  overlay -o lowerdir={src},upperdir={diff},workdir={work} overlay {mount}
       // 如果镜像文件存在
-      if(access(mnt_dir->src, F_OK) == 0) {
+      if(access(mnt_dir->target, F_OK) == 0) {
         sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
         if(mount("overlay", target, "overlay", 0, data) != 0) {
           LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
@@ -198,26 +198,35 @@ void ContainerFs::umount_container(const char * container_id) {
   const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
   char line[1024];
 
-  size_t i = 0;
+  int i = 0;
  
   while( mnt_dir_arr[i].src != NULL ) {
     i++;
   }
+  
+  // LoggerFactory::getRunLogger().debug("ContainerFs::umount_container == %d\n", i);
 
   mnt_dir_t *mnt_dir ;
-  while ( i-- > 0) {
+  while ( --i >= 0) {
     mnt_dir = &mnt_dir_arr[i];
-
-    if(access(mnt_dir->src, F_OK) == 0) {
+// LoggerFactory::getRunLogger().debug("i =%d, umount %s\n", i, mnt_dir->target);
+    if(access(mnt_dir->target, F_OK) == 0) {
       // sprintf(line, "sudo umount %s%s", rootfs, mnt_dir->target);
       // if (system(line) != 0) {
       //   LoggerFactory::getRunLogger().error(errno, line);
       // }
+     
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
-      if(umount2(line, MNT_DETACH) == -1) {
+// LoggerFactory::getRunLogger().debug("umount %s\n", line);
+      if(umount2(line, MNT_FORCE) == -1) {
         LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
       }
     }
+  }
+
+  // 最后一个经常umount不成功，重试一次就可以
+  if(umount2(line, MNT_FORCE) == -1) {
+    LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
   }
 
   umount_volume_list(container_id);

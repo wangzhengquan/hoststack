@@ -18,7 +18,7 @@ function uninstall() {
   sudo systemctl stop backerd.service 
 	sudo systemctl disable  backerd.service 
 	sudo rm -f /etc/systemd/system/backerd.service
-	sudo rm -f ${INSTALL_LOCATION}/{backer, backer_supervisor}
+	sudo rm -f ${INSTALL_LOCATION}/bin/{backer,backer_supervisor}
 	
 }
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # set the project name and version
-project(KUCKER VERSION 1.0)
+project(KUCKER VERSION 2.0)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)

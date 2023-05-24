@@ -42,3 +42,4 @@ cmake-build-debug/
 build/
 package/
 .gdb_history
+.DS_Store

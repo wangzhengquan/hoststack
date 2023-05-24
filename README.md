@@ -1,6 +1,6 @@
 ## hoststack
-hoststack的运行环境是基于本地的环境，没有镜像的概念。hoststack只有进程和文件的隔离。hoststack操作命令的基本保持了与docker的一致。
 
+hoststack是一个类似与docker的容器，但是hoststack是以计算机本地操作系统的文件作为的镜像运行的，也就是说hoststack是宿主机操作系统的化身，但是因为实现了进程和文件的隔离所以在hoststack里面的任何操作都不会污染宿主机。hoststack只实现了与宿主机的进程和文件的隔离没有网络隔离，操作命令基本保持了与docker一致。当下hoststack只能运行在linux系统上。
 
 
 ## 使用说明

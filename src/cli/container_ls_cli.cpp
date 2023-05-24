@@ -10,7 +10,7 @@ struct container_ls_arg_t {
 };
 void ContainerLsCli::usage()
 {
-  fprintf(stderr, "Usage: kucker container ls [OPTIONS]\n\n");
+  fprintf(stderr, "Usage: hoststack container ls [OPTIONS]\n\n");
   fprintf(stderr, "List containers\n\n");
   fprintf(stderr, "Options:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);

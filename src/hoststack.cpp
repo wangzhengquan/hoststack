@@ -2,13 +2,13 @@
 #include <sys/mount.h>
 #include <getopt.h>
 #include "path_assembler.h"
-#include "kucker_config.h"
+#include "hoststack_config.h"
 #include "container_cli.h"
 #include "container_fs.h"
 
 static void usage()
 {
-  fprintf(stderr, "Usage: kucker [OPTIONS] COMMAND\n\n");
+  fprintf(stderr, "Usage: hoststack [OPTIONS] COMMAND\n\n");
   fprintf(stderr, "A self-sufficient runtime for containers\n\n");
   fprintf(stderr, "Commands:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);
@@ -20,7 +20,7 @@ static void usage()
   fpe("exec        Run a command in a running container\n");
   fpe("start       Start one or more stopped containers\n");
   fpe("\n");
-  fprintf(stderr, "Run 'kucker COMMAND --help' for more information on a command.\n");
+  fprintf(stderr, "Run 'hoststack COMMAND --help' for more information on a command.\n");
 }
 
 

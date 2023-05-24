@@ -13,7 +13,7 @@ void ContainerDao::insert(const ContainerInfo &info) {
 	Json::Value root;
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file); 
+  std::ifstream fin(hoststack_data_file); 
   if(fin) {
     jsonreader.parse(fin, root);
     fin.close();
@@ -25,11 +25,11 @@ void ContainerDao::insert(const ContainerInfo &info) {
   root.append(infojson);
 
   auto str = root.toStyledString();
-  // printf("=====insert======= %s\n", kucker_data_file);
+  // printf("=====insert======= %s\n", hoststack_data_file);
   // std::cout << str << std::endl;
   // printf("============\n");
   std::ofstream fout;
-  fout.open(kucker_data_file);
+  fout.open(hoststack_data_file);
   fout << str;
   fout.close();
 }
@@ -44,7 +44,7 @@ void ContainerDao::delete_by_id(const char *containerName) {
   Json::Value newRoot;
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file);
+  std::ifstream fin(hoststack_data_file);
   if(!fin) {
     return;
   }
@@ -66,7 +66,7 @@ void ContainerDao::delete_by_id(const char *containerName) {
   auto str = newRoot.toStyledString();
   // std::cout << str << std::endl;
   std::ofstream fout;
-  fout.open(kucker_data_file);
+  fout.open(hoststack_data_file);
   fout << str;
   fout.close();
   
@@ -77,7 +77,7 @@ void ContainerDao::update(const ContainerInfo &info) {
   Json::Value root;
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file);
+  std::ifstream fin(hoststack_data_file);
   if(!fin) {
     insert(info);
   }
@@ -101,11 +101,11 @@ void ContainerDao::update(const ContainerInfo &info) {
   }
 
   auto str = root.toStyledString();
-  // printf("=======update===== %s\n", kucker_data_file);
+  // printf("=======update===== %s\n", hoststack_data_file);
   // std::cout << str << std::endl;
   // printf("============\n");
   std::ofstream fout;
-  fout.open(kucker_data_file);
+  fout.open(hoststack_data_file);
   fout << str;
   fout.close();
 }
@@ -138,7 +138,7 @@ ContainerInfo ContainerDao::get_container_by(const char * name,const std::string
   char line[1024];
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file);
+  std::ifstream fin(hoststack_data_file);
   if(!fin) {
     return {};
   }
@@ -163,7 +163,7 @@ ContainerInfo ContainerDao::get_container_by(const char * name,const std::string
       //     auto str = root.toStyledString();
       //     // std::cout << str << std::endl;
       //     std::ofstream fout;
-      //     fout.open(kucker_data_file);
+      //     fout.open(hoststack_data_file);
       //     fout << str;
       //     fout.close();
       //   }
@@ -180,7 +180,7 @@ ContainerInfo ContainerDao::get_container_by_id_or_name(const std::string& value
   
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file);
+  std::ifstream fin(hoststack_data_file);
   if(!fin) {
     return {};
   }
@@ -205,7 +205,7 @@ ContainerInfo ContainerDao::get_container_by_id_or_name(const std::string& value
           auto str = root.toStyledString();
           // std::cout << str << std::endl;
           std::ofstream fout;
-          fout.open(kucker_data_file);
+          fout.open(hoststack_data_file);
           fout << str;
           fout.close();
         }
@@ -223,7 +223,7 @@ std::vector<ContainerInfo>* ContainerDao::list() {
   bool dirty = false;
   
   Json::Reader jsonreader;
-  std::ifstream fin(kucker_data_file);
+  std::ifstream fin(hoststack_data_file);
   if(!fin) {
     return NULL;
   }
@@ -254,7 +254,7 @@ std::vector<ContainerInfo>* ContainerDao::list() {
     auto str = root.toStyledString();
     // std::cout << str << std::endl;
     std::ofstream fout;
-    fout.open(kucker_data_file);
+    fout.open(hoststack_data_file);
     fout << str;
     fout.close();
   }

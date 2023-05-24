@@ -2,7 +2,7 @@
 #include <sys/mount.h>
 #include <getopt.h>
 #include "path_assembler.h"
-#include "kucker_config.h"
+#include "hoststack_config.h"
 #include "container_cli.h"
 #include "container_fs.h"
 #include "logger_factory.h"
@@ -16,7 +16,7 @@
 
 static Logger& logger = LoggerFactory::getKuckerDaemonLogger();
 
-// static char kucker[256];
+// static char hoststack[256];
 
 static struct termios ttyOrig = {};
 static struct winsize ws= {};
@@ -35,7 +35,7 @@ void usage(const char *name) {
 //     if(access(line, F_OK) == -1) {
 //     	ContainerDao::change_status_to_stop(info.id);
 //     	printf("1 start %s\n", info.name.c_str());
-//     	sprintf(line, "sudo %s start -d %s", kucker, info.name.c_str());
+//     	sprintf(line, "sudo %s start -d %s", hoststack, info.name.c_str());
 //     	system(line);
 //     	printf("2 start %s\n", info.name.c_str());
 //     	logger.info("start %s\n\n\n\n", info.name.c_str());
@@ -56,7 +56,7 @@ void *run_checkandrestart(void *ptr) {
     if(access(line, F_OK) == -1) {
     	ContainerDao::change_status_to_stop(info.id);
     	// printf("1 start %s\n", info.name.c_str());
-    	// sprintf(line, "sudo %s start -d %s", kucker, info.name.c_str());
+    	// sprintf(line, "sudo %s start -d %s", hoststack, info.name.c_str());
     	// system(line);
     	mopt.detach = true;
     	mopt.containerName = info.id.c_str();
@@ -80,12 +80,12 @@ int main(int argc, char *argv[])
     printf("权限不够, 请查看您是否正以 root 用户运行\n");
     exit(1);
   }
-	// char *kuckerPath = NULL;
+	// char *hoststackPath = NULL;
 	// if(argc == 2 ) {
-	// 	// kuckerPath = argv[0];
-	// 	sprintf(kucker, "%s/backer",  argv[1]);
+	// 	// hoststackPath = argv[0];
+	// 	sprintf(hoststack, "%s/hoststack",  argv[1]);
 	// } else {
-	// 	sprintf(kucker, "backer" );
+	// 	sprintf(hoststack, "hoststack" );
 	// }
 
 	
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 
 
 	if(daemon(1, 1) != 0) {
-    logger.error(errno, "kucker_supervisor daemon");
+    logger.error(errno, "hoststack_supervisor daemon");
   }
 
   while(true) {

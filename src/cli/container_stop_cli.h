@@ -2,7 +2,7 @@
 #define __CONTAINER_STOP_CLI_H
 
 #include "usg_common.h"
-#include "kucker_config.h"
+#include "hoststack_config.h"
 
 class ContainerStopCli {
 

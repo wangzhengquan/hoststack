@@ -31,7 +31,7 @@ static  mnt_dir_t mnt_dir_arr[]= {
 void ContainerFs::create_repo() {
   char line[1024];
   
-  sprintf(line, "%s/containers", kucker_repo);
+  sprintf(line, "%s/containers", hoststack_repo);
   if (mkdir_r(line, DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);
@@ -53,7 +53,7 @@ void ContainerFs::create_container(const char *container_id)
             "lib",  "lib64",  "mnt",  "opt",  "proc",  "root",  "run", 
             "sbin",  "sys",  "tmp",  "usr",  "var", NULL};
 
-  sprintf(line, "%s/containers/%s", kucker_repo, container_id);
+  sprintf(line, "%s/containers/%s", hoststack_repo, container_id);
   if (mkdir_r(line, DIR_MODE) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, "ContainerFs::create_container: %s", line);
@@ -90,7 +90,7 @@ void ContainerFs::remove_container(const char *container_id) {
  
   char line[1024];
 
-  sprintf(line, "sudo rm  -rf %s/containers/%s", kucker_repo, container_id);
+  sprintf(line, "sudo rm  -rf %s/containers/%s", hoststack_repo, container_id);
   if (system(line) != 0)
   {
     LoggerFactory::getRunLogger().error(errno, line);

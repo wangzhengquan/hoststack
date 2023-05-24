@@ -4,9 +4,9 @@
 // aufs overlay2
 #define FS_TYPE "overlay2"
 
-#define kucker_repo  "/data/kucker"
+#define hoststack_repo  "/data/hoststack"
 
-#define kucker_data_file "/data/kucker/data.json"
+#define hoststack_data_file "/data/hoststack/data.json"
 
 class PathAssembler {
 private:

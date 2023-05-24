@@ -10,7 +10,7 @@ const char * PathAssembler::getUnionFS(char *dist) {
 	} else {
 		dir = path;
 	}
-	sprintf(dir, "%s/%s", kucker_repo, FS_TYPE);
+	sprintf(dir, "%s/%s", hoststack_repo, FS_TYPE);
 	return dir;
 }
 

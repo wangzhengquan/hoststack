@@ -52,7 +52,7 @@ static void ttyReset(void)
 static void redirectStdOut() {
   int inFd, outFd;
   char stdoutfile[1024];
-  //sprintf(stdoutfile, "%s/containers/%s/stdout.%ld.log",kucker_repo,  garg.containerId, time(0));
+  //sprintf(stdoutfile, "%s/containers/%s/stdout.%ld.log",hoststack_repo,  garg.containerId, time(0));
   sprintf(stdoutfile, "/dev/null");
   // printf("stdoutfile = %s\n", stdoutfile);
 
@@ -66,7 +66,7 @@ static void redirectStdOut() {
   }
 
   char stdinfile[1024];
-  sprintf(stdinfile, "%s/containers/%s/stdin.log",kucker_repo,  garg.containerId);
+  sprintf(stdinfile, "%s/containers/%s/stdin.log",hoststack_repo,  garg.containerId);
   if (mkfifo(stdinfile, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
       err_exit(errno, "mkfifo %s", stdinfile);
  
@@ -259,7 +259,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
   memset( &listen_addr , 0 , sizeof(struct sockaddr_un) );
   listen_addr.sun_family = AF_UNIX ;
   snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
-    "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+    "%s/containers/%s/hoststack.socket", hoststack_repo, arg.containerId );
 
 
   if( access( listen_addr.sun_path , F_OK ) == 0 )
@@ -373,7 +373,7 @@ int _pty_proxy_exec(pty_exe_opt_t arg)
   memset( &listen_addr , 0 , sizeof(struct sockaddr_un) );
   listen_addr.sun_family = AF_UNIX ;
   snprintf(listen_addr.sun_path , sizeof(listen_addr.sun_path)-1 , 
-    "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+    "%s/containers/%s/hoststack.socket", hoststack_repo, arg.containerId );
 
 
   if( access( listen_addr.sun_path , F_OK ) == 0 )
@@ -451,7 +451,7 @@ int pty_client(pty_exe_opt_t arg) {
   }
   memset( &addr, 0 , sizeof(struct sockaddr_un) );
   addr.sun_family = AF_UNIX ;
-  snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/kucker.socket", kucker_repo, arg.containerId );
+  snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/hoststack.socket", hoststack_repo, arg.containerId );
   
   if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
     err_exit(errno, "pty_client connect");

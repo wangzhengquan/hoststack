@@ -4,20 +4,20 @@ INSTALL_LOCATION="/usr/local"
 function install() {
 	sudo ./@PROJECT_NAME@-@PROJECT_VERSION@.1-Linux.sh  --prefix=${INSTALL_LOCATION} --skip-license  --exclude-subdir
 
-	sudo sudo	cp ${INSTALL_LOCATION}/etc/backerd.service /etc/systemd/system/backerd.service
+	sudo sudo	cp ${INSTALL_LOCATION}/etc/hoststackd.service /etc/systemd/system/hoststackd.service
 
 	sudo systemctl daemon-reload
-	sudo systemctl enable  backerd.service 
-	sudo  systemctl restart backerd.service 
-	systemctl list-unit-files --all | grep backerd
-	systemctl status backerd.service
+	sudo systemctl enable  hoststackd.service 
+	sudo  systemctl restart hoststackd.service 
+	systemctl list-unit-files --all | grep hoststackd
+	systemctl status hoststackd.service
 }
 
 
 function uninstall() {
-  sudo systemctl stop backerd.service 
-	sudo systemctl disable  backerd.service 
-	sudo rm -f /etc/systemd/system/backerd.service
+  sudo systemctl stop hoststackd.service 
+	sudo systemctl disable  hoststackd.service 
+	sudo rm -f /etc/systemd/system/hoststackd.service
 	sudo rm -f ${INSTALL_LOCATION}/bin/{backer,backer_supervisor}
 	
 }

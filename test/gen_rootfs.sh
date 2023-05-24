@@ -1,31 +1,31 @@
-kucker_repo="/data/kucker"
-test -d ${kucker_repo} || mkdir -p ${kucker_repo}
-test -d ${kucker_repo}/aufs || mkdir  ${kucker_repo}/aufs
-test -d ${kucker_repo}/aufs/mnt || mkdir  ${kucker_repo}/aufs/mnt
-test -d ${kucker_repo}/aufs/diff || mkdir  ${kucker_repo}/aufs/diff
-test -d ${kucker_repo}/aufs/layers || mkdir  ${kucker_repo}/aufs/layers
-test -d ${kucker_repo}/containers || mkdir ${kucker_repo}/containers
+hoststack_repo="/data/hoststack"
+test -d ${hoststack_repo} || mkdir -p ${hoststack_repo}
+test -d ${hoststack_repo}/aufs || mkdir  ${hoststack_repo}/aufs
+test -d ${hoststack_repo}/aufs/mnt || mkdir  ${hoststack_repo}/aufs/mnt
+test -d ${hoststack_repo}/aufs/diff || mkdir  ${hoststack_repo}/aufs/diff
+test -d ${hoststack_repo}/aufs/layers || mkdir  ${hoststack_repo}/aufs/layers
+test -d ${hoststack_repo}/containers || mkdir ${hoststack_repo}/containers
 
 container_id="2"
 
 exit 0
 
-test -d ${kucker_repo}/containers/${container_id} || mkdir ${kucker_repo}/containers/${container_id}
-test -d ${kucker_repo}/aufs/diff/${container_id} || mkdir  ${kucker_repo}/aufs/diff/${container_id}
-test -d ${kucker_repo}/aufs/mnt/${container_id} || mkdir  ${kucker_repo}/aufs/mnt/${container_id}
+test -d ${hoststack_repo}/containers/${container_id} || mkdir ${hoststack_repo}/containers/${container_id}
+test -d ${hoststack_repo}/aufs/diff/${container_id} || mkdir  ${hoststack_repo}/aufs/diff/${container_id}
+test -d ${hoststack_repo}/aufs/mnt/${container_id} || mkdir  ${hoststack_repo}/aufs/mnt/${container_id}
 
-cd ${kucker_repo}/aufs/mnt/${container_id} && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var
+cd ${hoststack_repo}/aufs/mnt/${container_id} && mkdir -p  bin  dev/pts dev/shm etc  home  lib  lib64  mnt  opt  proc  root  run  sbin  sys  tmp  usr  var
 
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/bin=ro none ${kucker_repo}/aufs/mnt/${container_id}/bin
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${kucker_repo}/aufs/mnt/${container_id}/etc
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/lib=ro none ${kucker_repo}/aufs/mnt/${container_id}/lib
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/lib64=ro none ${kucker_repo}/aufs/mnt/${container_id}/lib64
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/sbin=ro none ${kucker_repo}/aufs/mnt/${container_id}/sbin
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/usr=ro none ${kucker_repo}/aufs/mnt/${container_id}/usr
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/var=ro none ${kucker_repo}/aufs/mnt/${container_id}/var
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${kucker_repo}/aufs/mnt/${container_id}/etc
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/run=ro none ${kucker_repo}/aufs/mnt/${container_id}/run
-sudo mount -t aufs -o dirs=${kucker_repo}/aufs/diff/${container_id}=rw:/opt=ro none ${kucker_repo}/aufs/mnt/${container_id}/opt
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/bin=ro none ${hoststack_repo}/aufs/mnt/${container_id}/bin
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${hoststack_repo}/aufs/mnt/${container_id}/etc
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/lib=ro none ${hoststack_repo}/aufs/mnt/${container_id}/lib
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/lib64=ro none ${hoststack_repo}/aufs/mnt/${container_id}/lib64
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/sbin=ro none ${hoststack_repo}/aufs/mnt/${container_id}/sbin
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/usr=ro none ${hoststack_repo}/aufs/mnt/${container_id}/usr
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/var=ro none ${hoststack_repo}/aufs/mnt/${container_id}/var
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/etc=ro none ${hoststack_repo}/aufs/mnt/${container_id}/etc
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/run=ro none ${hoststack_repo}/aufs/mnt/${container_id}/run
+sudo mount -t aufs -o dirs=${hoststack_repo}/aufs/diff/${container_id}=rw:/opt=ro none ${hoststack_repo}/aufs/mnt/${container_id}/opt
 
 
 exit 0

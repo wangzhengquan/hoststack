@@ -15,7 +15,7 @@ public:
 	static Logger getContainerLogger(const char * id) {
 //ERROR ALL DEBUG INFO WARN
 		char logFile[1024];
-		sprintf(logFile, "%s/container/%s/container.log", kucker_repo, id);
+		sprintf(logFile, "%s/container/%s/container.log", hoststack_repo, id);
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
 		config.logFile = logFile;
@@ -29,7 +29,7 @@ public:
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
 		char logFile[1024];
-		sprintf(logFile, "%s/run.log", kucker_repo);
+		sprintf(logFile, "%s/run.log", hoststack_repo);
 		config.logFile = logFile;
 		config.console = 1;
 		static Logger logger(config);
@@ -41,7 +41,7 @@ public:
 		LoggerConfig config;
 		config.level = Logger::DEBUG;
 		char logFile[1024];
-		sprintf(logFile, "%s/kucker_daemon.log", kucker_repo);
+		sprintf(logFile, "%s/hoststack_daemon.log", hoststack_repo);
 		config.logFile = logFile;
 		config.console = 1;
 		static Logger logger(config);

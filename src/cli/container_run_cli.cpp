@@ -15,7 +15,7 @@
 
 void ContainerRunCli::usage()
 {
-  fprintf(stderr, "Usage: kucker container run [OPTIONS] [COMMAND] [ARG...]\n\n");
+  fprintf(stderr, "Usage: hoststack container run [OPTIONS] [COMMAND] [ARG...]\n\n");
   fprintf(stderr, "Run a command in a new container\n\n");
   fprintf(stderr, "Options:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);

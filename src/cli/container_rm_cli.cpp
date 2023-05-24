@@ -18,7 +18,7 @@ static void removeContainer(container_rm_arg_t &mopt, const char * containerId) 
 
 void ContainerRMCli::usage()
 {
-  fprintf(stderr, "Usage:	kucker container rm [OPTIONS] CONTAINER [CONTAINER...]\n\n");
+  fprintf(stderr, "Usage:	hoststack container rm [OPTIONS] CONTAINER [CONTAINER...]\n\n");
   fprintf(stderr, "Remove one or more containers\n\n");
   fprintf(stderr, "Options:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);

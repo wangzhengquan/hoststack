@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # set the project name and version
-project(KUCKER VERSION 2.0)
+project(HOSTSTACK VERSION 2.0)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -44,8 +44,8 @@ endif()
 # setup installer
 include(InstallRequiredSystemLibraries)
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/License.txt")
-set(CPACK_PACKAGE_VERSION_MAJOR "${KUCKER_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${KUCKER_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${HOSTSTACK_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${HOSTSTACK_VERSION_MINOR}")
 include(CPack)
 
 configure_file(install.sh.in install.sh @ONLY)

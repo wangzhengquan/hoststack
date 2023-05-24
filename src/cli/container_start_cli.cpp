@@ -10,7 +10,7 @@
 
 void ContainerStartCli::usage()
 {
-  fprintf(stderr, "Usage: kucker container start [OPTIONS] CONTAINER\n\n");
+  fprintf(stderr, "Usage: hoststack container start [OPTIONS] CONTAINER\n\n");
   fprintf(stderr, "Start a stopped container\n\n");
   fprintf(stderr, "Options:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);

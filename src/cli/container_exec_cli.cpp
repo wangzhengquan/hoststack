@@ -18,7 +18,7 @@ void exec_cmd(pty_exe_opt_t arg);
 
 void ContainerExecCli::usage()
 {
-  fprintf(stderr, "Usage: kucker exec [OPTIONS] CONTAINER COMMAND [ARG...]\n\n");
+  fprintf(stderr, "Usage: hoststack exec [OPTIONS] CONTAINER COMMAND [ARG...]\n\n");
   fprintf(stderr, "Run a command in a running container.\n\n");
   fprintf(stderr, "Options:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);

@@ -9,7 +9,7 @@
 
 void ContainerAttachCli::usage()
 {
-  fprintf(stderr, "Usage: kucker container attach CONTAINER\n\n");
+  fprintf(stderr, "Usage: hoststack container attach CONTAINER\n\n");
   fprintf(stderr, "Attach local standard input, output, and error streams to a running container.\n\n");
   // fprintf(stderr, "Commands:\n\n");
   // #define fpe(str) fprintf(stderr, "  %s", str);
@@ -17,7 +17,7 @@ void ContainerAttachCli::usage()
   // fpe("stop        Stop one or more running containers\n");
   // fpe("ls          List containers\n");
   // fpe("\n");
-  // fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
+  // fprintf(stderr, "Run 'hoststack container COMMAND --help' for more information on a command.\n");
 }
 
 

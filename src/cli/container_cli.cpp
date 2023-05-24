@@ -10,7 +10,7 @@
 // static char container_stack[STACK_SIZE];
 void ContainerCli::usage()
 {
-  fprintf(stderr, "Usage: kucker container COMMAND\n\n");
+  fprintf(stderr, "Usage: hoststack container COMMAND\n\n");
   fprintf(stderr, "Manage containers.\n\n");
   fprintf(stderr, "Commands:\n\n");
   #define fpe(str) fprintf(stderr, "  %s", str);
@@ -22,7 +22,7 @@ void ContainerCli::usage()
   fpe("exec        Run a command in a running container\n");
   fpe("rm          Remove one or more containers\n");
   fpe("\n");
-  fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
+  fprintf(stderr, "Run 'hoststack container COMMAND --help' for more information on a command.\n");
 }
 
 void ContainerCli::handleCommand(int argc,  char *argv[]) {

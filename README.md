@@ -21,7 +21,7 @@ cd hoststack
 
 ### run
 
-**说明**
+说明
 ```
 Usage: hoststack run [OPTIONS] [COMMAND] [ARG...]
 
@@ -33,7 +33,7 @@ Options:
   -v, --volume list                    Bind mount a volume
   -n, --name string                    Assign a name to the container
 ```
-**实例**
+实例
 
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app --name "hoststack1"
@@ -42,14 +42,14 @@ Options:
 
 ### attach
 
-**说明**
+说明
 ```
 Usage: hoststack attach CONTAINER
 
 Attach local standard input, output, and error streams to a running container.
 ```
 
-**实例**
+实例
 
 如果run一个容器的时候加了`-d`选项，例如
 ```bash
@@ -63,7 +63,7 @@ Attach local standard input, output, and error streams to a running container.
 
 ### stop
 
-**说明**
+说明
 
 ```
 Usage:	docker  stop  CONTAINER [CONTAINER...]
@@ -80,7 +80,7 @@ sudo hoststack stop hoststack1
 注意：关闭terminal后容器转为后台运行，并不会停止容器。
 
 ### start
-**说明**
+说明
 ```
 Usage: hoststack start [OPTIONS] CONTAINER
 
@@ -90,7 +90,7 @@ Options:
 
   -d, --detach                         Start container in background and print container ID
 ```
-**实例**
+实例
 
 假若要重新启动上面已经停止的容器hoststack1，可以使用如下命令
 
@@ -99,7 +99,7 @@ sudo hoststack start hoststack1
 ```
 
 ### ps
-**说明**
+说明
 如果要查看当前容器的状态可以用这个命令。
 ```
 Usage: hoststack ps [OPTIONS]
@@ -111,7 +111,7 @@ Options:
   -a, --all             Show all containers (default shows just running)
 
 ```
-**实例**
+实例
 
 例如查看当前正在运行的容器列表，可以用如下命令
 ```bash
@@ -120,7 +120,7 @@ sudo hoststack ps
 加-a选项可以查看所有的容器，包括正在运行和已经停止的。
 
 ### rm
-**说明**
+说明
 如果某个容器已经彻底废弃不要了可以用rm命令删除。
 
 ```
@@ -132,7 +132,7 @@ Options:
 
   -f, --force     Force the removal of a running container (uses SIGKILL)
 ```
-**实例**
+实例
 
 删除名字为hoststack1的容器：
 ```bash

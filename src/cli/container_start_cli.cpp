@@ -137,7 +137,6 @@ void ContainerStartCli::startContainer(container_start_arg_t & mopt, struct term
   }
   container_start_option_t startOpt = {};
   startOpt.containerId = info.id.c_str();
-  printf("info.command=%s\n", info.command.c_str());
   str_split(info.command.c_str(), BLANK, &(startOpt.cmd) );
   startOpt.detach = mopt.detach;
   startOpt.volume_list = &info.volume_list;

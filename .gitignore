@@ -41,3 +41,4 @@ core
 cmake-build-debug/
 build/
 package/
+.gdb_history

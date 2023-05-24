@@ -139,6 +139,7 @@ void ContainerRunCli::handleCommand (int argc,  char *argv[])
   // ContainerDao::gen_id();
   std::string uuid = ContainerDao::gen_id();
 // std::cout << "mopt.container_id=" << uuid << ",  " << mopt.container_id << std::endl;
+  mopt.container_id = uuid.c_str();
   ContainerFs::create_container(mopt.container_id);
 
   struct termios ttyOrig;

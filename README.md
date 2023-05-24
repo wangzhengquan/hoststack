@@ -1,6 +1,6 @@
 ## hoststack
 
-hoststack是一个类似与docker的容器，但是hoststack是以计算机本地操作系统的文件作为的镜像运行的，也就是说hoststack是宿主机操作系统的化身，但是因为实现了进程和文件的隔离所以在hoststack里面的任何操作都不会污染宿主机。hoststack只实现了与宿主机的进程和文件的隔离没有网络隔离，操作命令基本保持了与docker一致。当下hoststack只能运行在linux系统上。
+hoststack是一个类似于docker的容器，但是hoststack是以计算机本地操作系统的文件作为的镜像运行的，也就是说hoststack是宿主机操作系统的化身，因为实现了进程和文件的隔离所以在hoststack里面的任何操作都不会污染宿主机。hoststack只实现了与宿主机的进程和文件的隔离没有网络隔离，操作命令基本保持了与docker一致。当下hoststack只能运行在linux系统上。
 
 ## 安装
 
@@ -146,10 +146,10 @@ sudo hoststack rm hoststack1
 
 
 ## 参考
->https://draveness.me/docker/
->https://coolshell.cn/articles/17061.html
->https://coolshell.cn/articles/17010.html
->https://coolshell.cn/articles/17049.html
->https://coolshell.cn/articles/17998.html
->https://github.com/xianlubird/mydocker
+>https://draveness.me/docker/  
+>https://coolshell.cn/articles/17061.html  
+>https://coolshell.cn/articles/17010.html    
+>https://coolshell.cn/articles/17049.html  
+>https://coolshell.cn/articles/17998.html  
+>https://github.com/xianlubird/mydocker  
 

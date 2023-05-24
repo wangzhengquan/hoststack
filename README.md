@@ -2,11 +2,24 @@
 
 hoststack是一个类似与docker的容器，但是hoststack是以计算机本地操作系统的文件作为的镜像运行的，也就是说hoststack是宿主机操作系统的化身，但是因为实现了进程和文件的隔离所以在hoststack里面的任何操作都不会污染宿主机。hoststack只实现了与宿主机的进程和文件的隔离没有网络隔离，操作命令基本保持了与docker一致。当下hoststack只能运行在linux系统上。
 
+## 安装
+
+### 二进制文件
+[下载](https://github.com/wangzhengquan/kucker/releases/download/V2.0/hoststack-2.0-Linux.tar.gz)完成后解压可直接运行bin目录下的hoststack文件
+
+### 源码编译
+
+```bash
+git clone https://github.com/wangzhengquan/hoststack
+cd hoststack
+./build.sh
+```
+
 
 ## 使用说明
 以下所有的命令都要以root用户执行。
 
-## run
+### run
 
 说明
 ```
@@ -27,7 +40,7 @@ Options:
 ```
 以上命令以默认的可交互的模式运行一个容器，名字设为hoststack1， 挂载本机目录v/home/wzq/wk/shmqueue到容器的/app目录
 
-## attach
+### attach
 
 说明
 ```
@@ -47,7 +60,7 @@ Attach local standard input, output, and error streams to a running container.
  sudo hoststack attach hoststack1
 ```
 
-## stop
+### stop
 说明
 ```
 Usage:	docker  stop  CONTAINER [CONTAINER...]
@@ -63,7 +76,7 @@ sudo hoststack stop hoststack1
 除了这种方式，还可以在交互模式中直接输入‘exit’命令也可以停止容器。  
 注意：关闭terminal后容器转为后台运行，并不会停止容器。
 
-## start
+### start
 说明
 ```
 Usage: hoststack start [OPTIONS] CONTAINER
@@ -81,7 +94,7 @@ Options:
 sudo hoststack start hoststack1
 ```
 
-## ps
+### ps
 说明
 ```
 Usage: hoststack ps [OPTIONS]
@@ -100,7 +113,7 @@ sudo hoststack ps
 ```
 加-a选项可以查看所有的容器，包括正在运行和已经停止的。
 
-## rm
+### rm
 ```
 Usage:	hoststack container rm [OPTIONS] CONTAINER [CONTAINER...]
 
@@ -130,4 +143,13 @@ sudo hoststack rm hoststack1
 
 ### 其他技术
 容器本身是一个大杂烩，要让它跑起来可用需要许多其他技术的支持。例如实现后台运行和attach功能，需要虚拟终端技术。容器的关闭需要对信号的处理。这些东西的资料比较多，也相对容易理解，这个文档就不解释了。
+
+
+## 参考
+>https://draveness.me/docker/
+>https://coolshell.cn/articles/17061.html
+>https://coolshell.cn/articles/17010.html
+>https://coolshell.cn/articles/17049.html
+>https://coolshell.cn/articles/17998.html
+>https://github.com/xianlubird/mydocker
 

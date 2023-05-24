@@ -55,15 +55,16 @@ Attach local standard input, output, and error streams to a running container.
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app -d --name "hoststack1"
 ```
-容器会在后台运行，这时如果要进入容器实例并与之交互就要用到attach命令，例如attach到上面的以后台运行的方式运行的名字为hoststack1的容器
+容器会在后台运行，这时如果要进入容器实例并与之交互就要用到attach命令，例如attach到名字为hoststack1的容器上
 
 ```bash
  sudo hoststack attach hoststack1
 ```
 
 ### stop
-
 说明
+
+停止正在运行的容器用stop命令
 
 ```
 Usage:	docker  stop  CONTAINER [CONTAINER...]
@@ -71,13 +72,13 @@ Usage:	docker  stop  CONTAINER [CONTAINER...]
 Stop one or more running containers
 
 ```
+实例
 
-停止正在运行的容器用stop命令，例如停止前面已经运行起来的名字为hoststack1的容器
-```
+```bash
 sudo hoststack stop hoststack1
 ```
-除了这种方式，还可以在交互模式中直接输入‘exit’命令也可以停止容器。  
-注意：关闭terminal后容器转为后台运行，并不会停止容器。
+上面的命令停止了前面已经运行起来的名字为hoststack1的容器。除了这种方式，还可以在交互模式中直接输入‘exit’命令也可以停止容器。  
+注意：直接关闭terminal容器转为后台运行，并不会停止容器。
 
 ### start
 说明
@@ -100,6 +101,7 @@ sudo hoststack start hoststack1
 
 ### ps
 说明
+
 如果要查看当前容器的状态可以用这个命令。
 ```
 Usage: hoststack ps [OPTIONS]
@@ -112,12 +114,11 @@ Options:
 
 ```
 实例
-
-例如查看当前正在运行的容器列表，可以用如下命令
+ 
 ```bash
 sudo hoststack ps
 ```
-加-a选项可以查看所有的容器，包括正在运行和已经停止的。
+上面的命令可以查看当前正在运行的容器列表，加-a选项可以查看所有的容器，包括正在运行和已经停止的。
 
 ### rm
 说明
@@ -134,11 +135,10 @@ Options:
 ```
 实例
 
-删除名字为hoststack1的容器：
 ```bash
 sudo hoststack rm hoststack1
 ```
-加-f选项可以强制删除正在运行的容器。
+上面的命令是删除名字为hoststack1的容器，如果加-f选项可以强制删除正在运行的容器。
 
 
 ## 原理

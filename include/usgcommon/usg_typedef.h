@@ -44,7 +44,7 @@ union semun {                   /* Used in calls to semctl() */
 #define MIN(a,b)  ((a) < (b) ? (a) : (b))
 #endif
 
-#ifndef MIN
+#ifndef MAX
 #define MAX(a,b)  ((a) > (b) ? (a) : (b))
 #endif
 

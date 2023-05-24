@@ -112,11 +112,12 @@ void ContainerFs::mount_container(const char * container_id)
 {
   //remount "/proc" to make sure the "top" and "ps" show container's information
   const char *rootfs = PathAssembler::getMergedDir(container_id, NULL);
-  char line[1024];
-  char data[1024];
-  char subdiff[1024];
-  char subwork[1024];
-  char target[1024];
+  size_t BUF_SIZE = 1024;
+  char line[BUF_SIZE];
+  char data[BUF_SIZE];
+  char subdiff[BUF_SIZE];
+  char subwork[BUF_SIZE];
+  char target[BUF_SIZE];
 
   size_t i = 0;
   mnt_dir_t *mnt_dir = &mnt_dir_arr[i];
@@ -128,13 +129,13 @@ void ContainerFs::mount_container(const char * container_id)
       // {
       //   LoggerFactory::getRunLogger().error(errno, line);
       // }
-      sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
-      sprintf(target, "%s%s", rootfs, mnt_dir->target);
+      snprintf(subdiff, BUF_SIZE, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
+      snprintf(target, BUF_SIZE, "%s%s", rootfs, mnt_dir->target);
       if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
       }
-      sprintf(data, "dirs=%s=rw:%s=ro", subdiff, mnt_dir->src);
+      snprintf(data, BUF_SIZE, "dirs=%s=rw:%s=ro", subdiff, mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
         LoggerFactory::getRunLogger().error(errno, "data=%s\n target=%s\n", data, target);
@@ -143,9 +144,9 @@ void ContainerFs::mount_container(const char * container_id)
 
     } else if(strcmp(mnt_dir->type, "overlay2") == 0) {
 
-      sprintf(subdiff, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
-      sprintf(subwork, "%s%s", PathAssembler::getWorkDir(container_id, NULL), mnt_dir->target);
-      sprintf(target, "%s%s", rootfs, mnt_dir->target);
+      snprintf(subdiff, BUF_SIZE, "%s%s", PathAssembler::getDiffDir(container_id, NULL), mnt_dir->target);
+      snprintf(subwork,BUF_SIZE,  "%s%s", PathAssembler::getWorkDir(container_id, NULL), mnt_dir->target);
+      snprintf(target, BUF_SIZE, "%s%s", rootfs, mnt_dir->target);
 
       if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
@@ -174,7 +175,7 @@ void ContainerFs::mount_container(const char * container_id)
       //sudo mount -t  overlay -o lowerdir={src},upperdir={diff},workdir={work} overlay {mount}
       // 如果镜像文件存在
       if(access(mnt_dir->target, F_OK) == 0) {
-        sprintf(data, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
+        snprintf(data, BUF_SIZE, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
         if(mount("overlay", target, "overlay", 0, data) != 0) {
           LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
           exit(1);
@@ -183,7 +184,7 @@ void ContainerFs::mount_container(const char * container_id)
      
     }
     else {
-      sprintf(line, "%s%s", rootfs, mnt_dir->target);
+      snprintf(line, BUF_SIZE, "%s%s", rootfs, mnt_dir->target);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
         LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: %s", line);

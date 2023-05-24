@@ -19,7 +19,7 @@ void ContainerStartCli::usage()
 }
 
 
-void ContainerStartCli::handleCommand (int argc, char *argv[])
+void ContainerStartCli::handleCommand (int argc,  char *argv[])
 {
   //LoggerFactory::getRunLogger().debug("Parent [%5d] - start a container!\n", getpid());
   int c;

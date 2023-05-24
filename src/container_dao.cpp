@@ -1,6 +1,6 @@
 
 #include <getopt.h>
-#include <uuid.h>
+#include <sole.h>
 #include <jsoncpp/json.h>
 #include "container_dao.h"
 #include "path_assembler.h"
@@ -264,12 +264,9 @@ std::vector<ContainerInfo>* ContainerDao::list() {
 
 
 
-char* ContainerDao::gen_id(char *uuidstr)
+std::string ContainerDao::gen_id()
 {
-  uuid_t uuid1;
-  uuid_generate(uuid1);
-  uuid_unparse(uuid1, uuidstr);
-  return uuidstr;
+  return sole::uuid4().str();
 }
 
 

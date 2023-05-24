@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 
 #include "container_service.h"
@@ -14,11 +13,11 @@ void ContainerStopCli::usage()
   // fprintf(stderr, "Options:\n\n");
   // #define fpe(str) fprintf(stderr, "  %s", str);
   // fpe("-d, --detach                         Start container in background and print container ID\n");
-  // fpe("\n");
+  // fpe("\n"); 
 }
 
 
-void ContainerStopCli::handleCommand(int argc, char *argv[]) {
+void ContainerStopCli::handleCommand(int argc,  char *argv[]) {
 
   if (argc < 2) {
     usage();

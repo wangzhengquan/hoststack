@@ -19,7 +19,7 @@ class ContainerStartCli {
 public:
 	static void usage();
 	
-	static void handleCommand (int argc, char *argv[]);
+	static void handleCommand (int argc,  char *argv[]);
 
 	static void startContainer(container_start_arg_t & mopt, struct termios *ttyAttr,  struct winsize *ttyWs);
 };

@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 
 #include "container_dao.h"
@@ -22,7 +21,7 @@ void ContainerAttachCli::usage()
 }
 
 
-void ContainerAttachCli::handleCommand(int argc, char *argv[]) {
+void ContainerAttachCli::handleCommand(int argc,  char *argv[]) {
 
   if (argc < 2) {
     usage();

@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 #include "container_dao.h"
 #include "container_info.h"
@@ -20,7 +19,7 @@ void ContainerLsCli::usage()
 }
 
 
-void ContainerLsCli::handleCommand(int argc, char *argv[]) {
+void ContainerLsCli::handleCommand(int argc,  char *argv[]) {
 	char c;
   if(argc == 2 && strcmp(argv[1], "--help") == 0) {
     usage();

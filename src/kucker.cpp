@@ -1,7 +1,6 @@
 #include "usg_common.h"
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include "path_assembler.h"
 #include "kucker_config.h"
 #include "container_cli.h"

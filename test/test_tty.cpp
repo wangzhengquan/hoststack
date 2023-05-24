@@ -20,7 +20,6 @@
 #include "usg_common.h"
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 

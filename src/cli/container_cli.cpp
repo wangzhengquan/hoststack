@@ -1,7 +1,6 @@
 
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 
 #include "container_info.h"
@@ -26,8 +25,8 @@ void ContainerCli::usage()
   fprintf(stderr, "Run 'kucker container COMMAND --help' for more information on a command.\n");
 }
 
-void ContainerCli::handleCommand(int argc, char *argv[]) {
-	char *action;
+void ContainerCli::handleCommand(int argc,  char *argv[]) {
+	const char *action;
   if (argc < 2)
   {
     usage();

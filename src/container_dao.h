@@ -30,7 +30,7 @@ public:
 	static std::vector<ContainerInfo>* list() ;
 
 	
-	static char* gen_id(char *uuidstr);
+	static std::string gen_id();
 
 };
 

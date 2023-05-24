@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 
 #include "container_fs.h"
@@ -28,7 +27,7 @@ void ContainerRMCli::usage()
 }
 
 
-void ContainerRMCli::handleCommand(int argc, char *argv[]) {
+void ContainerRMCli::handleCommand(int argc,  char *argv[]) {
 	char **container_arr;
   int container_arr_len;
   if (argc < 2) {

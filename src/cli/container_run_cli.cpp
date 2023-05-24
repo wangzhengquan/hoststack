@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 
 #include "container_dao.h"
@@ -27,7 +26,7 @@ void ContainerRunCli::usage()
 }
 
 
-void ContainerRunCli::handleCommand (int argc, char *argv[])
+void ContainerRunCli::handleCommand (int argc,  char *argv[])
 {
   int c;
 
@@ -36,12 +35,12 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
     return;
   }
 
-  char *shell = getenv("SHELL");
+  const char * shell = getenv("SHELL");
   if (shell == NULL || *shell == '\0')
     shell = "/bin/bash";
   // char ** cmd_arr;
   
-  char * default_cmd_arr[] =
+  const char *  default_cmd_arr[] =
   {
     shell,
     "-l",
@@ -50,7 +49,7 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
 
   container_run_arg_t mopt = {};
   mopt.detach = false;
-  mopt.cmd_arr = default_cmd_arr;
+  mopt.cmd_arr = const_cast<char **>(default_cmd_arr);
   mopt.cmd_arr_len = 2;
   // mopt.volume_list_size = 0;
 
@@ -136,11 +135,11 @@ void ContainerRunCli::handleCommand (int argc, char *argv[])
   }
  
 
-  char container_id[37];
-  ContainerDao::gen_id(container_id);
-  mopt.container_id = container_id;
-
-  ContainerFs::create_container(container_id);
+ // char container_id[37];
+  // ContainerDao::gen_id();
+  std::string uuid = ContainerDao::gen_id();
+// std::cout << "mopt.container_id=" << uuid << ",  " << mopt.container_id << std::endl;
+  ContainerFs::create_container(mopt.container_id);
 
   struct termios ttyOrig;
   struct winsize ws;

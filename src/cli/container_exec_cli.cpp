@@ -1,6 +1,5 @@
 #include <sys/mount.h>
 #include <getopt.h>
-#include <uuid.h>
 #include <sys/syscall.h>
 #include "container_dao.h"
 #include "container_info.h"
@@ -29,7 +28,7 @@ void ContainerExecCli::usage()
 }
 
 
-void ContainerExecCli::handleCommand(int argc, char *argv[]) {
+void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
   char *container_id;
   if(argc == 2 && strcmp(argv[1], "--help") == 0) {
     usage();
@@ -114,7 +113,7 @@ void ContainerExecCli::handleCommand(int argc, char *argv[]) {
 
 
   char nspath[1024];
-  char *namespaces[] = {"pid", "mnt", NULL};
+  const char *namespaces[] = {"pid", "mnt", NULL};
   int i = 0, fd;
 
   ContainerInfo container = ContainerDao::get_container_by_id_or_name(container_id);

@@ -40,9 +40,13 @@ union semun {                   /* Used in calls to semctl() */
  */
 #define DIR_MODE  (FILE_MODE | S_IXUSR | S_IXGRP | S_IXOTH)
 
-
+#ifndef MIN
 #define MIN(a,b)  ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MIN
 #define MAX(a,b)  ((a) > (b) ? (a) : (b))
+#endif
 
 #define BLANK "\t\n\v\f\r "
 /* Misc constants */

@@ -8,7 +8,7 @@
 
 void ContainerStopCli::usage()
 {
-  fprintf(stderr, "Usage:	docker container stop  CONTAINER [CONTAINER...]\n\n");
+  fprintf(stderr, "Usage:	hoststack container stop  CONTAINER [CONTAINER...]\n\n");
   fprintf(stderr, "Stop one or more running containers\n\n");
   // fprintf(stderr, "Options:\n\n");
   // #define fpe(str) fprintf(stderr, "  %s", str);

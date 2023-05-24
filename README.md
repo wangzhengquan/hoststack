@@ -67,7 +67,7 @@ Attach local standard input, output, and error streams to a running container.
 停止正在运行的容器用stop命令
 
 ```
-Usage:	docker  stop  CONTAINER [CONTAINER...]
+Usage:	hoststack  stop  CONTAINER [CONTAINER...]
 
 Stop one or more running containers
 

@@ -5,7 +5,7 @@ hoststack是一个类似于docker的容器，但是hoststack是以计算机本�
 ## 安装
 
 ### 二进制文件
-[下载](https://github.com/wangzhengquan/kucker/releases/download/V2.0/hoststack-2.0-Linux.tar.gz)完成后解压可直接运行bin目录下的hoststack文件
+[下载](https://github.com/wangzhengquan/hoststack/releases)完成后解压可直接运行bin目录下的hoststack文件
 
 ### 源码编译
 

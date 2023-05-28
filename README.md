@@ -15,7 +15,7 @@ cd hoststack
 ```
 
 
-## ## Instructions for usage
+## Instructions for usage
  All the following commands must be executed as root user.
 
 ### run

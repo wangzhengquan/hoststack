@@ -1,14 +1,13 @@
+[中文说明](./README_CN.md)
 
+hoststack is a container similar to docker, but hoststack runs as a mirror image of the computer's local operating system file, that is to say, hoststack is the incarnation of the host operating system, because it realizes the isolation of processes and files, so in hoststack Any operation will not pollute the host machine. Hoststack only realizes the isolation from the host process and files without network isolation, and the operation commands are basically consistent with docker. Currently hoststack can only run on linux systems.
 
-hoststack是一个类似于docker的容器，但是hoststack是以计算机本地操作系统的文件作为的镜像运行的，也就是说hoststack是宿主机操作系统的化身，因为实现了进程和文件的隔离所以在hoststack里面的任何操作都不会污染宿主机。hoststack只实现了与宿主机的进程和文件的隔离没有网络隔离，操作命令基本保持了与docker一致。当下hoststack只能运行在linux系统上。
+## Install
 
-## 安装
+###  Binary file
+After the [download](https://github.com/wangzhengquan/hoststack/releases) is complete, decompress and run the hoststack file in the bin directory directly
 
-### 二进制文件
-[下载](https://github.com/wangzhengquan/hoststack/releases)完成后解压可直接运行bin目录下的hoststack文件
-
-### 源码编译
-
+### Source code compilation
 ```bash
 git clone https://github.com/wangzhengquan/hoststack
 cd hoststack
@@ -16,12 +15,11 @@ cd hoststack
 ```
 
 
-## 使用说明
-以下所有的命令都要以root用户执行。
+## ## Instructions for usage
+ All the following commands must be executed as root user.
 
 ### run
 
-说明
 ```
 Usage: hoststack run [OPTIONS] [COMMAND] [ARG...]
 
@@ -33,38 +31,36 @@ Options:
   -v, --volume list                    Bind mount a volume
   -n, --name string                    Assign a name to the container
 ```
-实例
+Demo:
 
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app --name "hoststack1"
 ```
-以上命令以默认的可交互的模式运行一个容器，名字设为hoststack1， 挂载本机目录v/home/wzq/wk/shmqueue到容器的/app目录
+The above command runs a container in the default interactive mode, with the name set to hoststack1, and mounts the local directory v/home/wzq/wk/shmqueue to the /app directory of the container.
 
 ### attach
 
-说明
 ```
 Usage: hoststack attach CONTAINER
 
 Attach local standard input, output, and error streams to a running container.
 ```
 
-实例
+Demo:
 
-如果run一个容器的时候加了`-d`选项，例如
+ If the `-d` option is added when running a container, for example
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app -d --name "hoststack1"
 ```
-容器会在后台运行，这时如果要进入容器实例并与之交互就要用到attach命令，例如attach到名字为hoststack1的容器上
+The container will run in the background. At this time, if you want to enter and interact with the container instance, you need to use the attach command, for example, attach to the container named hoststack1
 
 ```bash
  sudo hoststack attach hoststack1
 ```
 
 ### stop
-说明
 
-停止正在运行的容器用stop命令
+Stop a running container with the stop command
 
 ```
 Usage:	hoststack  stop  CONTAINER [CONTAINER...]
@@ -72,16 +68,15 @@ Usage:	hoststack  stop  CONTAINER [CONTAINER...]
 Stop one or more running containers
 
 ```
-实例
+Demo:
 
 ```bash
 sudo hoststack stop hoststack1
 ```
-上面的命令停止了前面已经运行起来的名字为hoststack1的容器。除了这种方式，还可以在交互模式中直接输入‘exit’命令也可以停止容器。  
-注意：直接关闭terminal容器转为后台运行，并不会停止容器。
+The above command stops the previously running container named hoststack1. In addition to this method, you can also directly enter the 'exit' command in interactive mode to stop the container.
+Note: Closing the terminal container directly to run in the background will not stop the container.
 
 ### start
-说明
 ```
 Usage: hoststack start [OPTIONS] CONTAINER
 
@@ -91,18 +86,16 @@ Options:
 
   -d, --detach                         Start container in background and print container ID
 ```
-实例
+Demo:
 
-假若要重新启动上面已经停止的容器hoststack1，可以使用如下命令
-
+If you want to restart the above stopped container hoststack1, you can use the following command
 ```bash
 sudo hoststack start hoststack1
 ```
 
 ### ps
-说明
 
-如果要查看当前容器的状态可以用这个命令。
+ If you want to view the status of the current container, you can use this command.
 ```
 Usage: hoststack ps [OPTIONS]
 
@@ -113,16 +106,16 @@ Options:
   -a, --all             Show all containers (default shows just running)
 
 ```
-实例
- 
+Demo:
+
 ```bash
 sudo hoststack ps
 ```
-上面的命令可以查看当前正在运行的容器列表，加-a选项可以查看所有的容器，包括正在运行和已经停止的。
+The above command can view the list of currently running containers, and add the -a option to view all containers, including running and stopped.
 
 ### rm
-说明
-如果某个容器已经彻底废弃不要了可以用rm命令删除。
+
+Note If a container is completely abandoned, you can use the `rm` command to delete it.
 
 ```
 Usage:	hoststack container rm [OPTIONS] CONTAINER [CONTAINER...]
@@ -133,28 +126,30 @@ Options:
 
   -f, --force     Force the removal of a running container (uses SIGKILL)
 ```
-实例
+Demo:
 
 ```bash
 sudo hoststack rm hoststack1
 ```
-上面的命令是删除名字为hoststack1的容器，如果加-f选项可以强制删除正在运行的容器。
+The above command is to delete the container named hoststack1. If you add the -f option, you can forcefully delete the running container.
+
+ 
 
 
-## 原理
+## Implementation
 
-### 进程隔离
-为什么说容器是一个进程。其实线程 进程 容器是同一类东西，只是它们对应了不同的隔离级别。线程没有任何隔离，进程隔离的是内存空间和文件描述符，容器是最高级别的隔离，比如docker它的进程 文件 内存 网络 用户全部都是隔离的，所以看起来象一个单独的操作系统。
+###  Process isolation
+Why is it said that a container is a process. In fact, threads, processes, and containers are the same thing, but they correspond to different isolation levels. Threads do not have any isolation. Processes isolate memory space and file descriptors. Containers are the highest level of isolation. For example, docker’s processes, files, memory,  network and users are all isolated, so it looks like a separate operating system.
 
-### 文件隔离
-实现文件隔离与进程隔离一样是很简单的事情，都是内核支持的。只需要在调用clone方法的时候加入文件隔离的标识，然后chroot改变根文件目录。容器中会用到一种特殊的文件系统叫UnionFilesystem，它的实现有很多比如overlay aufs等。这种文件系统本身与文件隔离没有任何关系，但是它是实现一个容器必不可少的驱动。为什么需要这种文件系统呢？先看一下overlay的基本原理。下图是docker官网给出的一张overlay的示意图。
+### File isolation
+Implementing file isolation is as simple as process isolation, both of which are supported by the kernel. You only need to add the file isolation flag when calling the clone method, and then chroot to change the root file directory. A special file system called UnionFilesystem will be used in the container, and there are many implementations of it, such as overlay aufs and so on. This file system itself has nothing to do with file isolation, but it is an essential driver for implementing a container. Why is this file system needed? Let's first look at the basic principles of overlay. The figure below is a schematic diagram of an overlay given by the docker official website.
  ![](./doc/img/overlay_constructs.jpg)
-这个示意图有两层，第一层是Image layer，第二层是Container layer. 这两层通过mount命令mount到container mount，这一层就是我们正常能看到的那一层. 第一层Image layer是只读的，可以看到它有三个文件file1 file2 file3.假如我现在修改file2.overlay会拷贝file2 到container layer 然后在这个copy上进行修改。假如我新增一个文件file4，overlay发现Image layer没有这个文件，就直接在Container layer上新增这个文件。可以看到修改文件对原始的第一层不会有任何改动（这种行为有一个术语叫copy on write.）原始的第一层iamge layer 加第二层container layer里记录的差异（diff)组成了最终给用户看到的第三层container mount.overlay2可以有很多这样的层，这里面的每一层就好像git里的提交点，在docker里这每一层打成一个包就叫镜像。docker用这种文件系统是为了节约空间，因为每一层都可以共用。我们的hoststack第一也是为了节约空间，第二是为了修改容器里的文件不会对本机文件有影响。
+This diagram has two layers, the first layer is "Image layer" and the second layer is "Container layer". These two layers are mounted to "container mount" through the mount command, and this layer is the layer we can see normally . The first layer“ Image layer ”is read-only, you can see that it has three files file1 / file2 and file3. If I modify file2 now, the overlay will copy file2 to the container layer and then modify it on this copy. If I add a new file file4, overlay finds that the Image layer does not have this file, and directly adds this file on the Container layer. It can be seen that the modified file will not have any changes to the original first layer (this behavior has a term called copy on write.) The difference recorded in the original first layer "iamge layer" and the second layer "container layer" (diff) constitutes the third layer "container mount" that is finally seen by the user. Overlay2 can have many such layers. Each layer is like a check point in git. In docker, each layer is packaged into a package called a mirror image. Docker uses this file system to save space, because each layer can be shared. Our hoststack also uses such a file system.
 
-### 其他技术
-容器本身是一个大杂烩，要让它跑起来可用需要许多其他技术的支持。例如实现后台运行和attach功能，需要虚拟终端技术。容器的关闭需要对信号的处理。 
+### Others
+Containers are a hodgepodge by themselves, and many other technologies are required to make it usable. For example, to realize background operation and attach functions, virtual terminal technology is required. The closing of the container requires the handling of the signal.
 
-## 参考
+## References
 >https://draveness.me/docker/  
 >https://coolshell.cn/articles/17061.html  
 >https://coolshell.cn/articles/17010.html    

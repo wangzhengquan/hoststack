@@ -16,9 +16,12 @@ list(APPEND _INCLUDES_
 
 file (GLOB _SOURCES_ "common/*.cpp" "util/*.cpp" "cli/*.cpp" "pty/*.cpp")
 
-add_executable(hoststack  hoststack.cpp ${_SOURCES_})
+add_library (libhoststack STATIC ${_SOURCES_})
+target_include_directories(libhoststack PUBLIC  ${_INCLUDES_}  ${EXTRA_INCLUDES} )
+
+add_executable(hoststack  hoststack.cpp )
 target_include_directories(hoststack PUBLIC  ${_INCLUDES_} ${EXTRA_INCLUDES} )
-target_link_libraries(hoststack PUBLIC  ${EXTRA_LIBS} )
+target_link_libraries(hoststack PUBLIC libhoststack ${EXTRA_LIBS} )
 # generate md5
 add_custom_command(
   OUTPUT ${PROJECT_BINARY_DIR}/bin/hoststack.md5
@@ -30,9 +33,9 @@ add_custom_command(
 add_custom_target("genmd5" ALL DEPENDS ${PROJECT_BINARY_DIR}/bin/hoststack.md5)
 
 #hoststack_supervisor
-add_executable(hoststack_supervisor  hoststack_supervisor.cpp ${_SOURCES_})
-target_include_directories(hoststack_supervisor PUBLIC  ${_INCLUDES_} ${EXTRA_INCLUDES} )
-target_link_libraries(hoststack_supervisor PUBLIC  ${EXTRA_LIBS} ) 
+add_executable(hoststack_supervisor hoststack_supervisor.cpp )
+target_include_directories(hoststack_supervisor PUBLIC ${_INCLUDES_} ${EXTRA_INCLUDES} )
+target_link_libraries(hoststack_supervisor PUBLIC libhoststack ${EXTRA_LIBS} ) 
 
 # install rules
 # include(GNUInstallDirs)

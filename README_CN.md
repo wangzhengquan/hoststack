@@ -38,7 +38,7 @@ Options:
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app --name "hoststack1"
 ```
-以上命令以默认的可交互的模式运行一个容器，名字设为hoststack1， 挂载本机目录v/home/wzq/wk/shmqueue到容器的/app目录
+以上命令以默认的可交互的模式运行一个容器，名字设为hoststack1， 挂载本机目录`/home/wzq/wk/shmqueue`到容器的`/app`目录
 
 ### attach
 

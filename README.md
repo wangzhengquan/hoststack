@@ -36,7 +36,7 @@ Demo:
 ```bash
  sudo hoststack run -v/home/wzq/wk/shmqueue:/app --name "hoststack1"
 ```
-The above command runs a container in the default interactive mode, with the name set to hoststack1, and mounts the local directory v/home/wzq/wk/shmqueue to the /app directory of the container.
+The above command runs a container in the default interactive mode, with the name set to hoststack1, and mounts the local directory `/home/wzq/wk/shmqueue` to the `/app` directory of the container.
 
 ### attach
 

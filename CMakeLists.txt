@@ -20,11 +20,11 @@ option(BUILD_DOC "Build doc" OFF)
 list(APPEND EXTRA_INCLUDES 
 						${PROJECT_SOURCE_DIR}/include
 						${PROJECT_SOURCE_DIR}/include/usgcommon
-
+						
 						)
 
 list(APPEND EXTRA_LIBS 
-						${PROJECT_SOURCE_DIR}/lib/libusgcommon.a 
+					#	${PROJECT_SOURCE_DIR}/lib/libusgcommon.a 
 						${PROJECT_SOURCE_DIR}/lib/libjsoncpp.a
 						pthread 
 						rt

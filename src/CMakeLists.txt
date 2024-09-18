@@ -8,31 +8,13 @@ list(APPEND _INCLUDES_
    ${CMAKE_CURRENT_SOURCE_DIR}
    ${CMAKE_CURRENT_SOURCE_DIR}/cli
    ${CMAKE_CURRENT_SOURCE_DIR}/pty
+   ${CMAKE_CURRENT_SOURCE_DIR}/util
+   ${CMAKE_CURRENT_SOURCE_DIR}/common/include
 )
 
-list(APPEND _SOURCES_ 
-
-./cli/container_start_cli.cpp
-./cli/container_cli.cpp
-./cli/container_run_cli.cpp
-./cli/container_stop_cli.cpp
-./cli/container_attach_cli.cpp
-./cli/container_rm_cli.cpp
-./cli/container_ls_cli.cpp
-./cli/container_exec_cli.cpp
-./container_fs.cpp
-./container_service.cpp
-./container_info.cpp
-./container_dao.cpp
-./path_assembler.cpp
-./pty/pty_exec_util.cpp
-./pty/pty_master_open.cpp
-./pty/pty_fork.cpp
-./pty/pty_server.cpp
-./pty/tty_functions.cpp
 
 
-)
+file (GLOB _SOURCES_ "common/*.cpp" "util/*.cpp" "cli/*.cpp" "pty/*.cpp")
 
 add_executable(hoststack  hoststack.cpp ${_SOURCES_})
 target_include_directories(hoststack PUBLIC  ${_INCLUDES_} ${EXTRA_INCLUDES} )

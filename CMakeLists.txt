@@ -16,15 +16,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 
 option(BUILD_DOC "Build doc" OFF)
 
+include_directories ("${PROJECT_SOURCE_DIR}/include")
 
-list(APPEND EXTRA_INCLUDES 
-						${PROJECT_SOURCE_DIR}/include
-						${PROJECT_SOURCE_DIR}/include/usgcommon
-						
-						)
+# list(APPEND EXTRA_INCLUDES ${PROJECT_SOURCE_DIR}/include )
 
 list(APPEND EXTRA_LIBS 
-					#	${PROJECT_SOURCE_DIR}/lib/libusgcommon.a 
 						${PROJECT_SOURCE_DIR}/lib/libjsoncpp.a
 						pthread 
 						rt
@@ -37,7 +33,7 @@ if (BUILD_DOC)
 else()
 	add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/etc)
-	add_subdirectory(${PROJECT_SOURCE_DIR}/test) 
+	# add_subdirectory(${PROJECT_SOURCE_DIR}/test) 
 endif()
 
 

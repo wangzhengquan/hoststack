@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
   // printf("euid = %d\n", geteuid());
   if(geteuid() != 0) {
-    printf("权限不够, 请查看您是否正以 root 用户运行\n");
+    printf("权限不够, 请查看您是否正以 root 用户运行, euid=%d\n", geteuid());
     exit(1);
   }
 

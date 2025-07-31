@@ -147,9 +147,9 @@ sudo hoststack rm hoststack1
 为什么说容器是一个进程。其实线程 进程 容器是同一类东西，只是它们对应了不同的隔离级别。线程没有任何隔离，进程隔离的是内存空间和文件描述符，容器是最高级别的隔离，比如docker它的进程 文件 内存 网络 用户全部都是隔离的，所以看起来象一个单独的操作系统。
 
 ### 文件隔离
-实现文件隔离与进程隔离一样是很简单的事情，都是内核支持的。只需要在调用clone方法的时候加入文件隔离的标识，然后chroot改变根文件目录。容器中会用到一种特殊的文件系统叫UnionFilesystem，它的实现有很多比如overlay aufs等。这种文件系统本身与文件隔离没有任何关系，但是它是实现一个容器必不可少的驱动。为什么需要这种文件系统呢？先看一下overlay的基本原理。下图是docker官网给出的一张overlay的示意图。
+实现文件隔离与进程隔离一样是很简单的事情，都是内核支持的。只需要在调用clone方法的时候加入文件隔离的标识，然后chroot改变根文件目录。容器中会用到一种特殊的文件系统叫UnionFilesystem，它的实现有很多比如overlay, aufs等。这种文件系统本身与文件隔离没有任何关系，但是它是实现一个容器必不可少的驱动。为什么需要这种文件系统呢？先看一下overlay的基本原理。下图是docker官网给出的一张overlay的示意图。
  ![](./doc/img/overlay_constructs.jpg)
-这个示意图有两层，第一层是“Image layer”，第二层是“Container layer”. 这两层通过mount命令mount到“container mount”，这一层就是我们正常能看到的那一层。第一层Image layer是只读的，可以看到它有三个文件file1 file2 file3。假如我现在修改file2，overlay会拷贝file2 到container layer 然后在这个copy上进行修改。假如我新增一个文件file4，overlay发现Image layer没有这个文件，就直接在Container layer上新增这个文件。可以看到修改文件对原始的第一层不会有任何改动（这种行为有一个术语叫copy on write.）原始的第一层“iamge layer” 与第二层“container layer”里记录的差异（diff)组成了最终给用户看到的第三层“container mount”。overlay2可以有很多这样的层，这里面的每一层就好像git里的提交点，在docker里这每一层打成一个包就叫镜像。docker用这种文件系统是为了节约空间，因为每一层都可以共用。我们的hoststack也使用了这样的文件系统。
+这个示意图有两层，第一层是“Image layer”，第二层是“Container layer”. 这两层通过mount命令mount到“container mount”，这一层就是我们正常能看到的那一层。第一层Image layer是只读的，可以看到它有三个文件file1 file2 file3。假如我现在修改file2，overlay会拷贝file2 到container layer 然后在这个copy上进行修改。假如我新增一个文件file4，overlay发现Image layer没有这个文件，就直接在Container layer上新增这个文件。可以看到修改文件对原始的第一层不会有任何改动（这种行为有一个术语叫copy on write.）原始的第一层“image layer” 与第二层“container layer”里记录的差异（diff)组成了最终给用户看到的第三层“container mount”。overlay2可以有很多这样的层，这里面的每一层就好像git里的提交点，在docker里这每一层打成一个包就叫镜像。docker用这种文件系统是为了节约空间，因为每一层都可以共用。我们的hoststack也使用了这样的文件系统。
 
 ### 其他技术
 容器本身是一个大杂烩，要让它跑起来可用需要许多其他技术的支持。例如实现后台运行和attach功能，需要虚拟终端技术。容器的关闭需要对信号的处理。 

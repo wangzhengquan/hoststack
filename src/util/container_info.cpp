@@ -16,8 +16,8 @@ std::ostream & operator<<(std::ostream & out, ContainerInfo & info){
   return out;
 }
 
-const char *ContainerInfo::INFO_FORMAT = "%-40s %-40s %-10d %-10s %-30s %-20s\n";
-const char *ContainerInfo::TITLE_FORMAT   = "%-40s %-40s %-10s %-10s %-30s %-20s \n";
+const char *ContainerInfo::INFO_FORMAT    = "%-40s %-20s %-10d %-10s %-30s %-20s\n";
+const char *ContainerInfo::TITLE_FORMAT   = "%-40s %-20s %-10s %-10s %-30s %-20s \n";
 
 char *  ContainerInfo::formatTime(const time_t time, char *_time_str) {
 	static char time_str[100];

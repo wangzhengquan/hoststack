@@ -126,30 +126,30 @@ void ContainerStartCli::handleCommand (int argc,  char *argv[])
 
 void ContainerStartCli::startContainer(container_start_arg_t & mopt, struct termios *ttyAttr,  struct winsize *ttyWs)
 {
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(mopt.containerName);
-  if(info.id.empty()) {
+  auto info = ContainerDao::get_container_by_id_or_name(mopt.containerName);
+  if(!info) {
     fprintf(stderr, "No container named %s \n", mopt.containerName);
     return;
   }
-  if(info.status == CONTAINER_RUNNING) {
+  if(info->status == CONTAINER_RUNNING) {
     fprintf(stderr, "It has been started already\n");
     return;
   }
   container_start_option_t startOpt = {};
-  startOpt.containerId = info.id.c_str();
-  str_split(info.command.c_str(), BLANK, &(startOpt.cmd) );
+  startOpt.containerId = info->id.c_str();
+  str_split(info->command.c_str(), BLANK, &(startOpt.cmd) );
   startOpt.detach = mopt.detach;
-  startOpt.volume_list = &info.volume_list;
+  startOpt.volume_list = &info->volume_list;
   startOpt.ttyAttr = ttyAttr;
   startOpt.ttyWs = ttyWs;
 
   
   ContainerService::start(startOpt, [&](int pid){
-    info.pid = pid;
-    info.start_time = time(0);
-    info.status = CONTAINER_RUNNING;
-    info.abnormal_stoped = 1;
-    ContainerDao::update(info);
+    info->pid = pid;
+    info->start_time = time(0);
+    info->status = CONTAINER_RUNNING;
+    info->abnormal_stoped = 1;
+    ContainerDao::update(*info);
   });
 }
 

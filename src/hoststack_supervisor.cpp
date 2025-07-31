@@ -50,20 +50,20 @@ void *run_checkandrestart(void *ptr) {
 	std::string *id = (std::string *)ptr;
 	sleep(3);
 
-	ContainerInfo info = ContainerDao::get_container_by_id(*id);
-	if(info.status == CONTAINER_RUNNING) {
-    sprintf(line, "/proc/%d", info.pid);
+	auto info = ContainerDao::get_container_by_id(*id);
+	if(info->status == CONTAINER_RUNNING) {
+    sprintf(line, "/proc/%d", info->pid);
     if(access(line, F_OK) == -1) {
-    	ContainerDao::change_status_to_stop(info.id);
-    	// printf("1 start %s\n", info.name.c_str());
-    	// sprintf(line, "sudo %s start -d %s", hoststack, info.name.c_str());
+    	ContainerDao::change_status_to_stop(info->id);
+    	// printf("1 start %s\n", info->name.c_str());
+    	// sprintf(line, "sudo %s start -d %s", hoststack, info->name.c_str());
     	// system(line);
     	mopt.detach = true;
-    	mopt.containerName = info.id.c_str();
+    	mopt.containerName = info->id.c_str();
     	ContainerStartCli::startContainer(mopt,  NULL, &ws);
 
-    	printf("2 start %s\n", info.name.c_str());
-    	logger.info("start %s\n\n\n\n", info.name.c_str());
+    	printf("2 start %s\n", info->name.c_str());
+    	logger.info("start %s\n\n\n\n", info->name.c_str());
     }
   }
   delete id;

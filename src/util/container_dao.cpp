@@ -37,7 +37,7 @@ void ContainerDao::insert(const ContainerInfo &info) {
 
 
 void ContainerDao::delete_by_id(const char *containerName) {
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
+  std::optional<ContainerInfo> info = ContainerDao::get_container_by_id_or_name(containerName);
  
 
   Json::Value oldRoot;
@@ -59,7 +59,7 @@ void ContainerDao::delete_by_id(const char *containerName) {
   }
 
   for(int i = 0; i < size; i++) {
-    if(oldRoot[i]["id"].asString() != info.id)
+    if(oldRoot[i]["id"].asString() != info->id)
       newRoot.append(oldRoot[i]);
   }
 
@@ -113,27 +113,27 @@ void ContainerDao::update(const ContainerInfo &info) {
  
 void ContainerDao::change_status_to_stop( const std::string & name) {
  
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(name);
-  info.status = CONTAINER_STOPED;
-  info.abnormal_stoped = 0;
-  info.stop_time = time(0);
-  info.pid = 0;
-  ContainerDao::update(info);
+  std::optional<ContainerInfo> info = ContainerDao::get_container_by_id_or_name(name);
+  info->status = CONTAINER_STOPED;
+  info->abnormal_stoped = 0;
+  info->stop_time = time(0);
+  info->pid = 0;
+  ContainerDao::update(*info);
   
 }
 
 
 
 
-ContainerInfo ContainerDao::get_container_by_id(const std::string& value) {
+std::optional<ContainerInfo> ContainerDao::get_container_by_id(const std::string& value) {
   return get_container_by("id", value);
 }
 
-ContainerInfo ContainerDao::get_container_by_name(const std::string& value) {
+std::optional<ContainerInfo> ContainerDao::get_container_by_name(const std::string& value) {
   return get_container_by("name", value);
 }
 
-ContainerInfo ContainerDao::get_container_by(const char * name,const std::string& value) {
+std::optional<ContainerInfo> ContainerDao::get_container_by(const char * name,const std::string& value) {
   Json::Value root;
   char line[1024];
   
@@ -174,7 +174,7 @@ ContainerInfo ContainerDao::get_container_by(const char * name,const std::string
   return {};
 }
 
-ContainerInfo ContainerDao::get_container_by_id_or_name(const std::string& value) {
+std::optional<ContainerInfo> ContainerDao::get_container_by_id_or_name(const std::string& value) {
   Json::Value root;
   char line[1024];
   

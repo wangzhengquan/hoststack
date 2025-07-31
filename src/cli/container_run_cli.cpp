@@ -128,10 +128,9 @@ void ContainerRunCli::handleCommand (int argc,  char *argv[])
 
   // check arguments
   // name 去重
-  if( mopt.name != NULL) {
-  	 if(!ContainerDao::get_container_by_name(mopt.name).id.empty()) {
-  	 		err_exit(0, "duplicate name %s", mopt.name);
-  	 }
+  if(mopt.name != NULL && ContainerDao::get_container_by_name(mopt.name)) {
+    fprintf(stderr, "Container name '%s' already exists!\n", mopt.name);
+    return;
   }
  
 

@@ -146,19 +146,24 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 }
 
 void ContainerService::stop(const std::string & name) {
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(name);
-  if(info.id.empty() || info.status != CONTAINER_RUNNING) {
-    printf( "No container identify by %s, or it's not a container in running.", name.c_str());
+  auto info = ContainerDao::get_container_by_id_or_name(name);
+   
+  if (!info) {
+    printf("Container %s not found!\n", name);
     return;
   }
-  LoggerFactory::getRunLogger().info("Stopping container=%s, pid=%d\n",  name.c_str(), info.pid);
-  if(kill(info.pid, SIGTERM) != 0) {
-    err_msg(errno, "SIGTERM Stop container %s failed.pid = %d", name.c_str(), info.pid);
+  if(info->status != CONTAINER_RUNNING) {
+    printf("Conatiner %s is not in running status!\n", name);
+    return ;
+  }
+  LoggerFactory::getRunLogger().info("Stopping container=%s, pid=%d\n",  name.c_str(), info->pid);
+  if(kill(info->pid, SIGTERM) != 0) {
+    err_msg(errno, "SIGTERM Stop container %s failed.pid = %d", name.c_str(), info->pid);
     return;
   }
 
   sleep(3);
-  if(kill(info.pid, SIGKILL) != 0) {
+  if(kill(info->pid, SIGKILL) != 0) {
     //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
   //sleep(1);

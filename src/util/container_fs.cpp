@@ -279,7 +279,7 @@ void ContainerFs::mount_volume (const char *container_id, const char *_volume) {
 
 
 void ContainerFs::umount_volume_list (const char *container_id) {
-  const std::set<std::string> &volume_list = ContainerDao::get_container_by_id_or_name(container_id).volume_list;
+  const std::set<std::string> &volume_list = ContainerDao::get_container_by_id_or_name(container_id)->volume_list;
   if(volume_list.size() == 0) {
     return;
   }

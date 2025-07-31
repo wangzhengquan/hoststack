@@ -35,15 +35,19 @@ void ContainerAttachCli::handleCommand(int argc,  char *argv[]) {
 
 
   char *containerName = argv[1];
-  ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
-  if(info.status == CONTAINER_STOPED) {
-    printf("Conatiner %s is not in running status!\n", info.name.c_str());
+  auto info = ContainerDao::get_container_by_id_or_name(containerName);
+  if (!info) {
+    printf("Container %s not found!\n", containerName);
+    return;
+  }
+  if(info->status == CONTAINER_STOPED) {
+    printf("Conatiner %s is not in running status!\n", info->name.c_str());
     return ;
   }
 
   pty_exe_opt_t execOpt = {};
   execOpt.detach = false;
-  execOpt.containerId = info.id.c_str();
+  execOpt.containerId = info->id.c_str();
   pty_client( execOpt) ;
    
   

@@ -4,7 +4,7 @@
 #include "usg_common.h"
 #include "container_info.h"
 #include <jsoncpp/json.h>
- 
+#include <optional>
 
 
 
@@ -22,10 +22,10 @@ public:
 	static void change_status_to_stop( const std::string & name);
 	
 
-	static ContainerInfo get_container_by_id(const std::string& id);
-	static ContainerInfo get_container_by_name(const std::string& name);
-	static ContainerInfo get_container_by_id_or_name(const std::string& value);
-	static ContainerInfo get_container_by(const char * name,const std::string& value);
+	static std::optional<ContainerInfo> get_container_by_id(const std::string& id);
+	static std::optional<ContainerInfo> get_container_by_name(const std::string& name);
+	static std::optional<ContainerInfo> get_container_by_id_or_name(const std::string& value);
+	static std::optional<ContainerInfo> get_container_by(const char * name,const std::string& value);
 
 	static std::vector<ContainerInfo>* list() ;
 

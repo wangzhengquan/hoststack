@@ -115,21 +115,21 @@ void ContainerRMCli::handleCommand(int argc,  char *argv[]) {
 }
 
 static void removeContainer(container_rm_arg_t &mopt, const char * containerName) {
-	ContainerInfo info = ContainerDao::get_container_by_id_or_name(containerName);
-	if(info.id.empty()) {
-		err_msg(0, "No container named %s", containerName);
+	auto info = ContainerDao::get_container_by_id_or_name(containerName);
+	if(!info) {
+    fprintf(stderr, "Container %s not found", containerName);
 		return;
 	}
-	if(info.status == CONTAINER_RUNNING) {
+	if(info->status == CONTAINER_RUNNING) {
 		if(mopt.force) {
 		 ContainerService::stop(containerName);
 		} else {
-			err_msg(0, "Container %s is running, can't be removed. Use option '-f' to force remove container", info.getName().c_str());
+			fprintf(stderr, "Container %s is running, can't be removed. Use option '-f' to force remove container", info->getName().c_str());
 			return;
 		}
 	}
   // stop的时候会umount ,所以这句不需要了
 	// ContainerFs::umount_container(info.id.c_str());
-	ContainerFs::remove_container(info.id.c_str());
-  ContainerDao::delete_by_id(info.id.c_str());
+	ContainerFs::remove_container(info->id.c_str());
+  ContainerDao::delete_by_id(info->id.c_str());
 }

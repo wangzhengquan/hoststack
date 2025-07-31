@@ -116,9 +116,14 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
   const char *namespaces[] = {"pid", "mnt", NULL};
   int i = 0, fd;
 
-  ContainerInfo container = ContainerDao::get_container_by_id_or_name(container_id);
-  if(container.id.empty() || container.status != CONTAINER_RUNNING) {
-    err_msg(0, "ContainerExecCli >> No container identify by %s, or it's not a container in running.", container_id);
+  auto container = ContainerDao::get_container_by_id_or_name(container_id);
+  if (!container) {
+    fprintf(stderr, "No container identify by %s.", container_id);
+    return;
+  }
+  if( container->status != CONTAINER_RUNNING) {
+    fprintf(stderr, "Container %s is not in running status.\n", container_id);
+   
     return;
   }
   if(mopt.detach) {
@@ -127,7 +132,7 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
     }
   }
   while(namespaces[i] != NULL) {
-     sprintf(nspath, "/proc/%d/ns/%s",  container.pid, namespaces[i]);
+     sprintf(nspath, "/proc/%d/ns/%s",  container->pid, namespaces[i]);
      if( (fd = open(nspath, O_RDONLY)) == -1 ) {
         err_exit(errno, "ContainerExecCli >> open %s", nspath);
      }
@@ -138,7 +143,7 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
      i++;
   }
   pty_exe_opt_t ptyopt = {};
-  ptyopt.containerId = container.id.c_str();
+  ptyopt.containerId = container->id.c_str();
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
 

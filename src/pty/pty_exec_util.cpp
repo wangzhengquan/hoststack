@@ -361,10 +361,6 @@ int pty_client(pty_exe_opt_t arg) {
   FD_SET(STDIN_FILENO, &read_set);
   FD_SET(clientfd, &read_set);
 
-  // snprintf(buf, BUF_SIZE, "\n");
-  // if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
-  //   err_msg(errno, "partial/failed write (masterFd)");
-  
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
      them to the pty master. If the pty master is ready for output,

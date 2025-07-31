@@ -61,6 +61,19 @@ Attach local standard input, output, and error streams to a running container.
  sudo hoststack attach hoststack1
 ```
 
+### exec
+```bash
+sudo ./hoststack exec hoststack1
+```
+Usage: hoststack exec [OPTIONS] CONTAINER COMMAND [ARG...]
+
+Run a command in a running container.
+
+Options:
+
+  -d, --detach               Detached mode: run command in the background
+
+
 ### stop
 说明
 

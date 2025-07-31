@@ -61,7 +61,7 @@ static void sigchld_handler(int sig)
   {
     if (WIFEXITED(status))
     {
-      printf("(%d) normally exit by signal %d\n", pid, WEXITSTATUS(status));
+      printf("(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
       ContainerFs::umount_container(containerId);
       ContainerDao::change_status_to_stop(containerId);
       exit(0);

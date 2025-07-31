@@ -134,12 +134,7 @@ int pty_exec(pty_exe_opt_t arg)
     {
       err_msg(errno, "chdir/chroot:%s", rootfs);
     }
-
-
-    if (system("touch /usr/lib/tmp") != 0)
-    {
-      err_msg(errno, "touch /usr/lib/tmp");
-    }
+   
     execvp(arg.cmd[0], arg.cmd);
     err_msg(errno, "execvp: %s\n", arg.cmd[0]);
   }
@@ -159,13 +154,13 @@ int pty_exec(pty_exe_opt_t arg)
 
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
-     them to the pty master. If the pty master is ready for input,
+     them to the pty master. If the pty master is ready for output,
      then read some bytes and write them to the terminal. */
+
   // sigset_t selectBlockSet;
   // sigemptyset(&selectBlockSet);
   // sigaddset(&selectBlockSet, SIGHUP);
-  for (;;)
-  {
+  for (;;) {
     FD_ZERO(&ready_set);
     FD_SET(STDIN_FILENO, &ready_set);
     FD_SET(masterFd, &ready_set);
@@ -176,11 +171,9 @@ int pty_exec(pty_exe_opt_t arg)
         continue;
       } 
     }
-
     
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
-     
       if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
           exit(EXIT_SUCCESS);
@@ -214,7 +207,8 @@ static void sigTermHandler(int sig) {
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
   int masterFd;
- 
+  char PS1[BUF_SIZE];
+  ssize_t PS1_len;
   pid_t childPid;
   const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
   
@@ -236,12 +230,6 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
       err_msg(errno, "chdir/chroot:%s", rootfs);
     }
 
-
-    if (system("sudo touch /usr/lib/tmp") != 0)
-    {
-      err_msg(errno, "touch /usr/lib/tmp");
-    }
-
     execvp(arg.cmd[0], arg.cmd);
     err_msg(errno, "pty_proxy_exec execvp : %s", arg.cmd[0]);
     return 1;
@@ -251,6 +239,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
     err_exit(errno, "ptyClone");
  
   callback(childPid);
+  PS1_len = read(masterFd, PS1, BUF_SIZE);
   /*==============exec end==============*/
 
  
@@ -317,6 +306,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
         add_client(connfd, &pool);
+        rio_writen(connfd, PS1, PS1_len);
       }
       
     }
@@ -371,13 +361,15 @@ int pty_client(pty_exe_opt_t arg) {
   FD_SET(STDIN_FILENO, &read_set);
   FD_SET(clientfd, &read_set);
 
-  snprintf(buf, BUF_SIZE, "\n");
-  if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
-    err_msg(errno, "partial/failed write (masterFd)");
+  // snprintf(buf, BUF_SIZE, "\n");
+  // if (write(clientfd, buf, strlen(buf)) !=  strlen(buf))
+  //   err_msg(errno, "partial/failed write (masterFd)");
+  
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
      them to the pty master. If the pty master is ready for output,
      then read some bytes and write them to the terminal. */
+ 
   while(1)
   {
     ready_set = read_set;
@@ -501,6 +493,7 @@ void check_clients_and_master(pool *p)
       }
      
     } else {
+      
       for (i = 0; i <= p->maxi; i++) {
         // === debug
         // if (rio_writen(STDOUT_FILENO, buf, n) != n) {

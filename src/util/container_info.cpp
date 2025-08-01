@@ -1,5 +1,5 @@
 #include "container_info.h"
-
+#include "log.h"
 //重载输出运算符
 std::ostream & operator<<(std::ostream & out, ContainerInfo & info){
 	//ID NAME PID STATUS COMMAND CREATED 

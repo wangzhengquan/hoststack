@@ -4,6 +4,7 @@
 #include "container_dao.h"
 #include "container_info.h"
 #include "container_ls_cli.h"
+#include "log.h"
 
 struct container_ls_arg_t {
   bool all;

@@ -6,7 +6,7 @@
 #include "container_info.h"
 #include "container_cli.h"
 #include "container_attach_cli.h"
-
+#include "log.h"
 // static char container_stack[STACK_SIZE];
 void ContainerCli::usage()
 {

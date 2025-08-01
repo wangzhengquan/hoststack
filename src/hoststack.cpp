@@ -5,6 +5,7 @@
 #include "hoststack_config.h"
 #include "container_cli.h"
 #include "container_fs.h"
+#include "log.h"
 
 static void usage()
 {

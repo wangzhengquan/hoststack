@@ -26,6 +26,19 @@ list(APPEND EXTRA_LIBS
 						rt
 						)
 
+
+
+list(APPEND _INCLUDES_ 
+    ${PROJECT_BINARY_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/cli
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pty
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/util
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/include
+)
+
+message(STATUS "_INCLUDES_ value: ${_INCLUDES_}")
+
 # build api doc
 if (BUILD_DOC)
     # build the docs
@@ -33,7 +46,7 @@ if (BUILD_DOC)
 else()
 	add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 	add_subdirectory(${PROJECT_SOURCE_DIR}/etc)
-	# add_subdirectory(${PROJECT_SOURCE_DIR}/test) 
+	add_subdirectory(${PROJECT_SOURCE_DIR}/test) 
 endif()
 
 

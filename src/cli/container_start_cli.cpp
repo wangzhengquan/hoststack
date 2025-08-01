@@ -6,7 +6,7 @@
 #include "container_info.h"
 #include "container_start_cli.h"
 #include "container_service.h"
-
+#include "log.h"
 
 void ContainerStartCli::usage()
 {

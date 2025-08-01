@@ -1,4 +1,6 @@
 #include "socket_io.h"
+#include "log.h"
+
 /****************************************
  * The Rio package - Robust I/O functions
  ****************************************/

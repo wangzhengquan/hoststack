@@ -1,4 +1,5 @@
 #include "path_assembler.h"
+#include "log.h"
 
 #define PATH_LEN 1024
 

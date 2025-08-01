@@ -14,6 +14,8 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+#include "log.h"
+
 static Logger& logger = LoggerFactory::getKuckerDaemonLogger();
 
 // static char hoststack[256];

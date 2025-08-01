@@ -26,6 +26,7 @@
 #include "pty_fork.h"                   /* Declares ptyFork() */
 #include "usg_common.h"
 #include "tty_functions.h"
+#include "log.h"
 
 #define MAX_SNAME 1000                  /* Maximum size for pty slave name */
 

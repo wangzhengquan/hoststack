@@ -6,6 +6,7 @@
 #include "container_info.h"
 #include "container_attach_cli.h"
 #include "pty_exec_util.h"
+#include "log.h"
 
 void ContainerAttachCli::usage()
 {

@@ -5,7 +5,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "tty_functions.h"              /* Declares functions defined here */
-
+#include "log.h"
 /* Place terminal referred to by 'fd' in cbreak mode (noncanonical mode
    with echoing turned off). This function assumes that the terminal is
    currently in cooked mode (i.e., we shouldn't call it if the terminal

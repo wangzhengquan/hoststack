@@ -31,6 +31,7 @@
 #include "sem_util.h"
 #include "path_assembler.h"
 #include "container_fs.h"
+#include "log.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
@@ -236,9 +237,11 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 
   if (childPid == -1)
     err_exit(errno, "ptyClone");
- 
-  callback(childPid);
+
   header_len = read(masterFd, header, BUF_SIZE);
+
+  callback(childPid);
+  
   /*==============exec end==============*/
  
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");

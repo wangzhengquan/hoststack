@@ -26,6 +26,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include "log.h"
 
 int main() {
 	struct termios ttyOrig = {};

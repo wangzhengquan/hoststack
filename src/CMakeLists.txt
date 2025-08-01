@@ -3,16 +3,6 @@
 configure_file(hoststack_config.h.in hoststack_config.h)
 
 
-list(APPEND _INCLUDES_ 
-   ${PROJECT_BINARY_DIR}/src
-   ${CMAKE_CURRENT_SOURCE_DIR}
-   ${CMAKE_CURRENT_SOURCE_DIR}/cli
-   ${CMAKE_CURRENT_SOURCE_DIR}/pty
-   ${CMAKE_CURRENT_SOURCE_DIR}/util
-   ${CMAKE_CURRENT_SOURCE_DIR}/common/include
-)
-
-
 
 file (GLOB _SOURCES_ "common/*.cpp" "util/*.cpp" "cli/*.cpp" "pty/*.cpp")
 

@@ -16,12 +16,7 @@ extern "C" {
 typedef void handler_t(int);
 handler_t *Signal(int signum, handler_t *handler);
 
-
-
 /* Our own error-handling functions */
-
-void err_exit(int error, const char *fmt, ...);
-void err_msg(int error, const char *fmt, ...);
 
 char *ltrim(char *str, const char *seps);
 char *rtrim(char *str, const char *seps);

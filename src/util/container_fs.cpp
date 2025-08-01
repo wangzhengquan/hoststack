@@ -1,7 +1,7 @@
 #include "container_fs.h"
 #include "container_dao.h"
 #include <sys/mount.h>
-
+#include "log.h"
 
 struct mnt_dir_t {
   const char *src;
@@ -133,12 +133,12 @@ void ContainerFs::mount_container(const char * container_id)
       snprintf(target, BUF_SIZE, "%s%s", rootfs, mnt_dir->target);
       if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "create subdiff : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d) create subdiff : %s",__FILE__, __LINE__, line);
       }
       snprintf(data, BUF_SIZE, "dirs=%s=rw:%s=ro", subdiff, mnt_dir->src);
 // printf("data=%s\n target=%s\n", data, target);
       if(mount("none", target, "aufs", 0, data) != 0) {
-        LoggerFactory::getRunLogger().error(errno, "data=%s\n target=%s\n", data, target);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d) data=%s\n target=%s\n",__FILE__, __LINE__, data, target);
         exit(1);
       }
 
@@ -150,12 +150,12 @@ void ContainerFs::mount_container(const char * container_id)
 
       if (mkdir_r(subdiff, DIR_MODE) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: create subdiff : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d): create subdiff : %s",__FILE__, __LINE__, line);
       }
 
       if (mkdir_r(subwork, DIR_MODE) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: create subwork : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d): create subwork : %s",__FILE__, __LINE__, line);
       }
 
       // sprintf(line, "sudo mount -t  overlay -o lowerdir=%s,upperdir=%s,workdir=%s overlay %s",
@@ -177,7 +177,7 @@ void ContainerFs::mount_container(const char * container_id)
       if(access(mnt_dir->target, F_OK) == 0) {
         snprintf(data, BUF_SIZE, "lowerdir=%s,upperdir=%s,workdir=%s",  mnt_dir->src, subdiff, subwork);
         if(mount("overlay", target, "overlay", 0, data) != 0) {
-          LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container overlay mount : data:%s , target:%s\n", data, target);
+          LoggerFactory::getRunLogger().error(errno, "(%s:%d) overlay mount : data:%s , target:%s\n",__FILE__, __LINE__, data, target);
           exit(1);
         }
       }
@@ -187,7 +187,7 @@ void ContainerFs::mount_container(const char * container_id)
       snprintf(line, BUF_SIZE, "%s%s", rootfs, mnt_dir->target);
       if (mount(mnt_dir->src, line, mnt_dir->type, 0, NULL) != 0)
       {
-        LoggerFactory::getRunLogger().error(errno, "ContainerFs::mount_container: %s", line);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d) %s",__FILE__, __LINE__, line);
       }
     }
     mnt_dir = &mnt_dir_arr[i];

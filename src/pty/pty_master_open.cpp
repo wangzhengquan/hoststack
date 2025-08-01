@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include "pty_master_open.h"            /* Declares ptyMasterOpen() */
 #include "usg_common.h"
+#include "log.h"
 
 /* Some implementations don't have posix_openpt() */
 

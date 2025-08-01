@@ -6,7 +6,7 @@
 #include "path_assembler.h"
 #include "container_info.h"
 #include "logger_factory.h"
-
+#include "log.h"
 
 
 void ContainerDao::insert(const ContainerInfo &info) {

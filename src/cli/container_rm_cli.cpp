@@ -7,6 +7,7 @@
 #include "container_service.h"
 #include "container_info.h"
 #include "container_rm_cli.h"
+#include "log.h"
 
 struct container_rm_arg_t
 {

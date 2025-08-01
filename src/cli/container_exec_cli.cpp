@@ -6,6 +6,7 @@
 #include "container_exec_cli.h"
 #include "pty_exec_util.h"
 #include "path_assembler.h"
+#include "log.h"
 
 struct container_exec_arg_t {
   bool detach;

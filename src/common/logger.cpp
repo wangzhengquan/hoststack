@@ -36,7 +36,8 @@ Logger::Logger(int l) {
 Logger::~Logger() {
 	if(logFile != NULL) {
 		if(fclose(logFile) != 0) {
-			err_exit(errno, "Logger fclose");
+      fprintf(stderr, "Logger fclose error: %s\n", strerror(errno));
+      exit(errno);
 		}
 	}
 	
@@ -48,7 +49,8 @@ void Logger::init() {
   if(!config.logFile.empty()) {
      logFile = fopen(config.logFile.c_str(), "a+");
      if(logFile == NULL) {
-      err_msg(errno, "Logger fopen");
+      fprintf(stderr, "Logger fopen error: %s\n", strerror(errno));
+      exit(errno);
      }
   }
 }

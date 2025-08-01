@@ -8,6 +8,7 @@
 #include "container_fs.h"
 #include "container_service.h"
 #include "path_assembler.h"
+#include "log.h"
 
 int synchSem;
 
@@ -123,9 +124,7 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
     ptyopt.ttyAttr = startOpt.ttyAttr;
     ptyopt.ttyWs = startOpt.ttyWs;
     
-    pty_run_container(ptyopt, [&](pid_t cpid) {
-      startSuccess(cpid);
-    });
+    pty_run_container(ptyopt, startSuccess);
     
     return ;                
   }
@@ -149,11 +148,11 @@ void ContainerService::stop(const std::string & name) {
   auto info = ContainerDao::get_container_by_id_or_name(name);
    
   if (!info) {
-    printf("Container %s not found!\n", name);
+    fprintf(stderr, "Container %s not found!\n", name.c_str());
     return;
   }
   if(info->status != CONTAINER_RUNNING) {
-    printf("Conatiner %s is not in running status!\n", name);
+    fprintf(stderr, "Conatiner %s is not in running status!\n", name.c_str());
     return ;
   }
   LoggerFactory::getRunLogger().info("Stopping container=%s, pid=%d\n",  name.c_str(), info->pid);
@@ -161,10 +160,10 @@ void ContainerService::stop(const std::string & name) {
     err_msg(errno, "SIGTERM Stop container %s failed.pid = %d", name.c_str(), info->pid);
     return;
   }
-
+  err_msg(0, "stoping %s", name.c_str());
   sleep(3);
   if(kill(info->pid, SIGKILL) != 0) {
-    //err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
+    err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
   //sleep(1);
 }

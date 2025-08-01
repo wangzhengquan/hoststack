@@ -27,7 +27,7 @@ public:
 	static Logger& getRunLogger() {
 //ERROR ALL DEBUG INFO WARN
 		LoggerConfig config;
-		config.level = Logger::DEBUG;
+		config.level = Logger::INFO;
 		char logFile[1024];
 		sprintf(logFile, "%s/run.log", hoststack_repo);
 		config.logFile = logFile;

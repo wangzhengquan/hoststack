@@ -5,6 +5,7 @@
 #include "container_service.h"
 #include "container_info.h"
 #include "container_stop_cli.h"
+#include "log.h"
 
 void ContainerStopCli::usage()
 {

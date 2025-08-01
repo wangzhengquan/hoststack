@@ -1,4 +1,5 @@
 #include "sem_util.h"
+#include "log.h"
 
 int SemUtil::get(key_t key, unsigned int value) {
 // printf("==================SemUtil::get===============================\n");

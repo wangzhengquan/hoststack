@@ -49,7 +49,6 @@ ptyFork(int *masterFd, char *slaveName, size_t snLen,
     if (strlen(slname) < snLen)
     {
       strncpy(slaveName, slname, snLen);
-
     }
     else                            /* 'slaveName' was too small */
     {
@@ -220,8 +219,6 @@ int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, 
                             CLONE_NEWPID | CLONE_NEWNS | SIGCHLD, &ptyRunArg);
  
   // childPid = clone(_ptyCloneRun, child_stack, flags, &ptyRunArg);
- 
-
   
   if (childPid == -1)                 /* fork() failed */
   {
@@ -232,6 +229,4 @@ int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, 
   }
   *mfd = masterFd;
   return childPid;
-
- 
 }

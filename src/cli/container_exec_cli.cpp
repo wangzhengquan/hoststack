@@ -123,7 +123,6 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
   }
   if( container->status != CONTAINER_RUNNING) {
     fprintf(stderr, "Container %s is not in running status.\n", container_id);
-   
     return;
   }
   if(mopt.detach) {
@@ -146,27 +145,8 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
   ptyopt.containerId = container->id.c_str();
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
-
  
   pty_exec(ptyopt);
-	//exec_cmd(ptyopt);
 }
 
-
-void exec_cmd(pty_exe_opt_t arg) {
-  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
-  /* chroot 隔离目录 */
-  if ( chdir(rootfs) != 0 || chroot("./") != 0 )
-  {
-    err_exit(errno, "chdir/chroot:%s", rootfs);
-  }
-
-
-  if (system("touch /usr/lib/tmp") != 0)
-  {
-    err_msg(errno, "touch /usr/lib/tmp");
-  }
-
-  execvp(arg.cmd[0], arg.cmd);
-  err_msg(errno, "execvp: %s\n", arg.cmd[0]);
-}
+ 

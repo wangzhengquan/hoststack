@@ -80,7 +80,7 @@ static void redirectStdOut() {
   }
 
   char stdinfile[1024];
-  sprintf(stdinfile, "%s/containers/%s/stdin.log",hoststack_repo,  garg.containerId);
+  sprintf(stdinfile, "%s/containers/%s/stdin",hoststack_repo,  garg.containerId);
   if (mkfifo(stdinfile, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
       err_exit(errno, "mkfifo %s", stdinfile);
  
@@ -99,7 +99,6 @@ static void redirectStdOut() {
 // 在正在运行的容器里执行命令， 并通过虚拟终端与其交互
 int pty_exec(pty_exe_opt_t arg)
 {
-
   char slaveName[MAX_SNAME];
   int masterFd;
  
@@ -141,7 +140,7 @@ int pty_exec(pty_exe_opt_t arg)
 
 
   /* Parent: relay data between terminal and pty master */
-  if(! arg.detach) {
+  if(!arg.detach) {
     /* Place terminal in raw mode so that we can pass all terminal
      input to the pseudoterminal master untouched */
     ttySetRaw(STDIN_FILENO, &ttyOrig);
@@ -207,8 +206,8 @@ static void sigTermHandler(int sig) {
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
   int masterFd;
-  char PS1[BUF_SIZE];
-  ssize_t PS1_len;
+  char header[BUF_SIZE];
+  ssize_t header_len;
   pid_t childPid;
   const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
   
@@ -239,9 +238,8 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
     err_exit(errno, "ptyClone");
  
   callback(childPid);
-  PS1_len = read(masterFd, PS1, BUF_SIZE);
+  header_len = read(masterFd, header, BUF_SIZE);
   /*==============exec end==============*/
-
  
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
 
@@ -306,7 +304,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 
       if( (connfd = accept(listenfd,  (struct sockaddr *)&clientaddr, &clientlen)) != -1 ) {
         add_client(connfd, &pool);
-        rio_writen(connfd, PS1, PS1_len);
+        rio_writen(connfd, header, header_len);
       }
       
     }

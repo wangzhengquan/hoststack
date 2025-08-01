@@ -139,7 +139,6 @@ int pty_exec(pty_exe_opt_t arg)
     err_msg(errno, "execvp: %s\n", arg.cmd[0]);
   }
 
-
   /* Parent: relay data between terminal and pty master */
   if(!arg.detach) {
     /* Place terminal in raw mode so that we can pass all terminal
@@ -148,9 +147,9 @@ int pty_exec(pty_exe_opt_t arg)
     if (atexit(ttyReset) != 0)
       err_msg(errno, "atexit");
   } else {
-    redirectStdOut();
+    return 0;
+    // redirectStdOut();
   }
- 
 
   /* Loop monitoring terminal and pty master for input. If the
      terminal is ready for input, then read some bytes and write
@@ -172,7 +171,7 @@ int pty_exec(pty_exe_opt_t arg)
       } 
     }
     
-    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
+    if ( FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
       if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
@@ -191,7 +190,7 @@ int pty_exec(pty_exe_opt_t arg)
           exit(EXIT_SUCCESS);
         }
       }
-      if (write(STDOUT_FILENO, buf, n) != n)
+      if ( write(STDOUT_FILENO, buf, n) != n)
           err_exit(errno, "partial/failed write (STDOUT_FILENO)");
       
     }

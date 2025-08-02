@@ -103,6 +103,17 @@ void Logger::debug(const char *fmt, ...) {
 	va_end(ap);
 }
 
+
+void Logger::debug(int err, const char *fmt, ...) {
+	if(DEBUG < config.level)
+		return;
+
+	va_list		ap;
+	va_start(ap, fmt);
+	dolog(fmt, ap, DEBUG, err);
+	va_end(ap);
+}
+
 void Logger::info(const char *fmt, ...) {
 	if(INFO < config.level)
 		return;

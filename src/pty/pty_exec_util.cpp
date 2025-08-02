@@ -154,12 +154,7 @@ int pty_exec(pty_exe_opt_t arg)
     }
   }
 }
-
-static void sigTermHandler(int sig) {
-  LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
-  exit(0);
-}
-
+ 
 
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
@@ -174,8 +169,6 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
      attributes are set to be the same as those retrieved above. */
   // childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
   childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *__arg){
-    Signal(SIGTERM, sigTermHandler);
-    // setpgid(0, 0);   
     ContainerFs::mount_container(arg.containerId);
     // 容器卷
     if (arg.volume_list != NULL )

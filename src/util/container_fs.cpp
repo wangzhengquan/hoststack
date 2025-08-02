@@ -221,14 +221,14 @@ void ContainerFs::umount_container(const char * container_id) {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
 // LoggerFactory::getRunLogger().debug("umount %s\n", line);
       if(umount2(line, MNT_FORCE) == -1) {
-        LoggerFactory::getRunLogger().error(errno, "(%s:%d) : %s",__FILE__, __LINE__, line);
+        LoggerFactory::getRunLogger().debug(errno, "(%s:%d) : umount2 %s",__FILE__, __LINE__, line);
       }
     }
   }
 
   // 最后一个经常umount不成功，重试一次就可以
   if(umount2(line, MNT_FORCE) == -1) {
-    LoggerFactory::getRunLogger().error(errno, "(%s:%d) : %s", __FILE__, __LINE__, line);
+    LoggerFactory::getRunLogger().debug(errno, "(%s:%d) : umount2 %s", __FILE__, __LINE__, line);
   }
 
   umount_volume_list(container_id);

@@ -34,7 +34,7 @@ list(APPEND _INCLUDES_
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cli
     ${CMAKE_CURRENT_SOURCE_DIR}/src/pty
     ${CMAKE_CURRENT_SOURCE_DIR}/src/util
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
 )
 
 message(STATUS "_INCLUDES_ value: ${_INCLUDES_}")

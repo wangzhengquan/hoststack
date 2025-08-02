@@ -14,37 +14,36 @@
 
 int synchSem;
 
-static const char *containerId = NULL;
+const char *containerId = NULL;
+int containerIdSem = SemUtil::get(IPC_PRIVATE, 1);
 
-
-// static void exitHandler(void)
-// {
+static void exitHandler(void)
+{
+  LoggerFactory::getRunLogger().debug("exitHandler");
+  // SemUtil::dec(containerIdSem);
+  if(containerId != NULL) {
+    ContainerFs::umount_container(containerId);
+    ContainerDao::change_status_to_stop(containerId);
+    // containerId = NULL;
+    // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
+  }
+  // SemUtil::inc(containerIdSem);
  
-//   if(containerId != NULL) {
-//     ContainerFs::umount_container(containerId);
-//     ContainerDao::change_status_to_stop(containerId);
-//     // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
-//   } else {
-//     // LoggerFactory::getRunLogger().debug("exitHandler containerId=NULL"); 
-//   }
- 
-// }
+}
 
-// static void sigTermHandler(int sig) {
-//   LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
-//   exit(0);
-// }
+static void sigTermHandler(int sig) {
+  LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
+  // exit(0);
+}
  
 static void sigHupHandler(int sig) {
-   std::cout << "sigHupHandler \n" << std::endl;
+  LoggerFactory::getRunLogger().debug("sigHupHandler %s", strsignal(sig));
 
 }
 
 static void sigQuitHandler(int sig) {
-  std::cout << "sigQuitHandler \n" << std::endl;
+  LoggerFactory::getRunLogger().debug("sigQuitHandler %s", strsignal(sig));
 }
-
-
 
 /*
  * sigchld_handler - The kernel sends a SIGCHLD to the shell whenever
@@ -64,23 +63,29 @@ static void sigchld_handler(int sig)
   {
     if (WIFEXITED(status))
     {
-      printf("pid(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
-      if(containerId != NULL){
+      LoggerFactory::getRunLogger().debug("pid(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
+      // SemUtil::dec(containerIdSem);
+      if (containerId != NULL){
         ContainerFs::umount_container(containerId);
         ContainerDao::change_status_to_stop(containerId);
+        // containerId = NULL;
       }
-      exit(0);
+      // SemUtil::inc(containerIdSem);
+      
     }
     else if (WIFSIGNALED(status))
     {
-      printf("pid(%d) terminated by signal %d\r\n", pid, WTERMSIG(status));
+      LoggerFactory::getRunLogger().debug("pid(%d) terminated by signal %d\r\n", pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status))
     {
-      printf("pid(%d) stopted by signal %d\r\n",  pid, WSTOPSIG(status));
+      LoggerFactory::getRunLogger().debug("pid(%d) stopted by signal %d\r\n",  pid, WSTOPSIG(status));
     }
     else if (WIFCONTINUED(status))
     {
+      LoggerFactory::getRunLogger().debug("pid(%d) continued by signal %d\r\n",  pid, sig);
+    } else {
+      LoggerFactory::getRunLogger().debug("pid(%d) signal %d\r\n",  pid, sig);
     }
   }
 
@@ -109,14 +114,17 @@ void ContainerService::start(container_start_option_t & opt,  std::function<void
   {
     // signal for "kill 容器进程"
     containerId = opt.containerId;
+    // if (atexit(exitHandler) != 0)
+    //   err_msg(errno, "container_run_main >> atexit");
     // Signal(SIGTERM, sigTermHandler);
     // Signal(SIGHUP, sigHupHandler);
     // Signal(SIGQUIT, sigQuitHandler);
 
-    // if (atexit(exitHandler) != 0)
-    //   err_msg(errno, "container_run_main >> atexit");
-
     Signal(SIGCHLD, sigchld_handler);
+
+    
+
+    
 
     pty_exe_opt_t ptyopt = {};
     ptyopt.synchSem = synchSem;
@@ -198,6 +206,7 @@ void ContainerService::exec(container_exec_option_t & opt) {
   ptyopt.ttyAttr = opt.ttyAttr;
   ptyopt.ttyWs = opt.ttyWs;
 // printf("=====ptyopt.containerId=%s\n", ptyopt.containerId);
+  // containerId = opt.containerId;
   Signal(SIGCHLD, sigchld_handler);
   pty_exec(ptyopt);
 

@@ -66,6 +66,16 @@ int SemUtil::get(key_t key, unsigned int value) {
   return semid;
 }
 
+/* Release semaphore - increment it by 1 */
+int SemUtil::inc(int semId) {
+  struct sembuf sops;
+
+  sops.sem_num = 0;
+  sops.sem_op = 1;
+  sops.sem_flg = SEM_UNDO;
+
+  return semop(semId, &sops, 1);
+}
 /* Reserve semaphore (blocking), return 0 on success, or -1 with 'errno'
    set to EINTR if operation was interrupted by a signal handler */
 
@@ -166,17 +176,6 @@ int SemUtil::zero_timeout(const int semId, const struct timespec *timeout) {
 }
 
 
-/* Release semaphore - increment it by 1 */
-int SemUtil::inc(int semId) {
-  struct sembuf sops;
-
-  sops.sem_num = 0;
-  sops.sem_op = 1;
-  sops.sem_flg = SEM_UNDO;
-
-  return semop(semId, &sops, 1);
-  
-}
 
 
 int SemUtil::set(int semId, int val) {

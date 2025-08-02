@@ -20,7 +20,7 @@ struct container_start_option_t
 struct container_exec_option_t
 {
   const char * containerId;
-  int containerPid;
+  pid_t containerPid;
   char **cmd;
   bool detach;
   

@@ -63,14 +63,12 @@ static void sigchld_handler(int sig)
   {
     if (WIFEXITED(status))
     {
+      // TODO: 在`./hoststack exec`的进程未结束的情况下, 容器exit后未执行该sigchld_handler函数。
       LoggerFactory::getRunLogger().debug("pid(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
-      // SemUtil::dec(containerIdSem);
       if (containerId != NULL){
         ContainerFs::umount_container(containerId);
         ContainerDao::change_status_to_stop(containerId);
-        // containerId = NULL;
       }
-      // SemUtil::inc(containerIdSem);
       
     }
     else if (WIFSIGNALED(status))

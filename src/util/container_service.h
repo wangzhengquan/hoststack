@@ -15,12 +15,25 @@ struct container_start_option_t
   struct winsize *ttyWs;
   struct termios *ttyAttr;
   
+};
+
+struct container_exec_option_t
+{
+  const char * containerId;
+  int containerPid;
+  char **cmd;
+  bool detach;
+  
+  struct winsize *ttyWs;
+  struct termios *ttyAttr;
+  
 } ;
 
 class ContainerService {
 public:
 	static void start(container_start_option_t & startOpt,  std::function<void(int)>  startSuccess);
 	static void stop(const std::string & name);
+  static void exec(container_exec_option_t & opt) ;
 };
 
 #endif

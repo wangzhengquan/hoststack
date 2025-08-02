@@ -46,55 +46,14 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
   int masterfd;
 } pool; //line:conc:echoservers:endpool
 
-void init_pool(int listenfd, int masterfd, pool *p);
-void add_client(int connfd, pool *p);
-void check_clients_and_master(pool *p);
+static void init_pool(int listenfd, int masterfd, pool *p);
+static void add_client(int connfd, pool *p);
+static void check_clients_and_master(pool *p);
+static void dumpStdOut();
+static void ttyReset();
 
 struct termios ttyOrig;
 struct termios  g_termios_raw ;
-
-pty_exe_opt_t garg;
-
-static std::string containerId;
-
-
-static void ttyReset(void)
-{
-  if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
-    err_msg(errno, "pty_exec_util ttyReset");
-}
-
-static void redirectStdOut() {
-  int inFd, outFd;
-  char stdoutfile[1024];
-  //sprintf(stdoutfile, "%s/containers/%s/stdout.%ld.log",hoststack_repo,  garg.containerId, time(0));
-  sprintf(stdoutfile, "/dev/null");
-  // printf("stdoutfile = %s\n", stdoutfile);
-
-  outFd = open(stdoutfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-  if (outFd == -1)
-    err_exit(errno, "pty_exec open log: %s", stdoutfile);
-  if( dup2(outFd, STDOUT_FILENO) == -1) {
-    err_exit(errno, "redirectStdOut >> dup2 STDOUT_FILENO");
-  } else {
-    close(outFd);
-  }
-
-  char stdinfile[1024];
-  sprintf(stdinfile, "%s/containers/%s/stdin",hoststack_repo,  garg.containerId);
-  if (mkfifo(stdinfile, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
-      err_exit(errno, "mkfifo %s", stdinfile);
- 
-  //inFd = open("/dev/null", O_RDONLY);
-  inFd = open(stdinfile, O_RDONLY);
-  if (inFd == -1)
-      err_exit(errno, "open %s", stdinfile);
-  if(dup2(inFd, STDIN_FILENO) == -1) {
-     err_exit(errno, "redirectStdOut >> dup2 STDIN_FILENO");
-  } else {
-    close(inFd);
-  }
-}
 
 
 // 在正在运行的容器里执行命令， 并通过虚拟终端与其交互
@@ -109,16 +68,17 @@ int pty_exec(pty_exe_opt_t arg)
   ssize_t n;
   pid_t childPid;
   const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
-  garg = arg;
 
   if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
   if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
+
   /* Retrieve the attributes of terminal on which we are started */
+  // ttyOrig =  *arg.ttyAttr;
+  // ws =  *arg.ttyWs;
   if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
     err_msg(errno, "tcgetattr");
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
     err_msg(errno, "ioctl-TIOCGWINSZ");
-
   /* Create a child process, with parent and child connected via a
      pty pair. The child is connected to the pty slave and its terminal
      attributes are set to be the same as those retrieved above. */
@@ -143,12 +103,11 @@ int pty_exec(pty_exe_opt_t arg)
   if(!arg.detach) {
     /* Place terminal in raw mode so that we can pass all terminal
      input to the pseudoterminal master untouched */
-    ttySetRaw(STDIN_FILENO, &ttyOrig);
+    ttySetRaw(STDIN_FILENO, NULL);
     if (atexit(ttyReset) != 0)
       err_msg(errno, "atexit");
   } else {
-    return 0;
-    // redirectStdOut();
+    dumpStdOut();
   }
 
   /* Loop monitoring terminal and pty master for input. If the
@@ -156,12 +115,11 @@ int pty_exec(pty_exe_opt_t arg)
      them to the pty master. If the pty master is ready for output,
      then read some bytes and write them to the terminal. */
 
-  // sigset_t selectBlockSet;
-  // sigemptyset(&selectBlockSet);
-  // sigaddset(&selectBlockSet, SIGHUP);
   for (;;) {
     FD_ZERO(&ready_set);
-    FD_SET(STDIN_FILENO, &ready_set);
+    if(!arg.detach){
+      FD_SET(STDIN_FILENO, &ready_set);
+    }
     FD_SET(masterFd, &ready_set);
 
     if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
@@ -171,7 +129,7 @@ int pty_exec(pty_exe_opt_t arg)
       } 
     }
     
-    if ( FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
+    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
       if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
@@ -183,7 +141,7 @@ int pty_exec(pty_exe_opt_t arg)
         err_exit(errno, "partial/failed write (masterFd)");
     }
 
-    if (FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
+    if ( FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
     {
       if ( (n = read(masterFd, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
@@ -217,6 +175,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
   // childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, arg.ttyAttr, arg.ttyWs);
   childPid = ptyClone( arg.ttyAttr, arg.ttyWs, &masterFd, [&](void *__arg){
     Signal(SIGTERM, sigTermHandler);
+    // setpgid(0, 0);   
     ContainerFs::mount_container(arg.containerId);
     // 容器卷
     if (arg.volume_list != NULL )
@@ -343,13 +302,15 @@ int pty_client(pty_exe_opt_t arg) {
   snprintf( addr.sun_path , sizeof(addr.sun_path)-1 , "%s/containers/%s/hoststack.socket", hoststack_repo, arg.containerId );
   
   if(connect(clientfd , (struct sockaddr *) & addr , sizeof(struct sockaddr_un) ) == -1) {
-    err_exit(errno, "pty_client connect");
+    err_exit(errno, "addr.sun_path: %s", addr.sun_path);
   }
   
   
  /* Place terminal in raw mode so that we can pass all terminal
   input to the pseudoterminal master untouched */
+  // assert(arg.ttyAttr != NULL);
   tcgetattr(STDIN_FILENO , &ttyOrig );
+  // ttyOrig = *arg.ttyAttr;
   memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
   cfmakeraw( &g_termios_raw );
   tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
@@ -395,11 +356,7 @@ int pty_client(pty_exe_opt_t arg) {
       
     }
   }
-
 }
-
-
-
 
 /* $begin init_pool */
 void init_pool(int listenfd, int masterfd, pool *p)
@@ -511,6 +468,34 @@ void check_clients_and_master(pool *p)
   }
 
 }
+
+
+static void ttyReset()
+{
+  if (tcsetattr(STDIN_FILENO, TCSANOW, &ttyOrig) == -1)
+    err_msg(errno, "pty_exec_util ttyReset");
+}
+
+void dumpStdOut() {
+  int outFd;
+  char stdoutfile[1024];
+  //sprintf(stdoutfile, "%s/containers/%s/stdout.%ld.log",hoststack_repo,  garg.containerId, time(0));
+  sprintf(stdoutfile, "/dev/null");
+  // printf("stdoutfile = %s\n", stdoutfile);
+
+  outFd = open(stdoutfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  if (outFd == -1)
+    err_exit(errno, "pty_exec open log: %s", stdoutfile);
+  if( dup2(outFd, STDOUT_FILENO) == -1) {
+    err_exit(errno, "redirectStdOut >> dup2 STDOUT_FILENO");
+  } else {
+    close(outFd);
+  }
+}
+
+
+
+
 
 
 

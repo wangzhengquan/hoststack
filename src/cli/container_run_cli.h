@@ -3,7 +3,7 @@
 
 #include "usg_common.h"
 #include "hoststack_config.h"
-#include <termios.h>
+
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>

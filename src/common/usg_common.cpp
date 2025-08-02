@@ -238,8 +238,7 @@ int str_split(const char *_str, const char *delim, char *** arr_addr)
   char *token;
   if (_str == NULL)
   {
-
-    return NULL;
+    return 0;
   }
   char *str = strdup(_str);
   char **arr = (char **)calloc(len, sizeof(char *));
@@ -258,7 +257,6 @@ int str_split(const char *_str, const char *delim, char *** arr_addr)
       if (arr == NULL)
       {
         goto LABEL_ERROR;
-        return NULL;
       }
     }
     arr[i] = strdup(token);

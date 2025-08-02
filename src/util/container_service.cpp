@@ -1,6 +1,8 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sched.h>
+
 #include "pty_exec_util.h"
 #include "logger_factory.h"
 #include "sem_util.h"
@@ -62,18 +64,20 @@ static void sigchld_handler(int sig)
   {
     if (WIFEXITED(status))
     {
-      printf("(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
-      ContainerFs::umount_container(containerId);
-      ContainerDao::change_status_to_stop(containerId);
+      printf("pid(%d) normally exit by signal %d\r\n", pid, WEXITSTATUS(status));
+      if(containerId != NULL){
+        ContainerFs::umount_container(containerId);
+        ContainerDao::change_status_to_stop(containerId);
+      }
       exit(0);
     }
     else if (WIFSIGNALED(status))
     {
-      // printf(" (%d) terminated by signal %d\n", pid, WTERMSIG(status));
+      printf("pid(%d) terminated by signal %d\r\n", pid, WTERMSIG(status));
     }
     else if (WIFSTOPPED(status))
     {
-      // printf(" (%d) stopted by signal %d\n",  pid, WSTOPSIG(status));
+      printf("pid(%d) stopted by signal %d\r\n",  pid, WSTOPSIG(status));
     }
     else if (WIFCONTINUED(status))
     {
@@ -89,23 +93,22 @@ static void sigchld_handler(int sig)
  
 
 
-void ContainerService::start(container_start_option_t & startOpt,  std::function<void(int)> startSuccess)
+void ContainerService::start(container_start_option_t & opt,  std::function<void(int)> startSuccess)
 {
-  pid_t childPid;
   synchSem = SemUtil::get(IPC_PRIVATE, 1);
 
-  childPid = fork();
+  pid_t childPid = fork();
 
   if (childPid == -1)                 /* fork() failed */
   {
-    err_exit(errno, "ContainerService::start fork");
+    err_exit(errno, "fork");
     return;
   }
 
   if (childPid == 0)                  
   {
     // signal for "kill 容器进程"
-    containerId = startOpt.containerId;
+    containerId = opt.containerId;
     // Signal(SIGTERM, sigTermHandler);
     // Signal(SIGHUP, sigHupHandler);
     // Signal(SIGQUIT, sigQuitHandler);
@@ -117,29 +120,25 @@ void ContainerService::start(container_start_option_t & startOpt,  std::function
 
     pty_exe_opt_t ptyopt = {};
     ptyopt.synchSem = synchSem;
-    ptyopt.containerId = startOpt.containerId;
-    ptyopt.cmd = startOpt.cmd;
-    ptyopt.detach = startOpt.detach;
-    ptyopt.volume_list = startOpt.volume_list;
-    ptyopt.ttyAttr = startOpt.ttyAttr;
-    ptyopt.ttyWs = startOpt.ttyWs;
+    ptyopt.containerId = opt.containerId;
+    ptyopt.cmd = opt.cmd;
+    ptyopt.detach = opt.detach;
+    ptyopt.volume_list = opt.volume_list;
+    ptyopt.ttyAttr = opt.ttyAttr;
+    ptyopt.ttyWs = opt.ttyWs;
     
     pty_run_container(ptyopt, startSuccess);
     
     return ;                
   }
-
-  
   // LoggerFactory::getRunLogger().info("Container pid[%d]!\n", containerPid);
-
- 
   SemUtil::zero(synchSem);
-  if( !startOpt.detach ) {
+  if( !opt.detach ) {
     pty_exe_opt_t execOpt = {};
-    execOpt.containerId = startOpt.containerId;
+    execOpt.containerId = opt.containerId;
     pty_client( execOpt) ;
   } else {
-    printf("%s\n", startOpt.containerId);
+    printf("%s\n", opt.containerId);
   }
   
 }
@@ -166,4 +165,40 @@ void ContainerService::stop(const std::string & name) {
     err_msg(errno, "SIGKILL Stop container %s failed.", name.c_str());
   }
   //sleep(1);
+}
+
+
+void ContainerService::exec(container_exec_option_t & opt) {
+  
+  char nspath[1024];
+  const char *namespaces[] = {"pid", "mnt", NULL};
+  int i = 0, fd;
+  if(opt.detach) {
+    if(daemon(0, 1) != 0) {
+      err_exit(errno, "conatiner_exec_cli >> daemon");
+    }
+  }
+  
+  // setpgid(0, 0);
+  while(namespaces[i] != NULL) {
+    sprintf(nspath, "/proc/%d/ns/%s",  opt.containerPid, namespaces[i]);
+    if( (fd = open(nspath, O_RDONLY)) == -1 ) {
+        err_exit(errno, "ContainerExecCli >> open %s", nspath);
+    }
+    if(setns(fd, 0) == -1) {
+        err_exit(errno, "ContainerExecCli >> setns:");
+    }
+    close(fd);
+    i++;
+  }
+  pty_exe_opt_t ptyopt = {};
+  ptyopt.containerId = opt.containerId;
+  ptyopt.cmd = opt.cmd;
+  ptyopt.detach = opt.detach;
+  ptyopt.ttyAttr = opt.ttyAttr;
+  ptyopt.ttyWs = opt.ttyWs;
+// printf("=====ptyopt.containerId=%s\n", ptyopt.containerId);
+  Signal(SIGCHLD, sigchld_handler);
+  pty_exec(ptyopt);
+
 }

@@ -141,29 +141,27 @@ void ContainerRunCli::handleCommand (int argc,  char *argv[])
   mopt.container_id = uuid.c_str();
   ContainerFs::create_container(mopt.container_id);
 
-  struct termios ttyOrig;
+  struct termios ttyAttr;
   struct winsize ws;
-  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+  if (tcgetattr(STDIN_FILENO, &ttyAttr) == -1)
     err_msg(errno, "tcgetattr");
   if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
     err_msg(errno, "ioctl-TIOCGWINSZ");
 
-  
-
-  startContainer(mopt, &ttyOrig, &ws);
+  startContainer(mopt, &ttyAttr, &ws);
 }
 
 void ContainerRunCli::startContainer( container_run_arg_t &mopt, struct termios *ttyAttr,  struct winsize *ttyWs) {
-  container_start_option_t startOpt = {};
-  startOpt.containerId =  mopt.container_id;
-  startOpt.cmd = mopt.cmd_arr;
-  startOpt.detach = mopt.detach;
-  startOpt.volume_list = &mopt.volume_list;
-  startOpt.ttyAttr = ttyAttr;
-  startOpt.ttyWs = ttyWs;
+  container_start_option_t opt = {};
+  opt.containerId =  mopt.container_id;
+  opt.cmd = mopt.cmd_arr;
+  opt.detach = mopt.detach;
+  opt.volume_list = &mopt.volume_list;
+  opt.ttyAttr = ttyAttr;
+  opt.ttyWs = ttyWs;
  
   
-  ContainerService::start(startOpt, [&](int pid){
+  ContainerService::start(opt, [&](int pid){
     // -------save container info to json file
     ContainerInfo info = {};
     info.id = mopt.container_id;

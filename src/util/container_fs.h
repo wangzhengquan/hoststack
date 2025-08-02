@@ -12,7 +12,7 @@ class ContainerFs {
 public:
 	static void create_repo();
 	static void create_container(const char *container_id);
-	static void remove_container(const char *container_id);
+	static int remove_container(const char *container_id);
 
 	static void mount_container(const char * container_id);
   static void umount_container(const char * container_id);

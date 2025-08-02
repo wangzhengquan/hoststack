@@ -1,21 +1,17 @@
 #include <sys/mount.h>
 #include <getopt.h>
 #include <sys/syscall.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+
 #include "container_dao.h"
-#include "container_info.h"
 #include "container_exec_cli.h"
 #include "pty_exec_util.h"
 #include "path_assembler.h"
+#include "container_service.h"
 #include "log.h"
 
-struct container_exec_arg_t {
-  bool detach;
-  char ** cmd_arr;
-  int cmd_arr_len;
-} ;
-
-
-void exec_cmd(pty_exe_opt_t arg);
 
 void ContainerExecCli::usage()
 {
@@ -112,12 +108,7 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
      return;
   }
 
-
-  char nspath[1024];
-  const char *namespaces[] = {"pid", "mnt", NULL};
-  int i = 0, fd;
-
-  auto container = ContainerDao::get_container_by_id_or_name(container_id);
+  std::optional<ContainerInfo> container = ContainerDao::get_container_by_id_or_name(container_id);
   if (!container) {
     fprintf(stderr, "No container identify by %s.", container_id);
     return;
@@ -126,11 +117,47 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
     fprintf(stderr, "Container %s is not in running status.\n", container_id);
     return;
   }
+
+  // exec(container,  mopt);
+
+  struct termios ttyAttr;
+  struct winsize ws;
+  if (tcgetattr(STDIN_FILENO, &ttyAttr) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
+  container_exec_option_t opt = {};
+  opt.containerPid = container->pid;
+  opt.containerId =  container->id.c_str();
+  opt.cmd = mopt.cmd_arr;
+  opt.detach = mopt.detach;
+  opt.ttyAttr = &ttyAttr;
+  opt.ttyWs = &ws;
+
+  ContainerService::exec(opt);
+
+  
+}
+
+void ContainerExecCli::exec(std::optional<ContainerInfo> container, container_exec_arg_t &mopt){
+  struct termios ttyAttr;
+  struct winsize ws;
+  if (tcgetattr(STDIN_FILENO, &ttyAttr) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+
   if(mopt.detach) {
     if(daemon(0, 1) != 0) {
       err_exit(errno, "conatiner_exec_cli >> daemon");
     }
   }
+
+  char nspath[1024];
+  const char *namespaces[] = {"pid", "mnt", NULL};
+  int i = 0, fd;
+
   while(namespaces[i] != NULL) {
      sprintf(nspath, "/proc/%d/ns/%s",  container->pid, namespaces[i]);
      if( (fd = open(nspath, O_RDONLY)) == -1 ) {
@@ -146,6 +173,8 @@ void ContainerExecCli::handleCommand(int argc,  char *argv[]) {
   ptyopt.containerId = container->id.c_str();
   ptyopt.cmd = mopt.cmd_arr;
   ptyopt.detach = mopt.detach;
+  ptyopt.ttyAttr = &ttyAttr;
+  ptyopt.ttyWs = &ws;
  
   pty_exec(ptyopt);
 }

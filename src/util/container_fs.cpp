@@ -86,23 +86,24 @@ void ContainerFs::create_container(const char *container_id)
 
 }
 
-void ContainerFs::remove_container(const char *container_id) {
+int ContainerFs::remove_container(const char *container_id) {
  
   char line[1024];
 
   sprintf(line, "sudo rm  -rf %s/containers/%s", hoststack_repo, container_id);
   if (system(line) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "(%s:%d) %s", __FILE__, __LINE__, line);
+    return -1;
   }
-
-  
 
   sprintf(line, "sudo rm -rf %s", PathAssembler::getLayerDir(container_id, 0));
   if (system(line) != 0)
   {
-    LoggerFactory::getRunLogger().error(errno, line);
+    LoggerFactory::getRunLogger().error(errno, "(%s:%d) %s", __FILE__, __LINE__, line);
+    return -1;
   }
+  return 0;
 }
 
 
@@ -220,14 +221,14 @@ void ContainerFs::umount_container(const char * container_id) {
       sprintf(line, "%s%s", rootfs, mnt_dir->target);
 // LoggerFactory::getRunLogger().debug("umount %s\n", line);
       if(umount2(line, MNT_FORCE) == -1) {
-        LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
+        LoggerFactory::getRunLogger().error(errno, "(%s:%d) : %s",__FILE__, __LINE__, line);
       }
     }
   }
 
   // 最后一个经常umount不成功，重试一次就可以
   if(umount2(line, MNT_FORCE) == -1) {
-    LoggerFactory::getRunLogger().error(errno, "ContainerFs::umount_container : %s", line);
+    LoggerFactory::getRunLogger().error(errno, "(%s:%d) : %s", __FILE__, __LINE__, line);
   }
 
   umount_volume_list(container_id);

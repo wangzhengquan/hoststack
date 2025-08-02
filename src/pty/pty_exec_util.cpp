@@ -55,105 +55,6 @@ struct termios ttyOrig;
 struct termios  g_termios_raw ;
 
 
-// 在正在运行的容器里执行命令， 并通过虚拟终端与其交互
-int pty_exec(pty_exe_opt_t arg)
-{
-  char slaveName[MAX_SNAME];
-  int masterFd;
- 
-  struct winsize ws;
-  fd_set ready_set;
-  char buf[BUF_SIZE];
-  ssize_t n;
-  pid_t childPid;
-  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
-
-  if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
-  if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
-
-  /* Retrieve the attributes of terminal on which we are started */
-  // ttyOrig =  *arg.ttyAttr;
-  // ws =  *arg.ttyWs;
-  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
-    err_msg(errno, "tcgetattr");
-  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
-    err_msg(errno, "ioctl-TIOCGWINSZ");
-  /* Create a child process, with parent and child connected via a
-     pty pair. The child is connected to the pty slave and its terminal
-     attributes are set to be the same as those retrieved above. */
-
-  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
-  if (childPid == -1)
-    err_msg(errno, "ptyFork");
-
-  if (childPid == 0)          /* Child: execute a shell on pty slave */
-  {
-    /* chroot 隔离目录 */
-    if ( chdir(rootfs) != 0 || chroot("./") != 0 )
-    {
-      err_msg(errno, "chdir/chroot:%s", rootfs);
-    }
-   
-    execvp(arg.cmd[0], arg.cmd);
-    err_msg(errno, "execvp: %s\n", arg.cmd[0]);
-  }
-
-  /* Parent: relay data between terminal and pty master */
-  if(!arg.detach) {
-    /* Place terminal in raw mode so that we can pass all terminal
-     input to the pseudoterminal master untouched */
-    ttySetRaw(STDIN_FILENO, NULL);
-    if (atexit(ttyReset) != 0)
-      err_msg(errno, "atexit");
-  } else {
-    // dumpStdOut();
-  }
-
-  /* Loop monitoring terminal and pty master for input. If the
-     terminal is ready for input, then read some bytes and write
-     them to the pty master. If the pty master is ready for output,
-     then read some bytes and write them to the terminal. */
-
-  for (;;) {
-    FD_ZERO(&ready_set);
-    if(!arg.detach){
-      FD_SET(STDIN_FILENO, &ready_set);
-    }
-    FD_SET(masterFd, &ready_set);
-
-    if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
-      err_msg(errno, "pty_exec select");
-      if(errno == EINTR) {
-        continue;
-      } 
-    }
-    
-    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
-    {
-      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
-        if(errno != EINTR)  {
-          exit(EXIT_SUCCESS);
-        }
-      }
-
-      if (write(masterFd, buf, n) != n)
-        err_exit(errno, "partial/failed write (masterFd)");
-    }
-
-    if ( FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
-    {
-      if ( (n = read(masterFd, buf, BUF_SIZE)) <= 0) {
-        if(errno != EINTR)  {
-          exit(EXIT_SUCCESS);
-        }
-      }
-      if (!arg.detach && write(STDOUT_FILENO, buf, n) != n)
-          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
-      
-    }
-  }
-}
- 
 
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
@@ -356,6 +257,107 @@ int pty_client(pty_exe_opt_t arg) {
     }
   }
 }
+
+
+// 在正在运行的容器里执行命令， 并通过虚拟终端与其交互
+int pty_exec(pty_exe_opt_t arg)
+{
+  char slaveName[MAX_SNAME];
+  int masterFd;
+ 
+  struct winsize ws;
+  fd_set ready_set;
+  char buf[BUF_SIZE];
+  ssize_t n;
+  pid_t childPid;
+  const char *rootfs = PathAssembler::getMergedDir(arg.containerId, NULL);
+
+  if (signal(SIGTTIN, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTIN");
+  if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)    err_msg(errno, "pty_exec >> SIGTTOU");
+
+  /* Retrieve the attributes of terminal on which we are started */
+  // ttyOrig =  *arg.ttyAttr;
+  // ws =  *arg.ttyWs;
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1)
+    err_msg(errno, "tcgetattr");
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
+    err_msg(errno, "ioctl-TIOCGWINSZ");
+  /* Create a child process, with parent and child connected via a
+     pty pair. The child is connected to the pty slave and its terminal
+     attributes are set to be the same as those retrieved above. */
+
+  childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
+  if (childPid == -1)
+    err_msg(errno, "ptyFork");
+
+  if (childPid == 0)          /* Child: execute a shell on pty slave */
+  {
+    /* chroot 隔离目录 */
+    if ( chdir(rootfs) != 0 || chroot("./") != 0 )
+    {
+      err_msg(errno, "chdir/chroot:%s", rootfs);
+    }
+   
+    execvp(arg.cmd[0], arg.cmd);
+    err_msg(errno, "execvp: %s\n", arg.cmd[0]);
+  }
+
+  /* Parent: relay data between terminal and pty master */
+  if(!arg.detach) {
+    /* Place terminal in raw mode so that we can pass all terminal
+     input to the pseudoterminal master untouched */
+    ttySetRaw(STDIN_FILENO, NULL);
+    if (atexit(ttyReset) != 0)
+      err_msg(errno, "atexit");
+  } else {
+    dumpStdOut();
+  }
+
+  /* Loop monitoring terminal and pty master for input. If the
+     terminal is ready for input, then read some bytes and write
+     them to the pty master. If the pty master is ready for output,
+     then read some bytes and write them to the terminal. */
+
+  for (;;) {
+    FD_ZERO(&ready_set);
+    if(!arg.detach){
+      FD_SET(STDIN_FILENO, &ready_set);
+    }
+    FD_SET(masterFd, &ready_set);
+
+    if (select(masterFd + 1, &ready_set, NULL, NULL, NULL) == -1) {
+      err_msg(errno, "pty_exec select");
+      if(errno == EINTR) {
+        continue;
+      } 
+    }
+    
+    if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
+    {
+      if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
+        if(errno != EINTR)  {
+          exit(EXIT_SUCCESS);
+        }
+      }
+
+      if (write(masterFd, buf, n) != n)
+        err_exit(errno, "partial/failed write (masterFd)");
+    }
+
+    if ( FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
+    {
+      if ( (n = read(masterFd, buf, BUF_SIZE)) <= 0) {
+        if(errno != EINTR)  {
+          exit(EXIT_SUCCESS);
+        }
+      }
+      if ( write(STDOUT_FILENO, buf, n) != n)
+          err_exit(errno, "partial/failed write (STDOUT_FILENO)");
+      
+    }
+  }
+}
+ 
 
 /* $begin init_pool */
 void init_pool(int listenfd, int masterfd, pool *p)

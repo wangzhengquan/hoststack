@@ -30,6 +30,7 @@
 #include "path_assembler.h"
 #include "container_fs.h"
 #include "log.h"
+#include "../util/container_dao.h"
 
 #define BUF_SIZE 4096
 #define MAX_SNAME 1000
@@ -46,7 +47,7 @@ typedef struct { /* Represents a pool of connected descriptors */ //line:conc:ec
 
 static void init_pool(int listenfd, int masterfd, pool *p);
 static void add_client(int connfd, pool *p);
-static void check_clients_and_master(pool *p);
+static int check_clients_and_master(pool *p);
 static void dumpStdOut();
 static void ttyReset();
 
@@ -192,6 +193,7 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
   callback(childPid);
   
   /*==============exec end==============*/
+
  
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    err_msg(errno, "signal");
 
@@ -263,11 +265,17 @@ int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 
 
     /* Echo a text line from each ready connected descriptor */
-    check_clients_and_master(&pool); 
+    if (check_clients_and_master(&pool) == 1) {
+      break;
+    }
   }
 
-  err_msg(0, "===========server exit================\n");
-
+  pid_t exit_child = wait(NULL);
+  assert(childPid == exit_child);
+  LoggerFactory::getRunLogger().debug("container %s exit, pid %d : %d", arg.containerId, childPid, exit_child); 
+  ContainerFs::umount_container(arg.containerId);
+  ContainerDao::change_status_to_stop(arg.containerId);
+  return 0;
 }
  
 
@@ -396,7 +404,7 @@ void add_client(int connfd, pool *p)
 /* $end add_client */
 
 /* $begin check_clients */
-void check_clients_and_master(pool *p)
+int check_clients_and_master(pool *p)
 {
   int i, connfd, n;
   char buf[BUF_SIZE];
@@ -418,7 +426,8 @@ void check_clients_and_master(pool *p)
        
       } else {
         if(rio_writen(p->masterfd, buf, n) <= 0) {
-           exit(EXIT_SUCCESS);
+          //  exit(EXIT_SUCCESS);
+          return 1;
         }
       }
     }
@@ -433,7 +442,8 @@ void check_clients_and_master(pool *p)
       // FD_CLR(p->masterfd, &p->read_set);
       // p->masterfd = -1;
       if(errno != EINTR) {
-         exit(EXIT_SUCCESS);
+        //  exit(EXIT_SUCCESS);
+        return 1;
       }
      
     } else {
@@ -457,7 +467,7 @@ void check_clients_and_master(pool *p)
       }
     }
   }
-
+  return 0;
 }
 
 

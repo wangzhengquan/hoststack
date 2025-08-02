@@ -43,7 +43,6 @@ static void exitHandler(void)
 
 static void sigTermHandler(int sig) {
   LoggerFactory::getRunLogger().debug("sigTermHandler %s", strsignal(sig));
-  // exit(0);
 }
  
 static void sigHupHandler(int sig) {
@@ -123,13 +122,13 @@ void ContainerService::start(container_start_option_t & opt,  std::function<void
   {
     // signal for "kill 容器进程"
     containerId = opt.containerId;
-    if (atexit(exitHandler) != 0)
-      err_msg(errno, "container_run_main >> atexit");
+    // if (atexit(exitHandler) != 0)
+    //   err_msg(errno, "container_run_main >> atexit");
     // Signal(SIGTERM, sigTermHandler);
     // Signal(SIGHUP, sigHupHandler);
     // Signal(SIGQUIT, sigQuitHandler);
 
-    Signal(SIGCHLD, sigchld_handler);
+    // Signal(SIGCHLD, sigchld_handler);
 
     pty_exe_opt_t ptyopt = {};
     ptyopt.synchSem = synchSem;

@@ -1,4 +1,3 @@
-
 /**
  * 
  *  ｜--------|    input  ｜--------|    input   ｜--------|     input  ｜--------| 
@@ -8,9 +7,8 @@
  *  ｜        | <---------｜        | <--------- ｜   fd   | <--------- ｜   fd   |
  *  ｜        |           ｜        |            ｜        |            ｜        |
  *  ｜--------|           ｜--------|            ｜--------|            ｜--------|
- *          
  * 
- *  
+ *          
  */ 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -484,6 +482,21 @@ void dumpStdOut() {
   } else {
     close(outFd);
   }
+
+  // char stdinfile[1024];
+  // sprintf(stdinfile, "%s/containers/%s/stdin.log",hoststack_repo,  garg.containerId);
+  // if (mkfifo(stdinfile, S_IRUSR | S_IWUSR | S_IWGRP) == -1 && errno != EEXIST)
+  //     err_exit(errno, "mkfifo %s", stdinfile);
+ 
+  // //inFd = open("/dev/null", O_RDONLY);
+  // inFd = open(stdinfile, O_RDONLY);
+  // if (inFd == -1)
+  //     err_exit(errno, "open %s", stdinfile);
+  // if(dup2(inFd, STDIN_FILENO) == -1) {
+  //    err_exit(errno, "redirectStdOut >> dup2 STDIN_FILENO");
+  // } else {
+  //   close(inFd);
+  // }
 }
 
 

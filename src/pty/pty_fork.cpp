@@ -1,5 +1,4 @@
-/* pty_fork.c
-
+/*  
    Implements ptyFork(), a function that creates a child process connected to
    the parent (i.e., the calling process) via a pseudoterminal (pty). The child
    is placed in a new session, with the pty slave as its controlling terminal,
@@ -42,6 +41,7 @@ ptyFork(int *masterFd, char *slaveName, size_t snLen,
   char slname[MAX_SNAME];
 
   mfd = ptyMasterOpen(slname, MAX_SNAME);
+  
   if (mfd == -1)
     return -1;
 
@@ -196,6 +196,7 @@ int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, 
   char slaveName[MAX_SNAME];
 
   masterFd = ptyMasterOpen(slaveName, MAX_SNAME);
+  // printf("slaveName: %s\n", slaveName);
   if (masterFd == -1)
     return -1;
   /* Create a child process, with parent and child connected via a
@@ -221,10 +222,10 @@ int ptyClone(const struct termios *slaveTermios, const struct winsize *slaveWS, 
  
   // childPid = clone(_ptyCloneRun, child_stack, flags, &ptyRunArg);
   
-  if (childPid == -1)                 /* fork() failed */
+  if (childPid == -1)                 /* clone() failed */
   {
     savedErrno = errno;             /* close() might change 'errno' */
-    close(masterFd);                     /* Don't leak file descriptors */
+    close(masterFd);                     
     errno = savedErrno;
     return -1;
   }

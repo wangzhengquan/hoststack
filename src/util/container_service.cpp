@@ -194,7 +194,6 @@ void ContainerService::exec(container_exec_option_t & opt) {
     }
   }
   
-  // setpgid(0, 0);
   while(namespaces[i] != NULL) {
     sprintf(nspath, "/proc/%d/ns/%s",  opt.containerPid, namespaces[i]);
     if( (fd = open(nspath, O_RDONLY)) == -1 ) {
@@ -212,9 +211,6 @@ void ContainerService::exec(container_exec_option_t & opt) {
   ptyopt.detach = opt.detach;
   ptyopt.ttyAttr = opt.ttyAttr;
   ptyopt.ttyWs = opt.ttyWs;
-// printf("=====ptyopt.containerId=%s\n", ptyopt.containerId);
-  // containerId = opt.containerId;
-  Signal(SIGCHLD, sigchld_handler);
   pty_exec(ptyopt);
 
 }

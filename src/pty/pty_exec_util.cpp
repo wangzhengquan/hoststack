@@ -339,23 +339,26 @@ int pty_exec(pty_exe_opt_t arg)
           exit(EXIT_SUCCESS);
         }
       }
-
-      if (write(masterFd, buf, n) != n)
-        err_exit(errno, "partial/failed write (masterFd)");
+      if(rio_writen(masterFd, buf, n) <= 0){
+        break;
+      }
     }
 
     if ( FD_ISSET(masterFd, &ready_set))        /* pty --> stdout+file */
     {
       if ( (n = read(masterFd, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
-          exit(EXIT_SUCCESS);
+          break;
         }
       }
       if ( write(STDOUT_FILENO, buf, n) != n)
           err_exit(errno, "partial/failed write (STDOUT_FILENO)");
-      
     }
   }
+  
+  pid_t exit_child = wait(NULL);
+  assert(childPid == exit_child);
+  LoggerFactory::getRunLogger().debug("exec %s exit, pid %d : %d", arg.containerId, childPid, exit_child); 
 }
  
 
@@ -444,18 +447,12 @@ int check_clients_and_master(pool *p)
       // FD_CLR(p->masterfd, &p->read_set);
       // p->masterfd = -1;
       if(errno != EINTR) {
-        //  exit(EXIT_SUCCESS);
         return 1;
       }
      
     } else {
       
       for (i = 0; i <= p->maxi; i++) {
-        // === debug
-        // if (rio_writen(STDOUT_FILENO, buf, n) != n) {
-        //   err_msg(errno, "check_clients_and_master>>rio_writen STDOUT_FILENO");
-        // }
-        //====
         connfd = p->clientfd[i];
         if(connfd > 0) {
           if (rio_writen(connfd, buf, n) != n) {

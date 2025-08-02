@@ -13,7 +13,9 @@ struct pty_exe_opt_t
   int synchSem;  // 通知用的信号量id
 };
 
-int pty_exec(pty_exe_opt_t arg);
+
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback);
-int pty_client(pty_exe_opt_t arg) ;
+int pty_client(pty_exe_opt_t arg);
+int pty_exec(pty_exe_opt_t arg);
+
 #endif

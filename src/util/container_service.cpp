@@ -11,23 +11,33 @@
 #include "container_service.h"
 #include "path_assembler.h"
 #include "log.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h> // For directory traversal
+#include <ctype.h>  // For isdigit()
+#include <unistd.h> // For getpid(), fork(), sleep()
+#include <sys/types.h>
+#include <sys/wait.h> // For wait()
 
 int synchSem;
 
 const char *containerId = NULL;
 int containerIdSem = SemUtil::get(IPC_PRIVATE, 1);
-
+pid_t containerPid;
+ 
 static void exitHandler(void)
 {
-  LoggerFactory::getRunLogger().debug("exitHandler");
-  // SemUtil::dec(containerIdSem);
+
+  // LoggerFactory::getRunLogger().debug("----exitHandler");
+  // std::optional<ContainerInfo> container = ContainerDao::get_container_by_id_or_name(containerId);
+  sleep(2);
   if(containerId != NULL) {
+    LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
     ContainerFs::umount_container(containerId);
     ContainerDao::change_status_to_stop(containerId);
-    // containerId = NULL;
-    // LoggerFactory::getRunLogger().debug("exitHandler containerId=%s", containerId); 
+    
   }
-  // SemUtil::inc(containerIdSem);
  
 }
 
@@ -68,6 +78,7 @@ static void sigchld_handler(int sig)
       if (containerId != NULL){
         ContainerFs::umount_container(containerId);
         ContainerDao::change_status_to_stop(containerId);
+        containerId = NULL;
       }
       
     }
@@ -112,17 +123,13 @@ void ContainerService::start(container_start_option_t & opt,  std::function<void
   {
     // signal for "kill 容器进程"
     containerId = opt.containerId;
-    // if (atexit(exitHandler) != 0)
-    //   err_msg(errno, "container_run_main >> atexit");
+    if (atexit(exitHandler) != 0)
+      err_msg(errno, "container_run_main >> atexit");
     // Signal(SIGTERM, sigTermHandler);
     // Signal(SIGHUP, sigHupHandler);
     // Signal(SIGQUIT, sigQuitHandler);
 
     Signal(SIGCHLD, sigchld_handler);
-
-    
-
-    
 
     pty_exe_opt_t ptyopt = {};
     ptyopt.synchSem = synchSem;
@@ -133,11 +140,14 @@ void ContainerService::start(container_start_option_t & opt,  std::function<void
     ptyopt.ttyAttr = opt.ttyAttr;
     ptyopt.ttyWs = opt.ttyWs;
     
-    pty_run_container(ptyopt, startSuccess);
+    pty_run_container(ptyopt, [&](pid_t pid){
+      containerPid = pid;
+      startSuccess(pid);
+    });
     
     return ;                
   }
-  // LoggerFactory::getRunLogger().info("Container pid[%d]!\n", containerPid);
+
   SemUtil::zero(synchSem);
   if( !opt.detach ) {
     pty_exe_opt_t execOpt = {};

@@ -107,7 +107,7 @@ int pty_exec(pty_exe_opt_t arg)
     if (atexit(ttyReset) != 0)
       err_msg(errno, "atexit");
   } else {
-    dumpStdOut();
+    // dumpStdOut();
   }
 
   /* Loop monitoring terminal and pty master for input. If the
@@ -148,7 +148,7 @@ int pty_exec(pty_exe_opt_t arg)
           exit(EXIT_SUCCESS);
         }
       }
-      if ( write(STDOUT_FILENO, buf, n) != n)
+      if (!arg.detach && write(STDOUT_FILENO, buf, n) != n)
           err_exit(errno, "partial/failed write (STDOUT_FILENO)");
       
     }

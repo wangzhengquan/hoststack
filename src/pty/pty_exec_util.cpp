@@ -52,9 +52,6 @@ static void dumpStdOut();
 static void ttyReset();
 
 struct termios ttyOrig;
-struct termios  g_termios_raw ;
-
-
 
 int pty_run_container(pty_exe_opt_t arg,  std::function<void(pid_t)>  callback)
 {
@@ -211,12 +208,13 @@ int pty_client(pty_exe_opt_t arg) {
   // assert(arg.ttyAttr != NULL);
   tcgetattr(STDIN_FILENO , &ttyOrig );
   // ttyOrig = *arg.ttyAttr;
-  memcpy( & g_termios_raw , &ttyOrig , sizeof(struct termios) );
-  cfmakeraw( &g_termios_raw );
-  tcsetattr( STDIN_FILENO , TCSANOW , &g_termios_raw ) ;
+  struct termios  termios_raw ;
+  memcpy( &termios_raw , &ttyOrig , sizeof(struct termios) );
+  cfmakeraw( &termios_raw );
+  tcsetattr( STDIN_FILENO , TCSANOW , &termios_raw ) ;
 
-  if (atexit(ttyReset) != 0)
-    err_msg(errno, "pty_client >> atexit");
+  // if (atexit(ttyReset) != 0)
+  //   err_msg(errno, "pty_client >> atexit");
 
   FD_ZERO(&read_set);
   FD_SET(STDIN_FILENO, &read_set);
@@ -237,18 +235,19 @@ int pty_client(pty_exe_opt_t arg) {
     if (FD_ISSET(STDIN_FILENO, &ready_set))     /* stdin --> pty */
     {
       if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
-        
-        exit(EXIT_SUCCESS);
+        break;
+        // exit(EXIT_SUCCESS);
       }
         
-      if (rio_writen(clientfd, buf, n) !=  n)
-        err_exit(errno, "partial/failed write (masterFd)");
+      if (rio_writen(clientfd, buf, n) <= 0)
+        break;
     }
 
     if (FD_ISSET(clientfd, &ready_set))        /* pty --> stdout+file */
     {
       if ((n = read(clientfd, buf, BUF_SIZE)) <= 0) {
-        exit(EXIT_SUCCESS);
+        // exit(EXIT_SUCCESS);
+        break;
       }
 
       if (rio_writen(STDOUT_FILENO, buf, n) != n)
@@ -256,6 +255,10 @@ int pty_client(pty_exe_opt_t arg) {
       
     }
   }
+
+  ttyReset();
+  LoggerFactory::getRunLogger().debug("client of container %s exit", arg.containerId); 
+  return 0;
 }
 
 
@@ -307,8 +310,8 @@ int pty_exec(pty_exe_opt_t arg)
     /* Place terminal in raw mode so that we can pass all terminal
      input to the pseudoterminal master untouched */
     ttySetRaw(STDIN_FILENO, NULL);
-    if (atexit(ttyReset) != 0)
-      err_msg(errno, "atexit");
+    // if (atexit(ttyReset) != 0)
+    //   err_msg(errno, "atexit");
   } else {
     dumpStdOut();
   }
@@ -336,7 +339,8 @@ int pty_exec(pty_exe_opt_t arg)
     {
       if (( n = read(STDIN_FILENO, buf, BUF_SIZE)) <= 0) {
         if(errno != EINTR)  {
-          exit(EXIT_SUCCESS);
+          break;
+          // exit(EXIT_SUCCESS);
         }
       }
       if(rio_writen(masterFd, buf, n) <= 0){
@@ -358,7 +362,11 @@ int pty_exec(pty_exe_opt_t arg)
   
   pid_t exit_child = wait(NULL);
   assert(childPid == exit_child);
-  LoggerFactory::getRunLogger().debug("exec %s exit, pid %d : %d", arg.containerId, childPid, exit_child); 
+  if(!arg.detach) {
+    ttyReset();
+  }
+  LoggerFactory::getRunLogger().debug("exec in container %s exit, pid %d : %d", arg.containerId, childPid, exit_child); 
+  return 0;
 }
  
 
@@ -447,11 +455,11 @@ int check_clients_and_master(pool *p)
       // FD_CLR(p->masterfd, &p->read_set);
       // p->masterfd = -1;
       if(errno != EINTR) {
+        //  exit(EXIT_SUCCESS);
         return 1;
       }
      
     } else {
-      
       for (i = 0; i <= p->maxi; i++) {
         connfd = p->clientfd[i];
         if(connfd > 0) {

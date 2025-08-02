@@ -310,8 +310,6 @@ int pty_exec(pty_exe_opt_t arg)
     /* Place terminal in raw mode so that we can pass all terminal
      input to the pseudoterminal master untouched */
     ttySetRaw(STDIN_FILENO, NULL);
-    // if (atexit(ttyReset) != 0)
-    //   err_msg(errno, "atexit");
   } else {
     dumpStdOut();
   }
